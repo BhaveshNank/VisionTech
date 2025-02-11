@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { sendMessageToChatbot } from '../utils/api';
 
 const ChatContainer = styled.div`
   max-width: 600px;
@@ -19,7 +20,7 @@ const MessageList = styled.div`
 `;
 
 const MessageInput = styled.input`
-  width: 75%;  // Reduced from 80% to make space for button
+  width: 75%;
   padding: 0.5rem;
   margin-right: 0.5rem;
   border: 1px solid #ddd;
@@ -33,7 +34,7 @@ const SendButton = styled.button`
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  width: 20%;  // Added width to fill remaining space
+  width: 20%;
 
   &:hover {
     background: #0056b3;
@@ -106,29 +107,18 @@ const ChatInterface = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
-    
+
     setIsLoading(true);
 
-    // Add user message
     setMessages([...messages, { text: inputText, isUser: true }]);
 
     try {
-      const response = await fetch('http://localhost:5000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: inputText }),
-      });
-
-      const data = await response.json();
-      
-      // Add AI response
-      setMessages(msgs => [...msgs, { text: data.reply, isUser: false }]);
+      const botReply = await sendMessageToChatbot(inputText);
+      setMessages(msgs => [...msgs, { text: botReply, isUser: false }]);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Chatbot API Error:', error);
       setMessages(msgs => [...msgs, { 
-        text: 'Sorry, there was an error processing your request.', 
+        text: 'Error connecting to chatbot. Please try again.', 
         isUser: false 
       }]);
     } finally {
@@ -166,9 +156,9 @@ const ChatInterface = () => {
           <form onSubmit={handleSubmit} style={{ 
             padding: '1rem', 
             marginTop: 'auto',
-            display: 'flex',  // Added to align items horizontally
-            alignItems: 'center',  // Vertically center the items
-            gap: '0.5rem'  // Space between input and button
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
           }}>
             <MessageInput
               type="text"
