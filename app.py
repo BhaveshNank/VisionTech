@@ -79,10 +79,23 @@ def chat():
             "contents": [
                 {
                     "role": "user",
-                    "parts": [{"text": f"Extract the required product type and key features from this query: {user_message}"}]
+                    "parts": [
+                        {"text": f"""
+                        Analyze the following user query and extract:
+                        1. The required product category (Example: Laptop, Phone, Tablet).
+                        2. The key features the user is looking for in this product.
+                        3. If the user is looking for a specialized product (Example: Gaming Laptop, Business Laptop, Workstation Laptop), extract that too.
+
+                        User Query: {user_message}
+                        Provide a structured response like:
+                        **Required product type:** <category>
+                        **Key features:** <comma-separated features>
+                        """}
+                    ]
                 }
             ]
         }
+
 
         gpt_response = requests.post(endpoint, headers=headers, json=gpt_payload)
         if gpt_response.status_code != 200:
@@ -111,10 +124,14 @@ def chat():
             detected_product_type = product_type_match.group(1).strip().lower()
             detected_product_type = re.sub(r'[^a-zA-Z0-9 ]', '', detected_product_type).strip()
 
+        if not detected_product_type:
+            print(f"⚠️ No valid product type extracted!")
+            return jsonify({"reply": "Sorry, we couldn't determine the product type from your request."})
+
+        print(f"✅ Detected Product Type: {detected_product_type}")
+
         # ✅ Step 5.1: Map product type correctly
         def map_product_type(detected_product_type, available_categories):
-            if not detected_product_type:
-                return None
             for category in available_categories:
                 if detected_product_type in category.lower() or category.lower() in detected_product_type:
                     return category
@@ -123,14 +140,14 @@ def chat():
         mapped_product_type = map_product_type(detected_product_type, available_categories)
 
         if not mapped_product_type:
-            print(f"⚠️ No valid product type detected!")
+            print(f"⚠️ No valid product type detected in the database!")
             return jsonify({"reply": "Sorry, we couldn't find that type of product in our database."})
 
         print(f"✅ Mapped Product Type: {mapped_product_type}")
-        detected_product_type = mapped_product_type.lower()
 
         # ✅ Step 6: Extract and clean feature list
-        feature_list_match = re.search(r"Key Features:\s*\n?([\s\S]+)", extracted_features, re.IGNORECASE)
+        feature_list_match = re.search(r"\*\*Key features:\*\*\s*([\s\S]+)", extracted_features, re.IGNORECASE)
+
 
         cleaned_keywords = []
         if feature_list_match:
@@ -148,17 +165,14 @@ def chat():
         print(f"📌 Cleaned keywords for matching: {cleaned_keywords}")
 
         # ✅ Step 7: Query MongoDB for Matching Products
-        query = {"type": detected_product_type}
-
-        if cleaned_keywords:
-            regex_pattern = "|".join(map(re.escape, cleaned_keywords))
-            query["specifications"] = {"$regex": regex_pattern, "$options": "i"}
-
+        query = {"type": mapped_product_type}
         matching_products = list(collection.find(query))
 
+        if not matching_products:
+            print(f"⚠️ No products found in database for type: {mapped_product_type}")
+            return jsonify({"reply": "Sorry, we couldn't find any matching products in our database."})
+
         print(f"📌 Matching products found: {len(matching_products)}")
-        for product in matching_products:
-            print(f"🔹 Product: {product['name']}, Specs: {product['specifications']}")
 
         # ✅ Step 8: Rank products based on feature match
         ranked_products = []
@@ -171,6 +185,7 @@ def chat():
             match_score = sum(1 for keyword in cleaned_keywords if keyword in [spec.lower() for spec in product_specs])
             ranked_products.append((product_name, product_specs, product_price, match_score))
 
+        # Sort products by match score (higher is better)
         ranked_products.sort(key=lambda x: x[3], reverse=True)
 
         # ✅ Step 9: Return the Best Match or Fallback Response
