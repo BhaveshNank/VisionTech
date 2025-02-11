@@ -4,14 +4,17 @@ import requests
 import re
 from flask_cors import CORS
 from functools import wraps
+import logging 
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# ✅ Allow all origins, methods, and headers
+CORS(app, resources={r"/chat": {"origins": "*"}})
 
-# MongoDB connection
-client = MongoClient("mongodb://localhost:27017/")
-db = client['ecommerce_db']
-collection = db['products']
+# ✅ MongoDB Connection (Make sure MongoDB is running)
+client = MongoClient("mongodb://localhost:27017/")  # Connect to MongoDB
+db = client["ecommerce_db"]  # Use your database name
+collection = db["products"]  # Use your collection name
+
 
 # Google Gemini API Setup
 api_key = "GEMINI_KEY_HERE"
@@ -35,6 +38,23 @@ def handle_server_error(error):
         "error": "Internal server error occurred",
         "details": str(error)
     }), 500
+
+
+# ✅ Test route to check if Flask is running
+@app.route('/test', methods=['GET'])
+def test():
+    logging.info("Test API called")
+    return jsonify({"message": "API is working!"}), 200
+
+# ✅ Fixing CORS Issues (Preflight Requests)
+@app.route('/chat', methods=['OPTIONS'])
+def chat_options():
+    """Handles CORS preflight requests."""
+    response = jsonify({"message": "CORS preflight successful"})
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response, 200
 
 @app.route('/chat', methods=['POST'])
 @validate_request
@@ -166,10 +186,8 @@ def chat():
         print(f"❌ ERROR: {e}")
         return jsonify({"error": "An internal server error occurred"}), 500
 
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
 
-
-
-api_key = "GEMINI_KEY_HERE"
