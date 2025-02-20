@@ -8,6 +8,7 @@ function fetchProducts() {
         });
 }
 
+//Testing the api 
 function sendInquiry(data) {
     return fetch('/api/inquiry', {
         method: 'POST',
