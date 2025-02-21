@@ -5,44 +5,61 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["ecommerce_db"]
 collection = db["products"]
 
-# New structured product data
-updated_products = [
+# Sample Data
+categories = [
     {
-        "name": "MacBook M4 Pro",
-        "type": "laptop",
-        "price": 2399,
-        "specifications": ["16GB RAM", "512GB SSD", "M4 Pro chip", "Retina Display", "High-performance GPU"]
+        "category": "laptop",
+        "products": [
+            {
+                "name": "MacBook M4 Pro",
+                "price": 2399,
+                "specifications": ["16GB RAM", "512GB SSD", "M4 Pro chip", "Retina Display", "High-performance GPU"]
+            },
+            {
+                "name": "High-End Gaming Laptop",
+                "price": 2999,
+                "specifications": ["32GB RAM", "1TB SSD", "RTX 4090", "144Hz Display", "Intel Core i9"]
+            }
+        ]
     },
     {
-        "name": "High-End Gaming Laptop",
-        "type": "laptop",
-        "price": 2999,
-        "specifications": ["32GB RAM", "1TB SSD", "RTX 4090", "144Hz Display", "Intel Core i9"]
+        "category": "phone",
+        "products": [
+            {
+                "name": "iPhone 16 Pro Max",
+                "price": 1299,
+                "specifications": ["Triple Camera Setup", "A18 Pro Chip", "50 MP Camera", "OLED Display", "5G Connectivity"]
+            },
+            {
+                "name": "Samsung Galaxy S24 Ultra",
+                "price": 1199,
+                "specifications": ["Quad Camera Setup", "Snapdragon 8 Gen 3", "200 MP Camera", "120Hz AMOLED Display", "5G Connectivity"]
+            }
+        ]
     },
     {
-        "name": "iPhone 16 Pro Max",
-        "type": "phone",
-        "price": 1299,
-        "specifications": ["Triple Camera Setup", "A18 Pro Chip", "50 MP Camera", "OLED Display", "5G Connectivity"]
-    },
-    {
-        "name": "iPhone 16 Pro",
-        "type": "phone",
-        "price": 1099,
-        "specifications": ["Dual Camera Setup", "A18 Chip", "48 MP Camera", "OLED Display", "5G Connectivity"]
-    },
-    {
-        "name": "MyPhone Plus",
-        "type": "phone",
-        "price": 699,
-        "specifications": ["50 MP Camera", "Wide Lens", "LCD Display", "4G Connectivity", "Fast Charging"]
+        "category": "tv",
+        "products": [
+            {
+                "name": "Samsung 65-inch QLED TV",
+                "price": 1499,
+                "specifications": ["4K UHD", "Quantum HDR", "120Hz Refresh Rate", "Smart TV"]
+            },
+            {
+                "name": "LG OLED CX 55-inch",
+                "price": 1799,
+                "specifications": ["4K OLED", "Dolby Vision", "HDMI 2.1", "Smart TV"]
+            }
+        ]
     }
 ]
 
-# Clear the collection (optional: remove all existing entries)
-collection.delete_many({})
+# Insert or Update Data in MongoDB
+for category in categories:
+    collection.update_one(
+        {"category": category["category"]},  # Find the category
+        {"$set": {"products": category["products"]}},  # Update products list
+        upsert=True  # Insert if not found
+    )
 
-# Insert updated products
-collection.insert_many(updated_products)
-
-print("✅ Database successfully updated with structured features!")
+print("Data updated successfully!")

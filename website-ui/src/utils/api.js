@@ -30,13 +30,23 @@ export async function sendMessageToChatbot(userMessage) {
     try {
         console.log("Sending message to chatbot:", userMessage);
 
-        const response = await fetch("http://127.0.0.1:5000/chat", {  // Make sure this matches Flask API
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ message: userMessage })
-        });
+        // Detect if user is requesting a product category
+        const categories = ["laptop", "phone", "tv"];  // Add more as needed
+        const detectedCategory = categories.find(category => 
+            userMessage.toLowerCase().includes(category)
+        );
+
+        // If user requests a category, call the new Flask API
+        let response;
+        if (detectedCategory) {
+            response = await fetch(`http://127.0.0.1:5000/products/${detectedCategory}`);
+        } else {
+            response = await fetch("http://127.0.0.1:5000/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userMessage })
+            });
+        }
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -51,5 +61,6 @@ export async function sendMessageToChatbot(userMessage) {
         return "Sorry, something went wrong. Please check the API connection.";
     }
 }
+
 
 
