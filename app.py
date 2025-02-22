@@ -88,22 +88,42 @@ def chat():
         if not user_message:
             return jsonify({"error": "No message provided"}), 400
 
-        print(f"Received message: {user_message}")
+        print(f"📩 Received message: {user_message}")
 
         # Step 2: Fetch available product categories from MongoDB
         available_categories = collection.distinct("category")
         available_categories_lower = [c.lower() for c in available_categories]
         print(f"📌 Available product categories in DB: {available_categories}")
 
-        # Step 3: Fetch available features from MongoDB before querying Gemini
-        all_available_features = set()
+        # Step 3: Identify the product category from user input
+        detected_category = None
+        for category in available_categories:
+            if category.lower() in user_message.lower():
+                detected_category = category
+                break
 
-        # We need to delay querying MongoDB until we have a detected product type.
-        # So Step 3 only initializes an empty feature set.
-        print("📌 Step 3: Will fetch available features after extracting product type.")
+        if not detected_category:
+            print(f"⚠️ Could not detect product category from query: {user_message}")
+            return jsonify({"reply": "Sorry, we couldn't identify the product category in your request."})
 
+        print(f"✅ Detected Product Category: {detected_category}")
 
-        # Step 4: Querying Gemini API to detect product category & user intent
+        # Step 4: Fetch all products and features for the detected category
+        category_data = collection.find_one({"category": detected_category}, {"products": 1, "_id": 0})
+
+        if not category_data or "products" not in category_data:
+            print(f"❌ No products found in category: {detected_category}")
+            return jsonify({"reply": f"Sorry, no products available in {detected_category} category."})
+
+        # Structure products as a dictionary
+        structured_products = {
+            product["name"]: product.get("specifications", [])
+            for product in category_data["products"]
+        }
+
+        print(f"📌 Extracted Products & Features: {json.dumps(structured_products, indent=2)}")
+
+        # Step 5: Send structured features to Gemini for intelligent matching
         gpt_payload = {
             "contents": [
                 {
@@ -111,50 +131,23 @@ def chat():
                     "parts": [
                         {
                             "text": f"""
-                            You are an AI assistant helping customers find products in an electronics store. 
-                            
+                            You are an AI assistant helping customers find products in an electronics store.
+
                             ## Task:
-                            - Identify the **main product category** the user is searching for (e.g., Laptop, Phone, TV).
-                            - If the user requests a product for a **specific intent** (e.g., "I need a laptop for gaming"),
-                            suggest the most relevant features **only from the available ones**.
-                            - If the user does not specify features, return the product category without features.
+                            - The user is searching for a {detected_category}.
+                            - The store has the following products available:
 
-                            ## Important Instructions:
-                            - **Use ONLY the following feature categories**: ['RAM', 'GPU', 'Display', 'Storage', 'Processor', 'Battery Life'].
-                            - **Format each feature as an object with name and value**.
-                            - **Do NOT make up new feature names**; use only the listed categories.
-                            - **Ensure feature values match how they appear in product descriptions** (e.g., '16GB RAM', 'Intel i9', '144Hz Display').
+                            {json.dumps(structured_products, indent=2)}
 
-                            ## Example Queries & Expected Responses:
-                            
-                            **User Query:** "I need a gaming laptop"
-                            **Expected Response:**
+                            - Your task is to **identify the most relevant product** based on the user's request.
+                            - Match features as closely as possible. **Do not guess new features**.
+
+                            **User Query:** {user_message}
+
+                            ## Expected Response Format:
                             {{
-                                "product_type": "Laptop",
-                                "features": [
-                                    {{"name": "GPU", "value": "RTX 4090"}},
-                                    {{"name": "Display", "value": "144Hz"}}
-                                ]
-                            }}
-
-                            **User Query:** "I need a laptop with 32GB RAM and Intel i9 processor"
-                            **Expected Response:**
-                            {{
-                                "product_type": "Laptop",
-                                "features": [
-                                    {{"name": "RAM", "value": "32GB"}},
-                                    {{"name": "Processor", "value": "Intel i9"}}
-                                ]
-                            }}
-
-                            **User Query:** "{user_message}"
-
-                            ## Respond strictly in this JSON format:
-                            {{
-                                "product_type": "<category>",
-                                "features": [
-                                    {{"name": "<Feature Name>", "value": "<Feature Value>"}}
-                                ]
+                                "selected_product": "<Product Name>",
+                                "matched_features": ["<Feature1>", "<Feature2>"]
                             }}
                             """
                         }
@@ -163,10 +156,11 @@ def chat():
             ]
         }
 
-
+        # Call Gemini API
         gpt_response = requests.post(endpoint, headers=headers, json=gpt_payload)
+
         if gpt_response.status_code != 200:
-            print(f"Google Gemini API error: {gpt_response.text}")
+            print(f"❌ Gemini API error: {gpt_response.text}")
             return jsonify({"error": "Failed to process query with Gemini"}), 500
 
         gpt_result = gpt_response.json()
@@ -176,180 +170,51 @@ def chat():
 
         # Extract Gemini's response text
         raw_gemini_text = gpt_result["candidates"][0]["content"]["parts"][0].get("text", "").strip()
-        if not raw_gemini_text:
-            print(f"❌ ERROR: Gemini API response has no text:\n{gpt_result}")
-            return jsonify({"error": "Failed to extract product features from AI"}), 500
+        print(f"🔍 Raw response from Gemini API:\n{raw_gemini_text}")
 
-
-
-
-        # Step 5: Extract product_type and features from the JSON text
-        detected_product_type = None
-        cleaned_keywords = []
-
+        # Parse response
         try:
-            print(f"🔍 Raw response from Gemini API:\n{raw_gemini_text}")
             gemini_response = json.loads(raw_gemini_text)
+            selected_product_name = gemini_response.get("selected_product", "").strip()
+            matched_features = gemini_response.get("matched_features", [])
 
-            # Extract product category
-            detected_product_type = gemini_response.get("product_type", "").strip().lower()
+            if not selected_product_name or not matched_features:
+                raise ValueError("Gemini returned an empty product name or features.")
 
-            # Extract features (handle structured features correctly)
-            raw_features_list = gemini_response.get("features", [])
-            
-            # If features are structured as { "name": "...", "value": "..." }, extract correctly
-            for feature in raw_features_list:
-                if isinstance(feature, dict) and "name" in feature and "value" in feature:
-                    full_feature = f"{feature['value']} {feature['name']}"  # Correct word order
-                    cleaned_keywords.append(full_feature.strip().lower())
-                elif isinstance(feature, str):  # Handle string-based features normally
-                    cleaned_keywords.append(feature.strip().lower())
-
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             print(f"⚠️ Failed to parse Gemini response: {raw_gemini_text}")
-            return jsonify({"reply": "Sorry, we couldn't determine the product type."})
+            return jsonify({"reply": "Sorry, we couldn't determine the best product."})
 
-        if not detected_product_type:
-            print(f"⚠️ No valid product type extracted!")
-            return jsonify({"reply": "Sorry, we couldn't determine the product type."})
-
-        print(f"✅ Detected Product Type: {detected_product_type}")
-        print(f"🟢 Selected Features (from Gemini & DB): {raw_features_list}")
-        print(f"🟢 Cleaned Keywords for Querying: {cleaned_keywords}")
-
-
-
-        # Step 5.1: Normalize feature names to match database format
-        normalized_features = []
-
-        for feature in cleaned_keywords:
-            # Remove special characters and extra spaces
-            normalized = re.sub(r"[^a-zA-Z0-9 ]", "", feature).strip().lower()
-
-            # Check if the normalized feature exists in the available features
-            best_match = None
-            for db_feature in all_available_features:
-                db_normalized = re.sub(r"[^a-zA-Z0-9 ]", "", db_feature).strip().lower()
-                
-                if sorted(db_normalized.split()) == sorted(normalized.split()):
-                    best_match = db_feature
-                    break  # Stop once a match is found
-
-            # Use the best match if found, otherwise, keep the original
-            normalized_features.append(best_match if best_match else feature)
-
-        print(f"🟢 Final Normalized Features for Querying: {normalized_features}")
-
-
-
-
-        # Step 6: Map product type to known categories in DB
-        def map_product_type(detected_product_type, available_categories):
-            if not detected_product_type:
-                return None
-
-            for category in available_categories:
-                if re.search(rf"\b{re.escape(detected_product_type)}\b", category, re.IGNORECASE):
-                    return category
-
-            return None
-
-        mapped_product_type = map_product_type(detected_product_type, available_categories)
-
-        if not mapped_product_type:
-            print(f"⚠️ No valid product type found in the database!")
-            return jsonify({"reply": "Sorry, we couldn't find that type of product in our database."})
-
-        print(f"✅ Mapped Product Type: {mapped_product_type}")
-
-        # Fetch available features **after detecting the product type**
-        available_features_query = collection.find_one(
-            {"category": mapped_product_type}, {"products.specifications": 1, "_id": 0}
-        )
-
-        all_available_features = set()
-        if available_features_query and "products" in available_features_query:
-            for product in available_features_query["products"]:
-                specifications = product.get("specifications", [])
-                if isinstance(specifications, list):
-                    all_available_features.update(specifications)
-
-        print(f"📌 Available Features for {mapped_product_type}: {list(all_available_features)}")
-
-
-
-
-        # Step 7: Query MongoDB for Matching Products
-        query = {"category": mapped_product_type}  # Start with category filter
-
-        regex_patterns = []  # Ensure regex_patterns is initialized before use
-
-        if cleaned_keywords:
-            for keyword in cleaned_keywords:
-                # Normalize keyword (remove special characters)
-                normalized_keyword = re.sub(r"[^a-zA-Z0-9 ]", "", keyword).strip().lower()
-
-                # Create regex pattern for **exact full feature match** (not word-separated)
-                exact_match_regex = r"\b" + re.escape(normalized_keyword) + r"\b"
-
-                regex_patterns.append({"products.specifications": {"$regex": exact_match_regex, "$options": "i"}})
-
-        # Only add regex patterns if they exist
-        if regex_patterns:
-            query["$or"] = regex_patterns
+        # Step 6: Fetch the exact product from MongoDB
+        query = {
+            "category": detected_category,
+            "products.name": {"$regex": f"^{re.escape(selected_product_name)}$", "$options": "i"}
+        }
 
         print(f"🔍 Final MongoDB Query Before Execution: {json.dumps(query, indent=2)}")
 
-        # Fetch products from MongoDB
-        matching_docs = list(collection.find(query))
+        # Fetch product from MongoDB
+        matching_product_doc = collection.find_one(query, {"products.$": 1, "_id": 0})
 
-        # Extract relevant products from each matching doc
-        filtered_products = []
-        for doc in matching_docs:
-            for product in doc.get("products", []):
-                specs_lower = [spec.lower() for spec in product.get("specifications", [])]
-                if any(any(kw in spec for spec in specs_lower) for kw in cleaned_keywords):
-                    filtered_products.append(product)
-
-        if not filtered_products:
-            print(f"⚠️ No products found in database for type: {mapped_product_type} "
-                f"with features: {cleaned_keywords}")
+        if not matching_product_doc:
+            print(f"⚠️ No product found in database for type: {detected_category} with name: {selected_product_name}")
             return jsonify({
-                "reply": f"Sorry, no {mapped_product_type} with features {', '.join(cleaned_keywords)} found."
+                "reply": f"Sorry, we couldn't find {selected_product_name} in our inventory."
             })
 
-        print(f"✅ Matching products found: {len(filtered_products)}")
+        # Extract product details
+        matched_product = matching_product_doc["products"][0]
+        print(f"✅ Matched Product Found: {matched_product}")
 
-
-
-
-
-
-
-        # Step 8: Rank products based on feature match
-        ranked_products = []
-        for product in filtered_products:
-            product_name = product.get("name", "")
-            product_specs = product.get("specifications", [])
-            product_price = product.get("price", "Price not available")
-
-            match_score = sum(
-                1 for kw in cleaned_keywords
-                if any(kw in spec.lower() for spec in product_specs)
-            )
-            ranked_products.append((product_name, product_specs, product_price, match_score))
-
-        ranked_products.sort(key=lambda x: x[3], reverse=True)
-
-        # Step 9: Return the best match
-        best_name, best_specs, best_price, _ = ranked_products[0]
+        # Step 7: Return the matched product
         return jsonify({
-            "reply": f"Recommended: {best_name} - Features: {', '.join(best_specs)}. Price: ${best_price}"
+            "reply": f"Recommended: {matched_product['name']} - Features: {', '.join(matched_features)}. "
+                     f"Price: ${matched_product.get('price', 'Price not available')}"
         })
 
     except Exception as e:
-        print(f"ERROR: {e}")
-        return jsonify({"error": "An internal server error occurred"}), 500
+        print(f"❌ ERROR: {e}")
+        return jsonify({"error": "An internal server error occurred while processing your request."}), 500
 
     
 
