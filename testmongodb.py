@@ -5,61 +5,67 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["ecommerce_db"]
 collection = db["products"]
 
-# Sample Data
-categories = [
+# New TVs to be added under the "tv" category
+new_tvs = [
     {
-        "category": "laptop",
-        "products": [
-            {
-                "name": "MacBook M4 Pro",
-                "price": 2399,
-                "specifications": ["16GB RAM", "512GB SSD", "M4 Pro chip", "Retina Display", "High-performance GPU"]
-            },
-            {
-                "name": "High-End Gaming Laptop",
-                "price": 2999,
-                "specifications": ["32GB RAM", "1TB SSD", "RTX 4090", "144Hz Display", "Intel Core i9"]
-            }
+        "name": "Sony Bravia 8 OLED TV",
+        "price": 2299.99,  # Update with the actual price if available
+        "specifications": [
+            "65-inch OLED panel",
+            "4K Ultra HD resolution",
+            "Dolby Vision, HDR10 support",
+            "120Hz refresh rate",
+            "Google TV interface with voice control",
+            "Acoustic Surface Audio+ technology",
+            "Slim profile with minimalist stand"
         ]
     },
     {
-        "category": "phone",
-        "products": [
-            {
-                "name": "iPhone 16 Pro Max",
-                "price": 1299,
-                "specifications": ["Triple Camera Setup", "A18 Pro Chip", "50 MP Camera", "OLED Display", "5G Connectivity"]
-            },
-            {
-                "name": "Samsung Galaxy S24 Ultra",
-                "price": 1199,
-                "specifications": ["Quad Camera Setup", "Snapdragon 8 Gen 3", "200 MP Camera", "120Hz AMOLED Display", "5G Connectivity"]
-            }
+        "name": "LG OLED evo G4 4K Smart TV",
+        "price": 2396.99,  # Update with the actual price if available
+        "specifications": [
+            "65-inch OLED evo panel",
+            "4K Ultra HD resolution",
+            "Dolby Vision, HDR10 support",
+            "120Hz refresh rate",
+            "webOS 24 with α11 AI Processor 4K",
+            "Brightness Booster Max technology",
+            "Gallery design for wall mounting"
         ]
     },
     {
-        "category": "tv",
-        "products": [
-            {
-                "name": "Samsung 65-inch QLED TV",
-                "price": 1499,
-                "specifications": ["4K UHD", "Quantum HDR", "120Hz Refresh Rate", "Smart TV"]
-            },
-            {
-                "name": "LG OLED CX 55-inch",
-                "price": 1799,
-                "specifications": ["4K OLED", "Dolby Vision", "HDMI 2.1", "Smart TV"]
-            }
+        "name": "Samsung S95D QD-OLED TV",
+        "price": 3198.95,  # Update with the actual price if available
+        "specifications": [
+            "65-inch QD-OLED panel",
+            "4K Ultra HD resolution",
+            "HDR10+ support",
+            "120Hz refresh rate",
+            "Tizen OS with voice assistants",
+            "Object Tracking Sound technology",
+            "Infinity One Design with slim bezels"
+        ]
+    },
+    {
+        "name": "Hisense U8N Mini-LED TV",
+        "price": 1499.99,  # Update with the actual price if available
+        "specifications": [
+            "65-inch Mini-LED panel",
+            "4K Ultra HD resolution",
+            "Dolby Vision, HDR10+ support",
+            "144Hz refresh rate",
+            "Google TV with hands-free voice control",
+            "Dolby Atmos support",
+            "Robust build with sleek finish"
         ]
     }
 ]
 
-# Insert or Update Data in MongoDB
-for category in categories:
-    collection.update_one(
-        {"category": category["category"]},  # Find the category
-        {"$set": {"products": category["products"]}},  # Update products list
-        upsert=True  # Insert if not found
-    )
+# Ensure new TVs are added without removing existing ones
+collection.update_one(
+    {"category": "tv"},
+    {"$push": {"products": {"$each": new_tvs}}},
+    upsert=True
+)
 
-print("Data updated successfully!")
+print("✅ New TVs have been successfully added to the 'tv' category in the database!")
