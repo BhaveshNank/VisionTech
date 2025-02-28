@@ -100,7 +100,9 @@ const ChatHeader = styled.div`
 
 const ChatInterface = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    return JSON.parse(sessionStorage.getItem("chatMessages")) || []; // ✅ Load messages from session storage
+  });
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -109,18 +111,20 @@ const ChatInterface = () => {
     if (!inputText.trim()) return;
 
     setIsLoading(true);
-
-    setMessages([...messages, { text: inputText, isUser: true }]);
+    const newMessages = [...messages, { text: inputText, isUser: true }];
+    setMessages(newMessages);
 
     try {
       const botReply = await sendMessageToChatbot(inputText);
-      setMessages(msgs => [...msgs, { text: botReply, isUser: false }]);
+      console.log("🟢 Received bot reply:", botReply); 
+
+      const updatedMessages = [...newMessages, { text: botReply, isUser: false }];
+      setMessages(updatedMessages);
+
+      sessionStorage.setItem("chatMessages", JSON.stringify(updatedMessages)); // ✅ Store conversation history
     } catch (error) {
-      console.error('Chatbot API Error:', error);
-      setMessages(msgs => [...msgs, { 
-        text: 'Error connecting to chatbot. Please try again.', 
-        isUser: false 
-      }]);
+      console.error("🔴 Chatbot API Error:", error);
+      setMessages(msgs => [...msgs, { text: "Error connecting to chatbot.", isUser: false }]);
     } finally {
       setIsLoading(false);
     }
