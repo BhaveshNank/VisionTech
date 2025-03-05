@@ -33,8 +33,8 @@ export async function sendMessageToChatbot(userMessage) {
         let response = await fetch("http://127.0.0.1:5000/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",  // ✅ Ensure cookies are included
-            body: JSON.stringify({ message: userMessage })
+            credentials: "include",
+            body: JSON.stringify({ message: userMessage }) // ✅ Send correct user input
         });
 
         if (!response.ok) {
@@ -42,7 +42,7 @@ export async function sendMessageToChatbot(userMessage) {
         }
 
         const data = await response.json();
-        console.log("🟢 Chatbot API Response:", data);
+        console.log("🟢 Full API Response:", data); // ✅ Print full response
 
         return data.reply || "Sorry, I didn't understand that.";
     } catch (error) {
@@ -50,6 +50,7 @@ export async function sendMessageToChatbot(userMessage) {
         return "Sorry, something went wrong. Please check the API connection.";
     }
 }
+
 
 
 

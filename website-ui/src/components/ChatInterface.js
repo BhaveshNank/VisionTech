@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { sendMessageToChatbot } from '../utils/api';
 
@@ -100,37 +100,75 @@ const ChatHeader = styled.div`
 
 const ChatInterface = () => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // ✅ Load Messages from Session Storage (to retain chat history)
   const [messages, setMessages] = useState(() => {
-    return JSON.parse(sessionStorage.getItem("chatMessages")) || []; // ✅ Load messages from session storage
+    return JSON.parse(sessionStorage.getItem("chatMessages")) || [];
   });
+
+  // ✅ Load Session Data (e.g., chatbot context like last_question)
+  const [sessionData, setSessionData] = useState(() => {
+    return JSON.parse(sessionStorage.getItem("sessionData")) || {};
+  });
+
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ Persist Messages to Session Storage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem("chatMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  // ✅ Persist Session Data (e.g., last chatbot question) whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem("sessionData", JSON.stringify(sessionData));
+  }, [sessionData]);
+
+  // ✅ Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim()) {
+        console.warn("⚠️ User tried to send an empty message.");
+        return;
+    }
+
+    console.log("🔵 Sending message:", inputText);
 
     setIsLoading(true);
-    const newMessages = [...messages, { text: inputText, isUser: true }];
-    setMessages(newMessages);
+    setMessages(prevMessages => [...prevMessages, { text: inputText, isUser: true }]);
 
     try {
-      const botReply = await sendMessageToChatbot(inputText);
-      console.log("🟢 Received bot reply:", botReply); 
+        const botReply = await sendMessageToChatbot(inputText);
 
-      const updatedMessages = [...newMessages, { text: botReply, isUser: false }];
-      setMessages(updatedMessages);
+        console.log("🟢 Full Chatbot Response:", botReply);
 
-      sessionStorage.setItem("chatMessages", JSON.stringify(updatedMessages)); // ✅ Store conversation history
+        setMessages(prevMessages => [...prevMessages, { text: botReply, isUser: false }]);
+
+        try {
+            const parsedResponse = JSON.parse(botReply); // Ensure it's valid JSON
+            if (parsedResponse.response_type === "question") {
+                console.log("💬 Chatbot is asking for more info:", parsedResponse.message);
+                setSessionData(prevSession => ({
+                    ...prevSession,
+                    lastQuestion: parsedResponse.message
+                }));
+            }
+        } catch (error) {
+            console.error("❌ Failed to parse bot response:", error);
+        }
+
     } catch (error) {
-      console.error("🔴 Chatbot API Error:", error);
-      setMessages(msgs => [...msgs, { text: "Error connecting to chatbot.", isUser: false }]);
+        console.error('🔴 Chatbot API Error:', error);
+        setMessages(prevMessages => [...prevMessages, { 
+            text: 'Error connecting to chatbot. Please try again.', 
+            isUser: false 
+        }]);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
 
     setInputText('');
-  };
+};
 
   return (
     <>

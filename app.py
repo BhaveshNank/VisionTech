@@ -10,24 +10,19 @@ import os
 from flask_session import Session
 
 app = Flask(__name__)
-# ✅ Configure Flask Session
-app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
+
+# ✅ Configure session FIRST
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
+app.config['SESSION_COOKIE_SECURE'] = False  # Must be True in production
+Session(app)  # ✅ Initialize Flask Session
 
-# ✅ Set session cookie policies
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Needed for cross-origin session sharing
-app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for HTTP, True for HTTPS
+# ✅ Apply CORS after session setup
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 
-# ✅ Apply CORS with proper settings
-CORS(app, 
-     resources={r"/*": {"origins": "http://localhost:3000"}}, 
-     supports_credentials=True
-)
 
-# ✅ Initialize Flask-Session
-Session(app)
+
 
 # MongoDB Connection 
 client = MongoClient("mongodb://localhost:27017/")  # Connect to MongoDB
@@ -74,8 +69,6 @@ def chat_options():
     response.headers.add("Access-Control-Allow-Credentials", "true")  # ✅ Required for sessions
     return response
 
-
-
 @app.route('/products/<category>', methods=['GET'])
 def get_products_by_category(category):
     """
@@ -98,6 +91,9 @@ def get_products_by_category(category):
 @app.route('/chat', methods=['POST'])
 @validate_request
 def chat():
+    print(f"🛠 Session ID: {session.get('_id', 'No session ID')}")
+    print(f"🛠 Session Data Before Processing: {dict(session)}")
+
     try:
         # Step 1: Extract user message & Handle Follow-Ups
         data = request.json
@@ -138,12 +134,23 @@ def chat():
         # Step 3: Identify the product category & Store in Session
         detected_category = None
         for category in available_categories:
-            if re.search(rf"\b{re.escape(category)}\b", user_message, re.IGNORECASE):
+            if category.lower() in user_message.lower():  # ✅ Using substring matching instead of regex
                 detected_category = category
                 break
 
+        # ✅ If no category detected, try to use the last remembered category from session
+        if "last_category" in session and not detected_category:
+            detected_category = session["last_category"]
+            print(f"🔄 Using last known category from session: {detected_category}")
+
+        # 🚨 If still no category is detected, ask the user for clarification
         if not detected_category:
             print(f"⚠️ Could not detect product category from query: {user_message}")
+            
+            # 🚀 Store last user message in session to improve follow-ups
+            session["last_user_message"] = user_message  
+            session.modified = True
+            
             return jsonify({
                 "reply": "I couldn't determine the product category. We sell Laptops, Phones, and TVs. Which one do you need?"
             })
@@ -153,8 +160,6 @@ def chat():
         # ✅ Store detected category in session for future follow-ups
         session["last_category"] = detected_category
         session.modified = True
-
-
 
 
         # Step 4: Fetch all products and features for the detected category
