@@ -8,6 +8,7 @@ import logging
 import json 
 import os
 from flask_session import Session
+import random
 
 app = Flask(__name__)
 
@@ -103,6 +104,18 @@ def chat():
             return jsonify({"error": "No message provided"}), 400
 
         print(f"📩 Received message: {user_message}")
+
+        greetings = {"hi", "hello", "hey", "good morning", "good afternoon", "good evening"}
+        
+        # If the user input is **exactly** a greeting or only contains greeting words
+        if user_message in greetings:
+            greeting_responses = [
+                "Hi, this is SmartShop's Virtual Assistant! How can I assist you today?",
+                "Hello! Welcome to SmartShop. What product are you looking for today?",
+                "Hey there! I'm your SmartShop assistant. How can I help you?",
+            ]
+            return jsonify({"reply": random.choice(greeting_responses)})
+
 
         # ✅ If the user is responding to a previous question
         if "last_question" in session and session["last_question"]:
