@@ -89,6 +89,29 @@ def get_products_by_category(category):
 
     return jsonify({"reply": "\n".join(product_list)})
 
+def get_best_matching_products(user_query, category, db, limit=3):
+    """ Fetches the top matching products based on user query and category. """
+    query = {"category": category}
+    products = list(db.products.find(query, {"products": 1, "_id": 0}).limit(limit))
+
+    if not products:
+        return []
+
+    matched_products = []
+    for entry in products:
+        for product in entry["products"]:
+            if any(word in product["name"].lower() for word in user_query.lower().split()):
+                matched_products.append({
+                    "name": product["name"],
+                    "specifications": product.get("specifications", []),
+                    "price": product.get("price", "Price not available"),
+                })
+
+    return matched_products[:limit]  # Return top matches
+
+
+
+
 @app.route('/chat', methods=['POST'])
 @validate_request
 def chat():
@@ -132,10 +155,6 @@ def chat():
 
         # ✅ Debugging: Print session data
         print(f"🛠 Session Data: {dict(session)}")
-
-
-
-
 
 
 
@@ -203,14 +222,20 @@ def chat():
 
                             ## Task:
                             - If the user query **does NOT mention a specific feature** (e.g., "I need a laptop"), **DO NOT recommend a product yet**.
-                            - Instead, ask a **clarifying question** like:  
-                            - "What will you use the laptop for? Gaming, Work, or General Use?"
-                            - If the user **already provided enough details** (e.g., "I need a gaming laptop with RTX 4090"), **THEN recommend a product**.
+                            - Instead, **ask all relevant clarifying questions at once** in a **single response**.
+                            - **Example:**
+                            - **User:** "I need a laptop"  
+                            - **Bot:** "Sure! Before recommending one, I need some details. What will you use it for? (Gaming, Work, General Use)  
+                                Do you prefer a specific brand (Apple, Dell, Lenovo)? Any must-have features (RAM, Screen size, etc.)?"
+                            - If the user **already provided enough details**, **THEN recommend a product**.
 
                             ## Example Behavior:
 
                             **User:** "I need a laptop"  
-                            **Bot:** "Sure! What will you use the laptop for? Gaming, Work, or General Use?"
+                            **Bot:** "Sure! We sell laptops. Before recommending one, I need some details:  
+                            - What will you use it for? (Gaming, Work, General Use)  
+                            - Do you prefer a specific brand (Apple, Dell, Lenovo)?  
+                            - Any must-have features (RAM, Screen size, etc.)?"  
 
                             **User:** "I need a gaming laptop with RTX 4090"  
                             **Bot:** "Great! I recommend the 'High-End Gaming Laptop' with RTX 4090 and 32GB RAM."
@@ -288,48 +313,98 @@ def chat():
         print(f"   - matched_features: {matched_features}")
 
         # ✅ Store the chatbot's question if Gemini asks for clarification
+        # Ensure the session remembers what was asked before
         if response_type == "question":
-            print("💬 Gemini wants more info. Storing question in session.")
-            session["last_question"] = chatbot_message  # Save the chatbot's follow-up question
-            session.modified = True  # Ensure session updates
-            return jsonify({"reply": chatbot_message})
+            last_question = session.get("last_question", "")
+
+            # Only ask if it's a new question
+            if chatbot_message != last_question:
+                session["last_question"] = chatbot_message  # Store new question
+                session.modified = True
+            else:
+                return jsonify({"reply": "I've already asked that. Can you clarify more?"})
+
 
         # ✅ If no product was selected, return chatbot message without lookup
         if not selected_product_name:
             return jsonify({"reply": chatbot_message})
 
 
+        # Step 7: Fetch relevant products based on detected category
+        query = {"category": detected_category}
 
+        matching_products = list(collection.find(query, {"products": 1, "_id": 0}))
 
-
-            
-
-        # Step 7: Fetch the exact product from MongoDB
-        query = {
-            "category": detected_category,
-            "products.name": {"$regex": f"^{re.escape(selected_product_name)}$", "$options": "i"}
-        }
-
-        print(f"🔍 Final MongoDB Query Before Execution: {json.dumps(query, indent=2)}")
-
-        # Fetch product from MongoDB
-        matching_product_doc = collection.find_one(query, {"products.$": 1, "_id": 0})
-
-        if not matching_product_doc:
-            print(f"⚠️ No product found in database for type: {detected_category} with name: {selected_product_name}")
+        if not matching_products:
+            print(f"⚠️ No products found in database for category: {detected_category}")
             return jsonify({
-                "reply": f"Sorry, we couldn't find {selected_product_name} in our inventory."
+                "reply": f"Sorry, we couldn't find any {detected_category}s in our inventory."
             })
 
-        # Extract product details
-        matched_product = matching_product_doc["products"][0]
-        print(f"✅ Matched Product Found: {matched_product}")
+        # Extract all relevant products
+        all_products = []
+        for entry in matching_products:
+            all_products.extend(entry["products"])
 
-        # Step 8: Return the matched product
-        return jsonify({
-            "reply": f"Recommended: {matched_product['name']} - Features: {', '.join(matched_features)}. "
-                    f"Price: ${matched_product.get('price', 'Price not available')}"
-        })
+        # If the user specified a brand (e.g., "I want an iPhone"), filter products by brand
+        filtered_products = [p for p in all_products if selected_product_name.lower() in p["name"].lower()] if selected_product_name else all_products
+
+        # If multiple products match, list them instead of recommending just one
+        if len(filtered_products) > 1:
+            product_recommendations = "\n".join([
+                f"- {p['name']} ({', '.join(p.get('specifications', [])[:3])})"
+                for p in filtered_products[:5]  # Show up to 5 matching products
+            ])
+
+            response_message = (
+                f"We have multiple {selected_product_name if selected_product_name else detected_category}s available:\n\n"
+                f"{product_recommendations}\n\n"
+                f"Let me know which one interests you or if you need help comparing them!"
+            )
+
+        else:
+            # If only one product matches, return a direct recommendation
+            product = filtered_products[0]
+            response_message = (
+                f"Recommended: {product['name']} - Features: {', '.join(product.get('specifications', [])[:5])}. "
+                f"Price: ${product.get('price', 'Price not available')}"
+            )
+
+        print(f"✅ Final chatbot response:\n{response_message}")
+
+        # return jsonify({"reply": response_message})
+
+
+        # Step 8: Handle multi-product recommendations
+        print("✅ Chatbot is recommending a product.")
+
+        # Fetch the best matching products based on the category
+        matching_products = get_best_matching_products(selected_product_name, detected_category, collection)
+
+        if matching_products:
+            # If user previously received multiple recommendations, check if they followed up
+            if any(prod["name"].lower() in user_message.lower() for prod in matching_products):
+                matched_product = next((prod for prod in matching_products if prod["name"].lower() in user_message.lower()), None)
+                if matched_product:
+                    response_text = f"✅ Here are details for {matched_product['name']}:\n"
+                    response_text += "\n".join([f"- {feature}" for feature in matched_product["specifications"][:5]])
+                    response_text += f"\nPrice: ${matched_product.get('price', 'Price not available')}\n"
+                else:
+                    response_text = "I see you're interested in a specific product. Could you clarify which one?"
+            else:
+                # List multiple options if this is the first recommendation
+                response_text = "Here are some great options based on your needs:\n"
+                for product in matching_products:
+                    response_text += f"- {product['name']} ({', '.join(product['specifications'][:3])})\n"
+
+                response_text += "\nLet me know which one interests you, or if you have any questions!"
+                session["last_recommendations"] = [prod["name"].lower() for prod in matching_products]  # Store recommendations in session
+
+        else:
+            response_text = "I couldn't find an exact match for your request. Could you provide more details?"
+
+        print(f"✅ Final chatbot response:\n{response_text}")
+        return jsonify({"reply": response_text})
 
 
     except Exception as e:
