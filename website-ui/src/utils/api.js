@@ -34,17 +34,34 @@ export async function sendMessageToChatbot(userMessage) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ message: userMessage }) // ✅ Send correct user input
+            body: JSON.stringify({ message: userMessage }) 
         });
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
-        console.log("🟢 Full API Response:", data); // ✅ Print full response
+        // ✅ Read response as text first
+        const text = await response.text();
+        console.log("🔍 Raw API Response:", text);
 
-        return data.reply || "Sorry, I didn't understand that.";
+        // ✅ Try parsing the response as JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (error) {
+            console.error("⚠️ JSON Parsing Error:", error);
+            return "Sorry, I couldn't process the AI response.";
+        }
+
+        console.log("🟢 Parsed API Response:", data); // ✅ Debugging
+
+        // ✅ Check for valid chatbot response
+        if (!data || !data.reply) {
+            return "Sorry, the chatbot response is empty.";
+        }
+
+        return data.reply;
     } catch (error) {
         console.error("🔴 Chatbot API Error:", error);
         return "Sorry, something went wrong. Please check the API connection.";

@@ -8,22 +8,26 @@ import logging
 import json 
 import os
 from flask_session import Session
-import random
 
 app = Flask(__name__)
-
-# ✅ Configure session FIRST
+# ✅ Configure Flask Session
+app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
-app.config['SESSION_COOKIE_SECURE'] = False  # Must be True in production
-Session(app)  # ✅ Initialize Flask Session
+app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
 
-# ✅ Apply CORS after session setup
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+# ✅ Set session cookie policies
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Needed for cross-origin session sharing
+app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for HTTP, True for HTTPS
 
+# ✅ Apply CORS with proper settings
+CORS(app, 
+     resources={r"/*": {"origins": "http://localhost:3000"}}, 
+     supports_credentials=True
+)
 
-
+# ✅ Initialize Flask-Session
+Session(app)
 
 # MongoDB Connection 
 client = MongoClient("mongodb://localhost:27017/")  # Connect to MongoDB
@@ -33,7 +37,7 @@ collection = db["products"]  # The collection in that database
 
 # Google Gemini API Setup
 api_key = "GEMINI_KEY_HERE"
-endpoint = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent?key={api_key}"
+endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
 
 headers = {
     "Content-Type": "application/json"
@@ -54,6 +58,23 @@ def handle_server_error(error):
         "details": str(error)
     }), 500
 
+# Add this helper function near the top of your file, after imports
+def is_greeting(message):
+    """Check if a message contains only a greeting"""
+    greeting_patterns = [
+        r'\b(hi|hello|hey|greetings|howdy|what\'s up|sup)\b',
+        r'\bgood\s*(morning|afternoon|evening|day)\b',
+        r'\bh(ey|ello|i) there\b'
+    ]
+    
+    # Check if message contains ANY greeting pattern
+    contains_greeting = any(re.search(pattern, message, re.IGNORECASE) for pattern in greeting_patterns)
+    
+    # Check if message is ONLY a greeting (less than 25 chars and no product terms)
+    is_short_greeting = len(message) < 25 and not any(category in message.lower() for category in ["laptop", "phone", "tv", "computer", "product"])
+    
+    return contains_greeting and is_short_greeting
+
 # Test route to check if Flask is running
 @app.route('/test', methods=['GET'])
 def test():
@@ -69,6 +90,7 @@ def chat_options():
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
     response.headers.add("Access-Control-Allow-Credentials", "true")  # ✅ Required for sessions
     return response
+
 
 @app.route('/products/<category>', methods=['GET'])
 def get_products_by_category(category):
@@ -89,35 +111,9 @@ def get_products_by_category(category):
 
     return jsonify({"reply": "\n".join(product_list)})
 
-def get_best_matching_products(user_query, category, db, limit=3):
-    """ Fetches the top matching products based on user query and category. """
-    query = {"category": category}
-    products = list(db.products.find(query, {"products": 1, "_id": 0}).limit(limit))
-
-    if not products:
-        return []
-
-    matched_products = []
-    for entry in products:
-        for product in entry["products"]:
-            if any(word in product["name"].lower() for word in user_query.lower().split()):
-                matched_products.append({
-                    "name": product["name"],
-                    "specifications": product.get("specifications", []),
-                    "price": product.get("price", "Price not available"),
-                })
-
-    return matched_products[:limit]  # Return top matches
-
-
-
-
 @app.route('/chat', methods=['POST'])
 @validate_request
 def chat():
-    print(f"🛠 Session ID: {session.get('_id', 'No session ID')}")
-    print(f"🛠 Session Data Before Processing: {dict(session)}")
-
     try:
         # Step 1: Extract user message & Handle Follow-Ups
         data = request.json
@@ -128,17 +124,11 @@ def chat():
 
         print(f"📩 Received message: {user_message}")
 
-        greetings = {"hi", "hello", "hey", "good morning", "good afternoon", "good evening"}
-        
-        # If the user input is **exactly** a greeting or only contains greeting words
-        if user_message in greetings:
-            greeting_responses = [
-                "Hi, this is SmartShop's Virtual Assistant! How can I assist you today?",
-                "Hello! Welcome to SmartShop. What product are you looking for today?",
-                "Hey there! I'm your SmartShop assistant. How can I help you?",
-            ]
-            return jsonify({"reply": random.choice(greeting_responses)})
-
+        # ✅ Check if the message is a simple greeting
+        if is_greeting(user_message):
+            print("👋 Greeting detected, sending welcome message")
+            greeting_response = "Hello! This is SmartShop's virtual assistant. How can I help you find electronics today? We offer laptops, phones, and TVs."
+            return jsonify({"reply": greeting_response})
 
         # ✅ If the user is responding to a previous question
         if "last_question" in session and session["last_question"]:
@@ -158,6 +148,10 @@ def chat():
 
 
 
+
+
+
+
         # Step 2: Fetch available product categories from MongoDB
         available_categories = collection.distinct("category")
         # available_categories_lower = [c.lower() for c in available_categories]
@@ -166,23 +160,12 @@ def chat():
         # Step 3: Identify the product category & Store in Session
         detected_category = None
         for category in available_categories:
-            if category.lower() in user_message.lower():  # ✅ Using substring matching instead of regex
+            if re.search(rf"\b{re.escape(category)}\b", user_message, re.IGNORECASE):
                 detected_category = category
                 break
 
-        # ✅ If no category detected, try to use the last remembered category from session
-        if "last_category" in session and not detected_category:
-            detected_category = session["last_category"]
-            print(f"🔄 Using last known category from session: {detected_category}")
-
-        # 🚨 If still no category is detected, ask the user for clarification
         if not detected_category:
             print(f"⚠️ Could not detect product category from query: {user_message}")
-            
-            # 🚀 Store last user message in session to improve follow-ups
-            session["last_user_message"] = user_message  
-            session.modified = True
-            
             return jsonify({
                 "reply": "I couldn't determine the product category. We sell Laptops, Phones, and TVs. Which one do you need?"
             })
@@ -192,6 +175,8 @@ def chat():
         # ✅ Store detected category in session for future follow-ups
         session["last_category"] = detected_category
         session.modified = True
+
+
 
 
         # Step 4: Fetch all products and features for the detected category
@@ -222,20 +207,14 @@ def chat():
 
                             ## Task:
                             - If the user query **does NOT mention a specific feature** (e.g., "I need a laptop"), **DO NOT recommend a product yet**.
-                            - Instead, **ask all relevant clarifying questions at once** in a **single response**.
-                            - **Example:**
-                            - **User:** "I need a laptop"  
-                            - **Bot:** "Sure! Before recommending one, I need some details. What will you use it for? (Gaming, Work, General Use)  
-                                Do you prefer a specific brand (Apple, Dell, Lenovo)? Any must-have features (RAM, Screen size, etc.)?"
-                            - If the user **already provided enough details**, **THEN recommend a product**.
+                            - Instead, ask a **clarifying question** like:  
+                            - "What will you use the laptop for? Gaming, Work, or General Use?"
+                            - If the user **already provided enough details** (e.g., "I need a gaming laptop with RTX 4090"), **THEN recommend a product**.
 
                             ## Example Behavior:
 
                             **User:** "I need a laptop"  
-                            **Bot:** "Sure! We sell laptops. Before recommending one, I need some details:  
-                            - What will you use it for? (Gaming, Work, General Use)  
-                            - Do you prefer a specific brand (Apple, Dell, Lenovo)?  
-                            - Any must-have features (RAM, Screen size, etc.)?"  
+                            **Bot:** "Sure! What will you use the laptop for? Gaming, Work, or General Use?"
 
                             **User:** "I need a gaming laptop with RTX 4090"  
                             **Bot:** "Great! I recommend the 'High-End Gaming Laptop' with RTX 4090 and 32GB RAM."
@@ -278,21 +257,28 @@ def chat():
 
         # Step 6: Handle conversational responses & Store Questions in Session
         try:
-            # Log raw response for debugging
-            print(f"🔍 Raw response from Gemini API:\n{raw_gemini_text}")
+            # Extract JSON content safely from AI response
+            if "```json" in raw_gemini_text:
+                json_content = raw_gemini_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_gemini_text:
+                json_content = raw_gemini_text.split("```")[1].strip()
+            else:
+                json_content = raw_gemini_text
 
-            # 🛠 Ensure the response is clean (remove any formatting artifacts like triple backticks)
-            raw_gemini_text = raw_gemini_text.strip("```json").strip("```").strip()
+            # Remove unexpected escape characters (e.g., \n, \t) inside JSON text
+            json_content = re.sub(r'\\(?!["\\/bfnrtu])', '', json_content) 
 
-            # Ensure Gemini response is a valid JSON object before parsing
-            gemini_response = json.loads(raw_gemini_text)
+            # Ensure single quotes inside double-quoted strings are replaced correctly
+            json_content = re.sub(r'(?<=:\s)"(.*?)\'(.*?)"(?![:,])', r'"\1\2"', json_content)
 
+            print(f"🔧 Cleaned JSON content: {json_content}")
+
+            # Try to parse the cleaned JSON
+            gemini_response = json.loads(json_content)
         except json.JSONDecodeError as e:
-            print(f"❌ ERROR: Failed to parse AI response - {str(e)}")
-            return jsonify({"reply": "Sorry, we couldn't parse the AI response. Please try again."}), 500
-        except ValueError as e:
-            print(f"❌ ERROR: {str(e)}")
-            return jsonify({"reply": "Sorry, we couldn't understand the AI response."}), 500
+            print(f"❌ JSON Parse Error: {str(e)}")
+            print(f"❌ Failed to parse: {raw_gemini_text}")
+            return jsonify({"reply": "Sorry, we couldn't understand the AI response. Please try again."})
 
         # Extract details from Gemini response safely
         response_type = gemini_response.get("response_type", "").strip().lower()
@@ -301,10 +287,7 @@ def chat():
         matched_features = gemini_response.get("matched_features", [])
 
         # Safe handling: Ensure selected_product_name is a string before calling .strip()
-        if isinstance(selected_product_raw, str):
-            selected_product_name = selected_product_raw.strip()
-        else:
-            selected_product_name = ""  # Default to empty if None
+        selected_product_name = selected_product_raw.strip() if isinstance(selected_product_raw, str) else ""
 
         print("✅ Extracted from Gemini response:")
         print(f"   - response_type: {response_type}")
@@ -312,99 +295,46 @@ def chat():
         print(f"   - selected_product_name: {selected_product_name}")
         print(f"   - matched_features: {matched_features}")
 
-        # ✅ Store the chatbot's question if Gemini asks for clarification
-        # Ensure the session remembers what was asked before
+        # ✅ Store chatbot's question if Gemini asks for clarification
         if response_type == "question":
-            last_question = session.get("last_question", "")
-
-            # Only ask if it's a new question
-            if chatbot_message != last_question:
-                session["last_question"] = chatbot_message  # Store new question
-                session.modified = True
-            else:
-                return jsonify({"reply": "I've already asked that. Can you clarify more?"})
-
+            print("💬 Gemini wants more info. Storing question in session.")
+            session["last_question"] = chatbot_message  # Save chatbot's follow-up question
+            session.modified = True  # Ensure session updates
+            return jsonify({"reply": chatbot_message})
 
         # ✅ If no product was selected, return chatbot message without lookup
         if not selected_product_name:
             return jsonify({"reply": chatbot_message})
 
 
-        # Step 7: Fetch relevant products based on detected category
-        query = {"category": detected_category}
+            
 
-        matching_products = list(collection.find(query, {"products": 1, "_id": 0}))
+        # Step 7: Fetch the exact product from MongoDB
+        query = {
+            "category": detected_category,
+            "products.name": {"$regex": f"^{re.escape(selected_product_name)}$", "$options": "i"}
+        }
 
-        if not matching_products:
-            print(f"⚠️ No products found in database for category: {detected_category}")
+        print(f"🔍 Final MongoDB Query Before Execution: {json.dumps(query, indent=2)}")
+
+        # Fetch product from MongoDB
+        matching_product_doc = collection.find_one(query, {"products.$": 1, "_id": 0})
+
+        if not matching_product_doc:
+            print(f"⚠️ No product found in database for type: {detected_category} with name: {selected_product_name}")
             return jsonify({
-                "reply": f"Sorry, we couldn't find any {detected_category}s in our inventory."
+                "reply": f"Sorry, we couldn't find {selected_product_name} in our inventory."
             })
 
-        # Extract all relevant products
-        all_products = []
-        for entry in matching_products:
-            all_products.extend(entry["products"])
+        # Extract product details
+        matched_product = matching_product_doc["products"][0]
+        print(f"✅ Matched Product Found: {matched_product}")
 
-        # If the user specified a brand (e.g., "I want an iPhone"), filter products by brand
-        filtered_products = [p for p in all_products if selected_product_name.lower() in p["name"].lower()] if selected_product_name else all_products
-
-        # If multiple products match, list them instead of recommending just one
-        if len(filtered_products) > 1:
-            product_recommendations = "\n".join([
-                f"- {p['name']} ({', '.join(p.get('specifications', [])[:3])})"
-                for p in filtered_products[:5]  # Show up to 5 matching products
-            ])
-
-            response_message = (
-                f"We have multiple {selected_product_name if selected_product_name else detected_category}s available:\n\n"
-                f"{product_recommendations}\n\n"
-                f"Let me know which one interests you or if you need help comparing them!"
-            )
-
-        else:
-            # If only one product matches, return a direct recommendation
-            product = filtered_products[0]
-            response_message = (
-                f"Recommended: {product['name']} - Features: {', '.join(product.get('specifications', [])[:5])}. "
-                f"Price: ${product.get('price', 'Price not available')}"
-            )
-
-        print(f"✅ Final chatbot response:\n{response_message}")
-
-        # return jsonify({"reply": response_message})
-
-
-        # Step 8: Handle multi-product recommendations
-        print("✅ Chatbot is recommending a product.")
-
-        # Fetch the best matching products based on the category
-        matching_products = get_best_matching_products(selected_product_name, detected_category, collection)
-
-        if matching_products:
-            # If user previously received multiple recommendations, check if they followed up
-            if any(prod["name"].lower() in user_message.lower() for prod in matching_products):
-                matched_product = next((prod for prod in matching_products if prod["name"].lower() in user_message.lower()), None)
-                if matched_product:
-                    response_text = f"✅ Here are details for {matched_product['name']}:\n"
-                    response_text += "\n".join([f"- {feature}" for feature in matched_product["specifications"][:5]])
-                    response_text += f"\nPrice: ${matched_product.get('price', 'Price not available')}\n"
-                else:
-                    response_text = "I see you're interested in a specific product. Could you clarify which one?"
-            else:
-                # List multiple options if this is the first recommendation
-                response_text = "Here are some great options based on your needs:\n"
-                for product in matching_products:
-                    response_text += f"- {product['name']} ({', '.join(product['specifications'][:3])})\n"
-
-                response_text += "\nLet me know which one interests you, or if you have any questions!"
-                session["last_recommendations"] = [prod["name"].lower() for prod in matching_products]  # Store recommendations in session
-
-        else:
-            response_text = "I couldn't find an exact match for your request. Could you provide more details?"
-
-        print(f"✅ Final chatbot response:\n{response_text}")
-        return jsonify({"reply": response_text})
+        # Step 8: Return the matched product
+        return jsonify({
+            "reply": f"Recommended: {matched_product['name']} - Features: {', '.join(matched_features)}. "
+                    f"Price: ${matched_product.get('price', 'Price not available')}"
+        })
 
 
     except Exception as e:
