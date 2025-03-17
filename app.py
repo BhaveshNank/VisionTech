@@ -320,19 +320,34 @@ def detect_product_category(user_message):
 
 def send_to_gemini(user_data, structured_products):
     """
-    Sends filtered product data to Gemini for recommendation.
+    Sends user requirements and filtered products to Gemini for intelligent matching.
     """
+    # Get products from the selected category
+    category = user_data["category"].lower()
+    all_products = structured_products.get(category, [])
     
-    # Get filtered products
-    filtered_products = filter_products_for_gemini(user_data, structured_products)
-    print(f"🔍 Sending {len(filtered_products)} products to Gemini")
+    if not all_products:
+        return {"response_type": "recommendation", 
+                "message": f"I don't have any {category} products in our database at the moment."}
+    
+    print(f"🔍 Sending {len(all_products)} {category} products to Gemini")
+    
+    # Convert products to JSON for Gemini
+    products_json = json.dumps(all_products, indent=2)
 
-    # If no products match constraints, inform the user
-    if not filtered_products:
-        return {"response_type": "recommendation", "message": "I couldn't find any products that match all your criteria. Please consider adjusting your budget or brand preferences."}
-
-    # Convert structured products into JSON for Gemini
-    products_json = json.dumps(filtered_products, indent=2)
+    # Prepare a natural language prompt with user requirements
+    requirements = []
+    if user_data["purpose"]:
+        requirements.append(f"Will be used for: {user_data['purpose']}")
+    if user_data["features"]:
+        features_text = ", ".join(user_data["features"]) if isinstance(user_data["features"], list) else user_data["features"]
+        requirements.append(f"Desired features: {features_text}")
+    if user_data["budget"]:
+        requirements.append(f"Budget: {user_data['budget']}")
+    if user_data["brand"]:
+        requirements.append(f"Preferred brand: {user_data['brand']}")
+    
+    requirements_text = "\n".join([f"- {req}" for req in requirements])
 
     gpt_payload = {
         "contents": [
@@ -341,41 +356,35 @@ def send_to_gemini(user_data, structured_products):
                 "parts": [
                     {
                         "text": f"""
-        You are a digital shopping assistant helping customers find the best products.
+        You are a digital shopping assistant helping customers find the best products from our inventory.
 
-        ### **VERY IMPORTANT INSTRUCTION: You must ONLY recommend products from the exact list provided below. DO NOT create, invent, or suggest any products that aren't in this list.**
+        ### **USER REQUIREMENTS:**
+        {requirements_text}
 
-        ### **User's Requirements:**
-        - Category: {user_data['category']}
-        - Purpose: {user_data['purpose']}
-        - Features: {", ".join(user_data['features']) if user_data['features'] else "None"}
-        - Budget: {user_data['budget']}
-        - Preferred Brand: {user_data['brand']}
+        ### **RULES FOR RECOMMENDATIONS:**
+        1. ONLY recommend products from the EXACT list provided below
+        2. For budget ranges like "1000-1500", recommend products in that exact range
+        3. You may be flexible up to 10% ABOVE the maximum budget ONLY if the product is an excellent match
+        4. For size ranges like "65-70 inch TV", ONLY recommend TVs within that exact size range
+        5. DO NOT invent or make up products or features
+        6. Recommend 2-3 products that best match the requirements
+        7. If no products match ALL criteria, prioritize budget constraints first, then features
 
-        ### **Available Products (ONLY recommend from this list):**
+        ### **AVAILABLE PRODUCTS (ONLY recommend from this list):**
         ```json
         {products_json}
         ```
 
-        ### **Instructions:**
-        1. Choose ONLY products from the above list that best match the user's requirements.
-        2. Recommend 2-3 products (or all matching products if fewer are available).
-        3. DO NOT make up any products or features.
-        4. If no products match all criteria, suggest the closest matches from the list.
-        5. Respond ONLY in this exact JSON format:
+        ### **RESPONSE FORMAT:**
+        Respond ONLY in this exact JSON format:
 
         ```json
         {{
           "response_type": "recommendation",
-          "message": "Here are the best matching products:",
+          "message": "Here are the best matching products based on your requirements:",
           "recommended_products": [
             {{
               "name": "Exact Product Name from List",
-              "price": "Price from List",
-              "features": ["Feature1", "Feature2", "Feature3"]
-            }},
-            {{
-              "name": "Another Product Name from List",
               "price": "Price from List",
               "features": ["Feature1", "Feature2", "Feature3"]
             }}
@@ -395,18 +404,15 @@ def send_to_gemini(user_data, structured_products):
 
         if response.status_code != 200:
             print(f"❌ Gemini API Error: {response.text}")
-            return {"response_type": "recommendation", "message": "Failed to process query."}
+            return {"response_type": "recommendation", "message": "Failed to process your query."}
 
         response_data = response.json()
         generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
         
-        print(f"🔍 Raw Gemini response text: {generated_text[:200]}...")
-
         # Extract JSON from Gemini response
         json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
         if not json_match:
             print("❌ Failed to extract JSON from Gemini response")
-            print(f"🔍 Full response text: {generated_text}")
             return {"response_type": "recommendation", "message": "I couldn't find suitable products."}
 
         parsed_json = json.loads(json_match.group(1).strip())
@@ -414,24 +420,19 @@ def send_to_gemini(user_data, structured_products):
         # Verify that recommended products actually match those in our database
         if "recommended_products" in parsed_json:
             valid_products = []
-            
-            # Get all available product names from our database for comparison
-            available_product_names = [p["name"] for p in filtered_products]
+            available_product_names = [p["name"] for p in all_products]
             
             for product in parsed_json["recommended_products"]:
                 if product["name"] in available_product_names:
-                    # This is a valid product from our database
                     valid_products.append(product)
                 else:
                     print(f"⚠️ Warning: Gemini recommended '{product['name']}' which is not in our database")
             
-            # Replace with only valid products from our database
             parsed_json["recommended_products"] = valid_products
             
             if not valid_products:
-                parsed_json["message"] = "I couldn't find any products in our database that match your criteria. Please adjust your preferences."
+                parsed_json["message"] = "I couldn't find any products matching your criteria. Could you adjust your preferences?"
         
-        print(f"✅ Successfully parsed JSON response with validated products")
         return parsed_json
 
     except Exception as e:
@@ -439,7 +440,6 @@ def send_to_gemini(user_data, structured_products):
         import traceback
         traceback.print_exc()
         return {"response_type": "recommendation", "message": "An error occurred while processing your request."}
-
 
 
 
@@ -505,27 +505,43 @@ def fetch_products_from_database():
 
 def parse_budget_range(budget_string):
     """
-    Parses a budget range from a string like '1000-2000' or 'below 1500'.
-    Returns (min_budget, max_budget) or (None, None) if invalid.
+    Parse budget ranges using regex patterns rather than hardcoded phrases.
     """
     if not budget_string:
-        return None, None  # ✅ Return None if no budget was provided
-
-    budget_string = budget_string.lower().replace("$", "").strip()
-    numbers = re.findall(r"\d+", budget_string)  # ✅ Extract all numbers
-
-    if len(numbers) == 2:  # ✅ Case: "1000-2000"
-        return int(numbers[0]), int(numbers[1])
-
-    if len(numbers) == 1:
-        if "below" in budget_string:
-            return None, int(numbers[0])  # ✅ Case: "below 1500"
-        if "above" in budget_string:
-            return int(numbers[0]), None  # ✅ Case: "above 1000"
-        return int(numbers[0]), None  # ✅ Case: "budget is 1500"
-
-    return None, None  # ❌ No valid numbers found
-
+        return None, None
+    
+    # Remove currency symbols and normalize
+    budget_string = re.sub(r'[$£€]', '', budget_string.lower().strip())
+    
+    # Pattern for range like "X-Y" or "between X and Y"
+    range_pattern = re.search(r'(\d+)(?:\s*-\s*|\s+to\s+|\s+and\s+)(\d+)', budget_string)
+    if range_pattern:
+        return int(range_pattern.group(1)), int(range_pattern.group(2))
+    
+    # Pattern for "around X" or "about X"
+    approx_pattern = re.search(r'(?:around|about|approximately|roughly)\s+(\d+)', budget_string)
+    if approx_pattern:
+        value = int(approx_pattern.group(1))
+        # Create a range of ±15%
+        return int(value * 0.85), int(value * 1.15)
+    
+    # Pattern for "under X" or "below X"
+    under_pattern = re.search(r'(?:under|below|less than|at most)\s+(\d+)', budget_string)
+    if under_pattern:
+        return None, int(under_pattern.group(1))
+    
+    # Pattern for "over X" or "above X"
+    over_pattern = re.search(r'(?:over|above|more than|at least)\s+(\d+)', budget_string)
+    if over_pattern:
+        return int(over_pattern.group(1)), None
+    
+    # Single number fallback
+    single_number = re.search(r'(\d+)', budget_string)
+    if single_number:
+        value = int(single_number.group(1))
+        return None, value
+    
+    return None, None
 
 def extract_numeric_price(price_string):
     """
@@ -538,7 +554,66 @@ def extract_numeric_price(price_string):
     price_match = re.search(r"\d+", str(price_string))  # ✅ Ensure input is a string
     return int(price_match.group()) if price_match else None
 
-
+# def extract_key_features(message, category):
+#     """
+#     Extract product features using regex patterns rather than hardcoded feature lists.
+#     """
+#     features = []
+    
+#     # Screen size pattern (works for TVs, phones, laptops)
+#     size_pattern = re.search(r'(\d+)(?:\s*-\s*(\d+))?\s*(?:inch|in|")(?:\s+screen|\s+display)?', message)
+#     if size_pattern:
+#         if size_pattern.group(2):  # Range like "50-60 inch"
+#             features.append(f"size_range:{size_pattern.group(1)}-{size_pattern.group(2)}")
+#         else:  # Single size like "55 inch"
+#             features.append(f"size:{size_pattern.group(1)}")
+    
+#     # Common product-specific patterns
+#     if category == "tv":
+#         # TV resolution
+#         if re.search(r'4k|uhd|ultra\s*hd', message):
+#             features.append("resolution:4K")
+#         elif re.search(r'8k', message):
+#             features.append("resolution:8K")
+        
+#         # TV panel type
+#         if re.search(r'oled', message):
+#             features.append("panel:OLED")
+#         elif re.search(r'qled', message):
+#             features.append("panel:QLED")
+    
+#     elif category == "phone":
+#         # Camera quality
+#         camera_pattern = re.search(r'camera|photo|pictures|photography', message)
+#         if camera_pattern:
+#             features.append("feature:camera")
+        
+#         # Battery life
+#         if re.search(r'battery|long\s*lasting|all\s*day', message):
+#             features.append("feature:battery")
+            
+#         # Gaming performance
+#         if re.search(r'gaming|games|play|performance', message):
+#             features.append("feature:performance")
+    
+#     elif category == "laptop":
+#         # RAM/memory
+#         ram_pattern = re.search(r'(\d+)\s*(?:gb|g)\s*(?:ram|memory)', message)
+#         if ram_pattern:
+#             features.append(f"ram:{ram_pattern.group(1)}")
+        
+#         # Storage
+#         storage_pattern = re.search(r'(\d+)\s*(?:gb|g|tb|t)\s*(?:storage|ssd|hard\s*drive)', message)
+#         if storage_pattern:
+#             features.append(f"storage:{storage_pattern.group(1)}")
+            
+#         # Performance category
+#         if re.search(r'gaming|powerful|fast|performance', message):
+#             features.append("performance:high")
+#         elif re.search(r'basic|simple|everyday|browsing', message):
+#             features.append("performance:basic")
+    
+#     return features
 
 
 def filter_products_for_gemini(user_data, structured_products):
