@@ -149,87 +149,111 @@ def debug_gemini():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route('/reset-session', methods=['GET', 'POST'])
+def reset_session():
+    """Reset the user's session to start a new chat"""
+    # Clear all session data
+    session.clear()
+    
+    # Initialize with default values
+    session["new_chat"] = True
+    session["chat_stage"] = "greeting"
+    session["selected_category"] = ""
+    session["selected_purpose"] = ""
+    session["selected_features"] = []
+    session["selected_budget"] = ""
+    session["selected_brand"] = ""
+    
+    return jsonify({"status": "success", "message": "Session reset successfully"})
 
 @app.route('/chat', methods=['POST'])
 @validate_request
 def chat():
     try:
         user_message = request.json.get("message", "").strip().lower()
-        if not user_message:
-            return jsonify({"error": "No message provided"}), 400
-
-        # Initialize gemini_response early to prevent reference errors
-        gemini_response = {"response_type": "error", "message": "An error occurred while processing your request."}
-
-        # Ensure the session has all required keys
-        if "new_chat" not in session or session["new_chat"]:
-            session.clear()
-            session["new_chat"] = False
-            session["chat_stage"] = "greeting"
-            session["selected_category"] = ""
-            session["selected_purpose"] = ""
-            session["selected_features"] = []
-            session["selected_budget"] = ""
-            session["selected_brand"] = ""
-
-        # Ensure `chat_stage` exists in case it got lost
-        if "chat_stage" not in session:
-            session["chat_stage"] = "greeting"
-
+        
+        # Get the instance ID from the request
+        instance_id = request.json.get("instance_id", "default")
+        print(f"👤 Request from instance: {instance_id}")
+        
+        # Store session data in a namespace based on instance ID
+        session_key = f"chat_data_{instance_id}"
+        
+        # Check if this is the first message of a new conversation
+        is_first_message = request.json.get("new_chat", False)
+        
+        # Initialize session data for this instance if it doesn't exist or is a new chat
+        if session_key not in session or is_first_message:
+            session[session_key] = {
+                "chat_stage": "greeting",
+                "selected_category": "",
+                "selected_purpose": "",
+                "selected_features": [],
+                "selected_budget": "",
+                "selected_brand": ""
+            }
+            print(f"✅ Initialized new session for instance: {instance_id}")
+        
+        # Get the chat data for this specific instance
+        chat_data = session[session_key]
+        
+        # If this is the first message with empty content, just return the greeting
+        if is_first_message and not user_message:
+            return jsonify({"reply": "Hi! I'm SmartShop's assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
+            
+        # For a regular message with content
         # First interaction: Greeting & Introduction
-        if session["chat_stage"] == "greeting":
-            session["chat_stage"] = "ask_purpose"
+        if chat_data["chat_stage"] == "greeting":
+            chat_data["chat_stage"] = "ask_purpose"
+            session[session_key] = chat_data  # Update session
             return jsonify({"reply": "Hi! I'm SmartShop's assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
 
         # Step 1: Detect Product Category (Laptops, Phones, TVs)
-        if session["chat_stage"] == "ask_purpose":
+        if chat_data["chat_stage"] == "ask_purpose":
             detected_category = detect_product_category(user_message)
             if not detected_category:
                 return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, or TV?"})
 
-            session["selected_category"] = detected_category
-            session["chat_stage"] = "ask_features"
+            chat_data["selected_category"] = detected_category
+            chat_data["chat_stage"] = "ask_features"
+            session[session_key] = chat_data  # Update session
             return jsonify({"reply": f"Great! What will you primarily use this {detected_category} for? (e.g., Gaming, Work, Entertainment)"})
 
         # Step 2: Ask for Features
-        if session["chat_stage"] == "ask_features":
-            session["selected_purpose"] = user_message
-            session["chat_stage"] = "ask_budget"
-            return jsonify({"reply": f"Do you have any specific features in mind for this {session['selected_category']}? (e.g., High Battery Life, Camera Quality, RAM, Screen Size)"})
+        if chat_data["chat_stage"] == "ask_features":
+            chat_data["selected_purpose"] = user_message
+            chat_data["chat_stage"] = "ask_budget"
+            session[session_key] = chat_data  # Update session
+            return jsonify({"reply": f"Do you have any specific features in mind for this {chat_data['selected_category']}? (e.g., High Battery Life, Camera Quality, RAM, Screen Size)"})
 
         # Step 3: Ask for Budget & Brand
-        if session["chat_stage"] == "ask_budget":
-            session["selected_features"] = user_message.split(", ") if user_message.lower() != "none" else []
-            session["chat_stage"] = "recommend_products"
-            return jsonify({"reply": f"What's your budget range for this {session['selected_category']}? Do you have a preferred brand?"})
+        if chat_data["chat_stage"] == "ask_budget":
+            chat_data["selected_features"] = user_message.split(", ") if user_message.lower() != "none" else []
+            chat_data["chat_stage"] = "recommend_products"
+            session[session_key] = chat_data  # Update session
+            return jsonify({"reply": f"What's your budget range for this {chat_data['selected_category']}? Do you have a preferred brand?"})
 
         # Step 4: Send Finalized Query to Gemini
-        if session["chat_stage"] == "recommend_products":
-            budget_brand_info = user_message.split(" and ")
-
-            # Convert single price input into range if needed
-            budget_input = budget_brand_info[0] if len(budget_brand_info) > 0 else ""
-            if "-" not in budget_input and budget_input.isnumeric():
-                session["selected_budget"] = f"0-{budget_input}"  # Converts "2000" → "0-2000"
-            else:
-                session["selected_budget"] = budget_input  # Keeps proper range format
-
-            session["selected_brand"] = budget_brand_info[1] if len(budget_brand_info) > 1 else ""
-
-            # Prepare structured data
+        if chat_data["chat_stage"] == "recommend_products":
+            # Store the raw user response from the budget/brand question
+            budget_brand_response = user_message
+            
+            # Prepare structured data - pass the raw response as additional context
             structured_query = {
-                "category": session["selected_category"],
-                "purpose": session["selected_purpose"],
-                "features": session["selected_features"],
-                "budget": session["selected_budget"],
-                "brand": session["selected_brand"]
+                "category": chat_data["selected_category"],
+                "purpose": chat_data["selected_purpose"],
+                "features": chat_data["selected_features"],
+                "budget_brand_response": budget_brand_response,
+                "raw_response": True  # Flag to indicate we're passing the raw response
             }
+
+            print(f"📋 Query to Gemini: {structured_query}")
 
             # Get products from database
             structured_products = fetch_products_from_database()
             print(f"✅ Using products for recommendation")
 
-            # Send to Gemini for recommendation
+            # Send to Gemini for recommendation with enhanced context
             gemini_response = send_to_gemini(structured_query, structured_products)
             
             # Check if recommended_products exists in the response
@@ -254,13 +278,17 @@ def chat():
                 intro_message = gemini_response.get("message", "Here are the best matching products:")
                 formatted_response = f"{intro_message}\n\n{'\n\n'.join(product_strings)}"
                 
+                # Reset the conversation
+                chat_data["chat_stage"] = "greeting"
+                session[session_key] = chat_data
+                
                 return jsonify({"reply": formatted_response})
             
             # If no products were found or there was an error
             return jsonify({"reply": gemini_response.get("message", "I couldn't find suitable products.")})
 
-        # Handle any other unexpected stages
-        return jsonify({"reply": "I'm not sure what to do next. Let's start over. What product are you looking for?"})
+        # Handle any other unexpected stages - important fallback
+        return jsonify({"reply": "I'm not sure what to do next. Let's start over. What product are you looking for today?"})
 
     except Exception as e:
         print(f"❌ ERROR in /chat: {e}")
@@ -321,6 +349,7 @@ def detect_product_category(user_message):
 def send_to_gemini(user_data, structured_products):
     """
     Sends user requirements and filtered products to Gemini for intelligent matching.
+    This enhanced version handles raw natural language input for budget and brand.
     """
     # Get products from the selected category
     category = user_data["category"].lower()
@@ -342,10 +371,10 @@ def send_to_gemini(user_data, structured_products):
     if user_data["features"]:
         features_text = ", ".join(user_data["features"]) if isinstance(user_data["features"], list) else user_data["features"]
         requirements.append(f"Desired features: {features_text}")
-    if user_data["budget"]:
-        requirements.append(f"Budget: {user_data['budget']}")
-    if user_data["brand"]:
-        requirements.append(f"Preferred brand: {user_data['brand']}")
+    
+    # If we're using raw response mode, pass the budget and brand question response directly
+    if user_data.get("raw_response", False) and "budget_brand_response" in user_data:
+        requirements.append(f"Budget and brand preferences: {user_data['budget_brand_response']}")
     
     requirements_text = "\n".join([f"- {req}" for req in requirements])
 
@@ -361,6 +390,14 @@ def send_to_gemini(user_data, structured_products):
         ### **USER REQUIREMENTS:**
         {requirements_text}
 
+        ### **IMPORTANT PRODUCT UNDERSTANDING RULES:**
+        1. When a user mentions a specific product like "iPhone", that indicates they prefer the Apple brand
+        2. If they say "Samsung Galaxy", that means they prefer Samsung brand
+        3. If they say "Google Pixel", that means they prefer Google brand
+        4. Always prioritize the specific products/brands mentioned in their requirements
+        5. When a user states they have "no budget", offer high-quality options without price constraints
+        6. If they don't mention budget, prioritize mid-range products
+
         ### **RULES FOR RECOMMENDATIONS:**
         1. ONLY recommend products from the EXACT list provided below
         2. For budget ranges like "1000-1500", recommend products in that exact range
@@ -368,7 +405,9 @@ def send_to_gemini(user_data, structured_products):
         4. For size ranges like "65-70 inch TV", ONLY recommend TVs within that exact size range
         5. DO NOT invent or make up products or features
         6. Recommend 2-3 products that best match the requirements
-        7. If no products match ALL criteria, prioritize budget constraints first, then features
+        7. If a specific product line is mentioned (like "iPhone"), prioritize those products
+        8. If no products match ALL criteria, prioritize brand preference first, then budget constraints
+        9. If a preferred brand is mentioned, try to recommend only that brand's products
 
         ### **AVAILABLE PRODUCTS (ONLY recommend from this list):**
         ```json
@@ -440,8 +479,6 @@ def send_to_gemini(user_data, structured_products):
         import traceback
         traceback.print_exc()
         return {"response_type": "recommendation", "message": "An error occurred while processing your request."}
-
-
 
 def fetch_products_from_database():
     """

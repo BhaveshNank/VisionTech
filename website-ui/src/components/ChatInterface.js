@@ -98,67 +98,78 @@ const ChatHeader = styled.div`
   align-items: center;
 `;
 
+// Generate a unique instance ID
+const generateUniqueId = () => Math.random().toString(36).substring(2, 15);
+
 const ChatInterface = () => {
   const [isOpen, setIsOpen] = useState(false);
-
-  // ✅ Load Messages from Session Storage (to retain chat history)
-  const [messages, setMessages] = useState(() => {
-    return JSON.parse(sessionStorage.getItem("chatMessages")) || [];
-  });
-
-  // ✅ Load Session Data (e.g., chatbot context like last_question)
-  const [sessionData, setSessionData] = useState(() => {
-    return JSON.parse(sessionStorage.getItem("sessionData")) || {};
-  });
-
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatInstanceId, setChatInstanceId] = useState('');
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-
-  // ✅ Persist Messages to Session Storage whenever they change
+  // Initialize with a unique instance ID when component mounts
   useEffect(() => {
-    sessionStorage.setItem("chatMessages", JSON.stringify(messages));
-  }, [messages]);
+    const newInstanceId = generateUniqueId();
+    setChatInstanceId(newInstanceId);
+    console.log("Created new chat instance:", newInstanceId);
+  }, []);
 
-  // ✅ Persist Session Data (e.g., last chatbot question) whenever it changes
-  useEffect(() => {
-    sessionStorage.setItem("sessionData", JSON.stringify(sessionData));
-  }, [sessionData]);
+  // Handle opening the chat
+  const handleOpenChat = async () => {
+    setIsOpen(true);
+    
+    // Only initialize the chat once when it's first opened
+    if (!hasInitialized) {
+      // We don't add any greeting message by default
+      // Just mark it as initialized so we don't do this again
+      setHasInitialized(true);
+    }
+  };
 
-  // ✅ Submit Handler
+  // Submit handler for user messages
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
     console.log("🔵 Sending message:", inputText);
     setIsLoading(true);
+    
+    // Add user message to chat
     setMessages(prevMessages => [...prevMessages, { text: inputText, isUser: true }]);
+    
+    // Store message for processing
+    const messageToSend = inputText;
+    
+    // Clear input field
+    setInputText('');
 
     try {
-        // ✅ Directly return JSON from `sendMessageToChatbot`
-        const parsedResponse = await sendMessageToChatbot(inputText);
-        console.log("🟢 Full Chatbot Response:", parsedResponse);
+      // Determine if this is the first message (empty message list)
+      const isFirstMessage = messages.length === 0;
+      
+      // Send the message with the instance ID to maintain session
+      const parsedResponse = await sendMessageToChatbot(messageToSend, isFirstMessage, chatInstanceId);
+      console.log("🟢 Chatbot Response:", parsedResponse);
 
-        // ✅ Ensure chatbot response is valid
-        const botText = parsedResponse.reply || "Sorry, something went wrong.";
-
-        // ✅ Handle chatbot response properly
-        setMessages(prevMessages => [...prevMessages, { text: botText, isUser: false }]);
-
+      // Add bot response to chat
+      const botText = parsedResponse.reply || "Sorry, something went wrong.";
+      setMessages(prevMessages => [...prevMessages, { text: botText, isUser: false }]);
     } catch (error) {
-        console.error('🔴 Chatbot API Error:', error);
-        setMessages(prevMessages => [...prevMessages, { text: 'Error connecting to chatbot. Please try again.', isUser: false }]);
+      console.error('🔴 Chatbot API Error:', error);
+      setMessages(prevMessages => [...prevMessages, { 
+        text: 'Error connecting to chatbot. Please try again.', 
+        isUser: false 
+      }]);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-
-    setInputText('');
-};
-
+  };
 
   return (
     <>
-      <ChatButton onClick={() => setIsOpen(!isOpen)}>
+      <ChatButton onClick={() => isOpen ? setIsOpen(false) : handleOpenChat()}>
         {isOpen ? '✕' : '💬'}
       </ChatButton>
       

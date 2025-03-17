@@ -8,7 +8,6 @@ function fetchProducts() {
         });
 }
 
-//Testing the api 
 function sendInquiry(data) {
     return fetch('/api/inquiry', {
         method: 'POST',
@@ -24,39 +23,33 @@ function sendInquiry(data) {
     });
 }
 
-export { fetchProducts, sendInquiry };
-
-export async function sendMessageToChatbot(userMessage) {
+// Send message to chatbot
+export async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanceId = null) {
     try {
-        console.log("🔵 Sending message to chatbot:", userMessage);
-
-        let response = await fetch("http://localhost:5001/chat", {
+        console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
+        
+        const response = await fetch("http://localhost:5001/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include", // ✅ Ensure cookies are sent
-            body: JSON.stringify({ message: userMessage }) 
+            credentials: "include", // Important: send cookies
+            body: JSON.stringify({ 
+                message: userMessage,
+                new_chat: isFirstMessage,
+                instance_id: instanceId || 'default' // Include the chat instance ID
+            })
         });
-
+        
         if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
-
+        
         const data = await response.json();
         console.log("🟢 Parsed API Response:", data);
-        return data; // ✅ Return parsed JSON instead of string
+        return data;
     } catch (error) {
         console.error("🔴 Chatbot API Error:", error);
-        return { reply: "Sorry, something went wrong. Please check the API connection.", response_type: "error" };
+        throw error; // Let component handle the error
     }
 }
 
-
-
-
-
-
-
-
-
-
-
+export { fetchProducts, sendInquiry };
