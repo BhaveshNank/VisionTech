@@ -1,37 +1,44 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navigation/Navbar';
+import Home from './pages/Home';
+import ProductsPage from './pages/ProductsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import CategoriesPage from './pages/CategoriesPage';
 import ChatInterface from './components/ChatInterface';
-import Home from './components/Home';
-import CategoriesPage from './pages/CategoriesPage';  // ✅ Ensure it's imported
-
+import Footer from './components/UI/Footer';
 import styled from 'styled-components';
 import './styles/main.css';
 
 const AppContainer = styled.div`
   min-height: 100vh;
-  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ContentContainer = styled.div`
-  padding-top: 80px; // Add space for fixed navbar
-  padding-bottom: 80px; // Add space for chat interface
+  flex: 1;
+  padding-top: 80px;
+  padding-bottom: 80px;
 `;
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <AppContainer>
         <Navbar />
         <ContentContainer>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/categories" element={<CategoriesPage />} />  {/* ✅ Properly routed */}
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
           </Routes>
         </ContentContainer>
         <ChatInterface />
+        <Footer />
       </AppContainer>
-    </Router>
+    </BrowserRouter>
   );
 }
 

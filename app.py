@@ -17,14 +17,18 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
 
 # ✅ Set session cookie policies
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Needed for cross-origin session sharing
-app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for HTTP, True for HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevents strict blocking
+app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for local HTTP (set True for HTTPS)
 
 # ✅ Apply CORS with proper settings
 CORS(app, 
      resources={r"/*": {"origins": "http://localhost:3000"}}, 
-     supports_credentials=True
+     supports_credentials=True,
+     expose_headers=["Content-Type", "Authorization"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     methods=["GET", "POST", "OPTIONS"]
 )
+
 
 # ✅ Initialize Flask-Session
 Session(app)
@@ -36,7 +40,7 @@ collection = db["products"]  # The collection in that database
 
 
 # Google Gemini API Setup
-api_key = "GEMINI_KEY_HERE"
+api_key = "AIzaSyC7Jz_zIbn6yBgcaZCOpRoph_EC020SsRo"
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
 
 headers = {
@@ -58,22 +62,7 @@ def handle_server_error(error):
         "details": str(error)
     }), 500
 
-# Add this helper function near the top of your file, after imports
-def is_greeting(message):
-    """Check if a message contains only a greeting"""
-    greeting_patterns = [
-        r'\b(hi|hello|hey|greetings|howdy|what\'s up|sup)\b',
-        r'\bgood\s*(morning|afternoon|evening|day)\b',
-        r'\bh(ey|ello|i) there\b'
-    ]
-    
-    # Check if message contains ANY greeting pattern
-    contains_greeting = any(re.search(pattern, message, re.IGNORECASE) for pattern in greeting_patterns)
-    
-    # Check if message is ONLY a greeting (less than 25 chars and no product terms)
-    is_short_greeting = len(message) < 25 and not any(category in message.lower() for category in ["laptop", "phone", "tv", "computer", "product"])
-    
-    return contains_greeting and is_short_greeting
+# Add this helper function near the top of your file, after impo
 
 # Test route to check if Flask is running
 @app.route('/test', methods=['GET'])
@@ -83,13 +72,14 @@ def test():
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
-    """Handles CORS preflight requests."""
+    """Handle CORS Preflight Request"""
     response = jsonify({"message": "CORS preflight successful"})
-    response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")  # Remove "*"
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    response.headers.add("Access-Control-Allow-Credentials", "true")  # ✅ Required for sessions
-    return response
+    response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response, 200
+
 
 
 @app.route('/products/<category>', methods=['GET'])
@@ -98,7 +88,11 @@ def get_products_by_category(category):
     Fetch all products belonging to a specific category from the database.
     """
     # Search for the category in the database
-    category_data = collection.find_one({"category": category.lower()})
+    category_data = collection.find_one(
+    {"category": {"$regex": f"^{re.escape(category)}s?$", "$options": "i"}},
+    {"products": 1, "_id": 0}
+)
+
 
     if not category_data:
         return jsonify({"reply": f"No {category}s found in the database."}), 200
@@ -111,236 +105,548 @@ def get_products_by_category(category):
 
     return jsonify({"reply": "\n".join(product_list)})
 
+# @app.route('/debug-products', methods=['GET'])
+# def debug_products():
+#     try:
+#         # Fetch products from MongoDB
+#         structured_products = fetch_products_from_database()
+        
+#         # Print for debugging
+#         print(f"📢 Debugging Products: {json.dumps(structured_products, indent=2)}")
+
+#         # Return JSON response
+#         return jsonify(structured_products)
+
+#     except Exception as e:
+#         return jsonify({"error": str(e)})
+
+@app.route('/debug-gemini', methods=['GET'])
+def debug_gemini():
+    """Debug endpoint to test Gemini directly"""
+    try:
+        sample_query = {
+            "category": "phone",
+            "purpose": "gaming",
+            "features": ["camera quality"],
+            "budget": "1000-1500",
+            "brand": ""
+        }
+        
+        # Get products for testing
+        structured_products = fetch_products_from_database()
+        
+        # Send to Gemini
+        gemini_response = send_to_gemini(sample_query, structured_products)
+        
+        # Return full response for inspection
+        return jsonify({
+            "raw_response": gemini_response,
+            "has_recommended_products": "recommended_products" in gemini_response,
+            "product_count": len(gemini_response.get("recommended_products", [])),
+            "formatted_message": gemini_response.get("message", "No message found")
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 @app.route('/chat', methods=['POST'])
 @validate_request
 def chat():
     try:
-        # Step 1: Extract user message & Handle Follow-Ups
-        data = request.json
-        user_message = data.get("message", "").strip().lower()
-
+        user_message = request.json.get("message", "").strip().lower()
         if not user_message:
             return jsonify({"error": "No message provided"}), 400
 
-        print(f"📩 Received message: {user_message}")
+        # Initialize gemini_response early to prevent reference errors
+        gemini_response = {"response_type": "error", "message": "An error occurred while processing your request."}
 
-        # ✅ Check if the message is a simple greeting
-        if is_greeting(user_message):
-            print("👋 Greeting detected, sending welcome message")
-            greeting_response = "Hello! This is SmartShop's virtual assistant. How can I help you find electronics today? We offer laptops, phones, and TVs."
-            return jsonify({"reply": greeting_response})
+        # Ensure the session has all required keys
+        if "new_chat" not in session or session["new_chat"]:
+            session.clear()
+            session["new_chat"] = False
+            session["chat_stage"] = "greeting"
+            session["selected_category"] = ""
+            session["selected_purpose"] = ""
+            session["selected_features"] = []
+            session["selected_budget"] = ""
+            session["selected_brand"] = ""
 
-        # ✅ If the user is responding to a previous question
-        if "last_question" in session and session["last_question"]:
-            print(f"🔄 Detected user follow-up response: {session['last_question']}")
+        # Ensure `chat_stage` exists in case it got lost
+        if "chat_stage" not in session:
+            session["chat_stage"] = "greeting"
 
-            # If we already know the last category, reconstruct user intent
-            if "last_category" in session and session["last_category"]:
-                user_message = f"I need a {session['last_category']} for {user_message}"
-                print(f"📝 Interpreted full query: {user_message}")
+        # First interaction: Greeting & Introduction
+        if session["chat_stage"] == "greeting":
+            session["chat_stage"] = "ask_purpose"
+            return jsonify({"reply": "Hi! I'm SmartShop's assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
 
-            # Clear session variable after use to avoid unintended overrides
-            session.pop("last_question", None)
-            session.modified = True
+        # Step 1: Detect Product Category (Laptops, Phones, TVs)
+        if session["chat_stage"] == "ask_purpose":
+            detected_category = detect_product_category(user_message)
+            if not detected_category:
+                return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, or TV?"})
 
-        # ✅ Debugging: Print session data
-        print(f"🛠 Session Data: {dict(session)}")
+            session["selected_category"] = detected_category
+            session["chat_stage"] = "ask_features"
+            return jsonify({"reply": f"Great! What will you primarily use this {detected_category} for? (e.g., Gaming, Work, Entertainment)"})
 
+        # Step 2: Ask for Features
+        if session["chat_stage"] == "ask_features":
+            session["selected_purpose"] = user_message
+            session["chat_stage"] = "ask_budget"
+            return jsonify({"reply": f"Do you have any specific features in mind for this {session['selected_category']}? (e.g., High Battery Life, Camera Quality, RAM, Screen Size)"})
 
+        # Step 3: Ask for Budget & Brand
+        if session["chat_stage"] == "ask_budget":
+            session["selected_features"] = user_message.split(", ") if user_message.lower() != "none" else []
+            session["chat_stage"] = "recommend_products"
+            return jsonify({"reply": f"What's your budget range for this {session['selected_category']}? Do you have a preferred brand?"})
 
+        # Step 4: Send Finalized Query to Gemini
+        if session["chat_stage"] == "recommend_products":
+            budget_brand_info = user_message.split(" and ")
 
-
-
-
-        # Step 2: Fetch available product categories from MongoDB
-        available_categories = collection.distinct("category")
-        # available_categories_lower = [c.lower() for c in available_categories]
-        print(f"📌 Available product categories in DB: {available_categories}")
-
-        # Step 3: Identify the product category & Store in Session
-        detected_category = None
-        for category in available_categories:
-            if re.search(rf"\b{re.escape(category)}\b", user_message, re.IGNORECASE):
-                detected_category = category
-                break
-
-        if not detected_category:
-            print(f"⚠️ Could not detect product category from query: {user_message}")
-            return jsonify({
-                "reply": "I couldn't determine the product category. We sell Laptops, Phones, and TVs. Which one do you need?"
-            })
-
-        print(f"✅ Detected Product Category: {detected_category}")
-
-        # ✅ Store detected category in session for future follow-ups
-        session["last_category"] = detected_category
-        session.modified = True
-
-
-
-
-        # Step 4: Fetch all products and features for the detected category
-        category_data = collection.find_one({"category": detected_category}, {"products": 1, "_id": 0})
-
-        if not category_data or "products" not in category_data:
-            print(f"❌ No products found in category: {detected_category}")
-            return jsonify({"reply": f"Sorry, no products available in {detected_category} category."})
-
-        # Structure products as a dictionary
-        structured_products = {
-            product["name"]: product.get("specifications", [])
-            for product in category_data["products"]
-        }
-
-        print(f"📌 Extracted Products & Features: {json.dumps(structured_products, indent=2)}")
-
-
-        # Step 5: Send structured features to Gemini for conversational engagement
-        gpt_payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "text": f"""
-                            You are an AI assistant helping customers in an electronics store.
-
-                            ## Task:
-                            - If the user query **does NOT mention a specific feature** (e.g., "I need a laptop"), **DO NOT recommend a product yet**.
-                            - Instead, ask a **clarifying question** like:  
-                            - "What will you use the laptop for? Gaming, Work, or General Use?"
-                            - If the user **already provided enough details** (e.g., "I need a gaming laptop with RTX 4090"), **THEN recommend a product**.
-
-                            ## Example Behavior:
-
-                            **User:** "I need a laptop"  
-                            **Bot:** "Sure! What will you use the laptop for? Gaming, Work, or General Use?"
-
-                            **User:** "I need a gaming laptop with RTX 4090"  
-                            **Bot:** "Great! I recommend the 'High-End Gaming Laptop' with RTX 4090 and 32GB RAM."
-
-                            **User Query:** "{user_message}"
-
-                            ## Available Products:
-                            {json.dumps(structured_products, indent=2)}
-
-                            ## Respond in this JSON format:
-                            {{
-                                "response_type": "recommendation" or "question",
-                                "message": "<your response>",
-                                "selected_product": "<Product Name> (if applicable)",
-                                "matched_features": ["<Feature1>", "<Feature2>"]
-                            }}
-                            """
-                        }
-                    ]
-                }
-            ]
-        }
-
-
-        # Call Gemini API
-        gpt_response = requests.post(endpoint, headers=headers, json=gpt_payload)
-
-        if gpt_response.status_code != 200:
-            print(f"❌ Gemini API error: {gpt_response.text}")
-            return jsonify({"error": "Failed to process query with Gemini"}), 500
-
-        gpt_result = gpt_response.json()
-        if "candidates" not in gpt_result or not gpt_result["candidates"]:
-            print(f"❌ ERROR: Gemini API returned an invalid response:\n{gpt_result}")
-            return jsonify({"error": "AI response is empty"}), 500
-
-        # Extract Gemini's response text
-        raw_gemini_text = gpt_result["candidates"][0]["content"]["parts"][0].get("text", "").strip()
-        print(f"🔍 Raw response from Gemini API:\n{raw_gemini_text}")
-
-        # Step 6: Handle conversational responses & Store Questions in Session
-        try:
-            # Extract JSON content safely from AI response
-            if "```json" in raw_gemini_text:
-                json_content = raw_gemini_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_gemini_text:
-                json_content = raw_gemini_text.split("```")[1].strip()
+            # Convert single price input into range if needed
+            budget_input = budget_brand_info[0] if len(budget_brand_info) > 0 else ""
+            if "-" not in budget_input and budget_input.isnumeric():
+                session["selected_budget"] = f"0-{budget_input}"  # Converts "2000" → "0-2000"
             else:
-                json_content = raw_gemini_text
+                session["selected_budget"] = budget_input  # Keeps proper range format
 
-            # Remove unexpected escape characters (e.g., \n, \t) inside JSON text
-            json_content = re.sub(r'\\(?!["\\/bfnrtu])', '', json_content) 
+            session["selected_brand"] = budget_brand_info[1] if len(budget_brand_info) > 1 else ""
 
-            # Ensure single quotes inside double-quoted strings are replaced correctly
-            json_content = re.sub(r'(?<=:\s)"(.*?)\'(.*?)"(?![:,])', r'"\1\2"', json_content)
+            # Prepare structured data
+            structured_query = {
+                "category": session["selected_category"],
+                "purpose": session["selected_purpose"],
+                "features": session["selected_features"],
+                "budget": session["selected_budget"],
+                "brand": session["selected_brand"]
+            }
 
-            print(f"🔧 Cleaned JSON content: {json_content}")
+            # Get products from database
+            structured_products = fetch_products_from_database()
+            print(f"✅ Using products for recommendation")
 
-            # Try to parse the cleaned JSON
-            gemini_response = json.loads(json_content)
-        except json.JSONDecodeError as e:
-            print(f"❌ JSON Parse Error: {str(e)}")
-            print(f"❌ Failed to parse: {raw_gemini_text}")
-            return jsonify({"reply": "Sorry, we couldn't understand the AI response. Please try again."})
-
-        # Extract details from Gemini response safely
-        response_type = gemini_response.get("response_type", "").strip().lower()
-        chatbot_message = gemini_response.get("message", "I'm not sure how to respond.")
-        selected_product_raw = gemini_response.get("selected_product")  # This might be None
-        matched_features = gemini_response.get("matched_features", [])
-
-        # Safe handling: Ensure selected_product_name is a string before calling .strip()
-        selected_product_name = selected_product_raw.strip() if isinstance(selected_product_raw, str) else ""
-
-        print("✅ Extracted from Gemini response:")
-        print(f"   - response_type: {response_type}")
-        print(f"   - chatbot_message: {chatbot_message}")
-        print(f"   - selected_product_name: {selected_product_name}")
-        print(f"   - matched_features: {matched_features}")
-
-        # ✅ Store chatbot's question if Gemini asks for clarification
-        if response_type == "question":
-            print("💬 Gemini wants more info. Storing question in session.")
-            session["last_question"] = chatbot_message  # Save chatbot's follow-up question
-            session.modified = True  # Ensure session updates
-            return jsonify({"reply": chatbot_message})
-
-        # ✅ If no product was selected, return chatbot message without lookup
-        if not selected_product_name:
-            return jsonify({"reply": chatbot_message})
-
-
+            # Send to Gemini for recommendation
+            gemini_response = send_to_gemini(structured_query, structured_products)
             
+            # Check if recommended_products exists in the response
+            if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
+                products = gemini_response["recommended_products"]
+                
+                # Format each product into a string with bullet points
+                product_strings = []
+                for product in products:
+                    name = product.get("name", "Unknown Product")
+                    price = product.get("price", "Price unavailable")
+                    features = product.get("features", [])
+                    
+                    # Format features as a comma-separated list (take only first 3 for brevity)
+                    feature_text = ", ".join(features[:3]) if features else "No features listed"
+                    
+                    # Create formatted product string
+                    product_str = f"• {name} - {price}\n  Key features: {feature_text}"
+                    product_strings.append(product_str)
+                
+                # Combine intro message with product list
+                intro_message = gemini_response.get("message", "Here are the best matching products:")
+                formatted_response = f"{intro_message}\n\n{'\n\n'.join(product_strings)}"
+                
+                return jsonify({"reply": formatted_response})
+            
+            # If no products were found or there was an error
+            return jsonify({"reply": gemini_response.get("message", "I couldn't find suitable products.")})
 
-        # Step 7: Fetch the exact product from MongoDB
-        query = {
-            "category": detected_category,
-            "products.name": {"$regex": f"^{re.escape(selected_product_name)}$", "$options": "i"}
-        }
-
-        print(f"🔍 Final MongoDB Query Before Execution: {json.dumps(query, indent=2)}")
-
-        # Fetch product from MongoDB
-        matching_product_doc = collection.find_one(query, {"products.$": 1, "_id": 0})
-
-        if not matching_product_doc:
-            print(f"⚠️ No product found in database for type: {detected_category} with name: {selected_product_name}")
-            return jsonify({
-                "reply": f"Sorry, we couldn't find {selected_product_name} in our inventory."
-            })
-
-        # Extract product details
-        matched_product = matching_product_doc["products"][0]
-        print(f"✅ Matched Product Found: {matched_product}")
-
-        # Step 8: Return the matched product
-        return jsonify({
-            "reply": f"Recommended: {matched_product['name']} - Features: {', '.join(matched_features)}. "
-                    f"Price: ${matched_product.get('price', 'Price not available')}"
-        })
-
+        # Handle any other unexpected stages
+        return jsonify({"reply": "I'm not sure what to do next. Let's start over. What product are you looking for?"})
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f"❌ ERROR in /chat: {e}")
+        import traceback
+        traceback.print_exc()  # Print full stack trace for debugging
         return jsonify({"error": "An internal server error occurred while processing your request."}), 500
+
+
+@app.route('/debug-db', methods=['GET'])
+def debug_db():
+    try:
+        # Check if we can connect to MongoDB
+        db_names = client.list_database_names()
+        collections = db.list_collection_names()
+        
+        # Try to count documents
+        product_count = collection.count_documents({})
+        
+        # Get a sample document
+        sample_doc = collection.find_one({})
+        if sample_doc and "_id" in sample_doc:
+            sample_doc["_id"] = str(sample_doc["_id"])  # Convert ObjectId to string
+            
+        return jsonify({
+            "status": "connected",
+            "databases": db_names,
+            "collections": collections,
+            "product_count": product_count,
+            "sample_document": sample_doc
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
     
+# -------------------- **Helper Functions** --------------------
+
+def detect_product_category(user_message):
+    """
+    Detects the product category (phone, laptop, or TV) based on user input.
+    If no category is detected, returns an empty string.
+    """
+    category_keywords = {
+        "phone": ["phone", "mobile", "smartphone", "iphone", "samsung", "android"],
+        "laptop": ["laptop", "macbook", "notebook", "ultrabook", "gaming laptop"],
+        "tv": ["tv", "television", "oled", "4k", "smart tv"]
+    }
+
+    # Convert user message to lowercase for case-insensitive matching
+    user_message_lower = user_message.lower()
+
+    # Check if any category keyword appears in the user message
+    for category, keywords in category_keywords.items():
+        if any(keyword in user_message_lower for keyword in keywords):
+            return category  # ✅ Return the detected category
+
+    return ""  # ❌ No category detected
+
+
+def send_to_gemini(user_data, structured_products):
+    """
+    Sends filtered product data to Gemini for recommendation.
+    """
+    
+    # Get filtered products
+    filtered_products = filter_products_for_gemini(user_data, structured_products)
+    print(f"🔍 Sending {len(filtered_products)} products to Gemini")
+
+    # If no products match constraints, inform the user
+    if not filtered_products:
+        return {"response_type": "recommendation", "message": "I couldn't find any products that match all your criteria. Please consider adjusting your budget or brand preferences."}
+
+    # Convert structured products into JSON for Gemini
+    products_json = json.dumps(filtered_products, indent=2)
+
+    gpt_payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": f"""
+        You are a digital shopping assistant helping customers find the best products.
+
+        ### **VERY IMPORTANT INSTRUCTION: You must ONLY recommend products from the exact list provided below. DO NOT create, invent, or suggest any products that aren't in this list.**
+
+        ### **User's Requirements:**
+        - Category: {user_data['category']}
+        - Purpose: {user_data['purpose']}
+        - Features: {", ".join(user_data['features']) if user_data['features'] else "None"}
+        - Budget: {user_data['budget']}
+        - Preferred Brand: {user_data['brand']}
+
+        ### **Available Products (ONLY recommend from this list):**
+        ```json
+        {products_json}
+        ```
+
+        ### **Instructions:**
+        1. Choose ONLY products from the above list that best match the user's requirements.
+        2. Recommend 2-3 products (or all matching products if fewer are available).
+        3. DO NOT make up any products or features.
+        4. If no products match all criteria, suggest the closest matches from the list.
+        5. Respond ONLY in this exact JSON format:
+
+        ```json
+        {{
+          "response_type": "recommendation",
+          "message": "Here are the best matching products:",
+          "recommended_products": [
+            {{
+              "name": "Exact Product Name from List",
+              "price": "Price from List",
+              "features": ["Feature1", "Feature2", "Feature3"]
+            }},
+            {{
+              "name": "Another Product Name from List",
+              "price": "Price from List",
+              "features": ["Feature1", "Feature2", "Feature3"]
+            }}
+          ]
+        }}
+        ```
+        """
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(endpoint, headers=headers, json=gpt_payload)
+        print(f"🔄 Gemini API Response Status: {response.status_code}")
+
+        if response.status_code != 200:
+            print(f"❌ Gemini API Error: {response.text}")
+            return {"response_type": "recommendation", "message": "Failed to process query."}
+
+        response_data = response.json()
+        generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
+        
+        print(f"🔍 Raw Gemini response text: {generated_text[:200]}...")
+
+        # Extract JSON from Gemini response
+        json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
+        if not json_match:
+            print("❌ Failed to extract JSON from Gemini response")
+            print(f"🔍 Full response text: {generated_text}")
+            return {"response_type": "recommendation", "message": "I couldn't find suitable products."}
+
+        parsed_json = json.loads(json_match.group(1).strip())
+        
+        # Verify that recommended products actually match those in our database
+        if "recommended_products" in parsed_json:
+            valid_products = []
+            
+            # Get all available product names from our database for comparison
+            available_product_names = [p["name"] for p in filtered_products]
+            
+            for product in parsed_json["recommended_products"]:
+                if product["name"] in available_product_names:
+                    # This is a valid product from our database
+                    valid_products.append(product)
+                else:
+                    print(f"⚠️ Warning: Gemini recommended '{product['name']}' which is not in our database")
+            
+            # Replace with only valid products from our database
+            parsed_json["recommended_products"] = valid_products
+            
+            if not valid_products:
+                parsed_json["message"] = "I couldn't find any products in our database that match your criteria. Please adjust your preferences."
+        
+        print(f"✅ Successfully parsed JSON response with validated products")
+        return parsed_json
+
+    except Exception as e:
+        print(f"❌ Exception in Gemini API call: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"response_type": "recommendation", "message": "An error occurred while processing your request."}
+
+
+
+
+def fetch_products_from_database():
+    """
+    Fetches all products from MongoDB and structures them correctly.
+    """
+    try:
+        products_cursor = collection.find({}, {"_id": 0})
+        structured_products = {}
+
+        # Short debug message
+        print("🔍 Fetching products from database...")
+
+        for doc in products_cursor:
+            category = doc.get("category", "").strip().lower()
+            
+            if not category:
+                continue  # Skip documents with no category
+            
+            # Initialize category list if it doesn't exist
+            if category not in structured_products:
+                structured_products[category] = []
+
+            # Extract product details
+            if "products" in doc and isinstance(doc["products"], list):
+                for sub_prod in doc["products"]:
+                    product_name = sub_prod.get("name", "").strip()
+                    product_price = sub_prod.get("price", "N/A")
+                    product_features = sub_prod.get("specifications", [])
+                    product_brand = sub_prod.get("brand", "").strip()
+
+                    # Skip products without a name
+                    if not product_name:
+                        continue
+
+                    # Handle missing data
+                    if product_price == "N/A" or product_price is None:
+                        product_price = "Unknown Price"
+
+                    if not product_brand:
+                        product_brand = "Generic Brand"
+                    
+                    # Add to structured products
+                    structured_products[category].append({
+                        "name": product_name,
+                        "price": f"${product_price}" if isinstance(product_price, (int, float)) else product_price,
+                        "features": product_features,
+                        "brand": product_brand
+                    })
+
+        # Shorter summary debug
+        product_counts = {cat: len(prods) for cat, prods in structured_products.items()}
+        print(f"📦 Loaded products: {product_counts}")
+        
+        return structured_products
+
+    except Exception as e:
+        print(f"❌ MongoDB Error: {str(e)}")
+        return {}
+
+
+
+def parse_budget_range(budget_string):
+    """
+    Parses a budget range from a string like '1000-2000' or 'below 1500'.
+    Returns (min_budget, max_budget) or (None, None) if invalid.
+    """
+    if not budget_string:
+        return None, None  # ✅ Return None if no budget was provided
+
+    budget_string = budget_string.lower().replace("$", "").strip()
+    numbers = re.findall(r"\d+", budget_string)  # ✅ Extract all numbers
+
+    if len(numbers) == 2:  # ✅ Case: "1000-2000"
+        return int(numbers[0]), int(numbers[1])
+
+    if len(numbers) == 1:
+        if "below" in budget_string:
+            return None, int(numbers[0])  # ✅ Case: "below 1500"
+        if "above" in budget_string:
+            return int(numbers[0]), None  # ✅ Case: "above 1000"
+        return int(numbers[0]), None  # ✅ Case: "budget is 1500"
+
+    return None, None  # ❌ No valid numbers found
+
+
+def extract_numeric_price(price_string):
+    """
+    Extracts numeric price from a string like '$2399' or '2399' and returns it as an integer.
+    If the price is 'N/A' or non-numeric, returns None.
+    """
+    if not price_string or price_string in ["N/A", "null", ""]:
+        return None  # No price available
+
+    price_match = re.search(r"\d+", str(price_string))  # ✅ Ensure input is a string
+    return int(price_match.group()) if price_match else None
+
+
+
+
+def filter_products_for_gemini(user_data, structured_products):
+    """
+    Filters products based on basic criteria, but with more flexibility.
+    """
+    category = user_data["category"].lower()
+    min_budget, max_budget = parse_budget_range(user_data["budget"])
+    preferred_brand = user_data["brand"].lower() if user_data["brand"] else None
+
+    # Get all products from the selected category
+    all_products = structured_products.get(category, [])
+    if not all_products:
+        print(f"⚠️ No products found in category '{category}'")
+        return []
+    
+    print(f"📊 Found {len(all_products)} products in category '{category}'")
+    
+    # Apply flexible filtering
+    filtered_products = all_products.copy()
+    
+    # If we have strict matching criteria but no results, we'll gradually relax constraints
+    
+    # 1. Try strict filtering first (both budget and brand if specified)
+    strict_filtered = []
+    for product in filtered_products:
+        product_price = extract_numeric_price(product["price"])
+        product_brand = product["brand"].lower()
+        
+        # Skip products without a valid price when budget is specified
+        if (min_budget or max_budget) and not product_price:
+            continue
+            
+        # Budget filtering
+        if min_budget and product_price and product_price < min_budget:
+            continue
+        if max_budget and product_price and product_price > max_budget:
+            continue
+            
+        # Brand filtering
+        if preferred_brand and preferred_brand not in product_brand:
+            continue
+            
+        strict_filtered.append(product)
+    
+    # If we have strict matches, return them
+    if strict_filtered:
+        print(f"✅ Found {len(strict_filtered)} products matching all criteria")
+        return strict_filtered
+        
+    # 2. If no strict matches, relax brand constraint if specified
+    if preferred_brand:
+        brand_relaxed = []
+        for product in filtered_products:
+            product_price = extract_numeric_price(product["price"])
+            
+            # Skip products without a valid price when budget is specified
+            if (min_budget or max_budget) and not product_price:
+                continue
+                
+            # Only apply budget filtering
+            if min_budget and product_price and product_price < min_budget:
+                continue
+            if max_budget and product_price and product_price > max_budget:
+                continue
+                
+            brand_relaxed.append(product)
+            
+        if brand_relaxed:
+            print(f"✅ Found {len(brand_relaxed)} products after relaxing brand constraint")
+            return brand_relaxed
+    
+    # 3. If still no matches, relax budget slightly (±20%)
+    budget_relaxed = []
+    relaxed_min = min_budget * 0.8 if min_budget else None
+    relaxed_max = max_budget * 1.2 if max_budget else None
+    
+    for product in filtered_products:
+        product_price = extract_numeric_price(product["price"])
+        product_brand = product["brand"].lower()
+        
+        # Skip products without a valid price when budget is specified
+        if (relaxed_min or relaxed_max) and not product_price:
+            continue
+            
+        # Relaxed budget filtering
+        if relaxed_min and product_price and product_price < relaxed_min:
+            continue
+        if relaxed_max and product_price and product_price > relaxed_max:
+            continue
+            
+        # Brand filtering (if still applying)
+        if preferred_brand and preferred_brand not in product_brand:
+            continue
+            
+        budget_relaxed.append(product)
+    
+    if budget_relaxed:
+        print(f"✅ Found {len(budget_relaxed)} products after relaxing budget constraints")
+        return budget_relaxed
+    
+    # 4. If still no matches, return all products in the category as fallback
+    print(f"ℹ️ No specific matches, returning all {len(all_products)} products in category")
+    return all_products
+
+
+
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5001)

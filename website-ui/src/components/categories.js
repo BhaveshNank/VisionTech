@@ -20,6 +20,17 @@ const CategoriesTitle = styled.h2`
   font-weight: bold;
   margin-bottom: 20px;
   color: #1a1a1a;
+  position: relative;
+  display: inline-block; /* Ensures the line is only as wide as the text */
+
+  &:after {
+    content: "";
+    display: block;
+    width: 50%;  /* Adjust the length of the line */
+    height: 3px; /* Thickness of the line */
+    background: #1a73e8; /* Color matching your blue gradient */
+    margin: 5px auto 0;
+  }
 `;
 
 const CategoriesGrid = styled.div`

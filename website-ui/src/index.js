@@ -1,14 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './styles/main.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "./App";
+import { CartProvider } from "./context/CartContext"; // ✅ Import it correctly
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
+ReactDOM.render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <CartProvider> {/* ✅ Wrap the App inside CartProvider */}
+      <App />
+    </CartProvider>
+  </React.StrictMode>,
+  document.getElementById("root")
 );
-
-reportWebVitals();

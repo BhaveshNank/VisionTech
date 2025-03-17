@@ -30,10 +30,10 @@ export async function sendMessageToChatbot(userMessage) {
     try {
         console.log("🔵 Sending message to chatbot:", userMessage);
 
-        let response = await fetch("http://127.0.0.1:5000/chat", {
+        let response = await fetch("http://localhost:5001/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
+            credentials: "include", // ✅ Ensure cookies are sent
             body: JSON.stringify({ message: userMessage }) 
         });
 
@@ -41,32 +41,20 @@ export async function sendMessageToChatbot(userMessage) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
 
-        // ✅ Read response as text first
-        const text = await response.text();
-        console.log("🔍 Raw API Response:", text);
-
-        // ✅ Try parsing the response as JSON
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (error) {
-            console.error("⚠️ JSON Parsing Error:", error);
-            return "Sorry, I couldn't process the AI response.";
-        }
-
-        console.log("🟢 Parsed API Response:", data); // ✅ Debugging
-
-        // ✅ Check for valid chatbot response
-        if (!data || !data.reply) {
-            return "Sorry, the chatbot response is empty.";
-        }
-
-        return data.reply;
+        const data = await response.json();
+        console.log("🟢 Parsed API Response:", data);
+        return data; // ✅ Return parsed JSON instead of string
     } catch (error) {
         console.error("🔴 Chatbot API Error:", error);
-        return "Sorry, something went wrong. Please check the API connection.";
+        return { reply: "Sorry, something went wrong. Please check the API connection.", response_type: "error" };
     }
 }
+
+
+
+
+
+
 
 
 

@@ -114,6 +114,7 @@ const ChatInterface = () => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+
   // ✅ Persist Messages to Session Storage whenever they change
   useEffect(() => {
     sessionStorage.setItem("chatMessages", JSON.stringify(messages));
@@ -125,107 +126,33 @@ const ChatInterface = () => {
   }, [sessionData]);
 
   // ✅ Submit Handler
-  // ✅ Submit Handler
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!inputText.trim()) {
-      console.warn("⚠️ User tried to send an empty message.");
-      return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
 
-  console.log("🔵 Sending message:", inputText);
+    console.log("🔵 Sending message:", inputText);
+    setIsLoading(true);
+    setMessages(prevMessages => [...prevMessages, { text: inputText, isUser: true }]);
 
-  setIsLoading(true);
-  setMessages(prevMessages => [...prevMessages, { text: inputText, isUser: true }]);
+    try {
+        // ✅ Directly return JSON from `sendMessageToChatbot`
+        const parsedResponse = await sendMessageToChatbot(inputText);
+        console.log("🟢 Full Chatbot Response:", parsedResponse);
 
-  try {
-      const botReply = await sendMessageToChatbot(inputText);
+        // ✅ Ensure chatbot response is valid
+        const botText = parsedResponse.reply || "Sorry, something went wrong.";
 
-      console.log("🟢 Full Chatbot Response:", botReply);
+        // ✅ Handle chatbot response properly
+        setMessages(prevMessages => [...prevMessages, { text: botText, isUser: false }]);
 
-      // ✅ Prevent Redundant Responses
-      const lastBotMessage = sessionStorage.getItem("lastBotMessage");
-      if (botReply === lastBotMessage) {
-          console.warn("⚠️ Chatbot is repeating itself. Ignoring duplicate response.");
-          setIsLoading(false);
-          return;
-      }
-      sessionStorage.setItem("lastBotMessage", botReply); // Store chatbot response
+    } catch (error) {
+        console.error('🔴 Chatbot API Error:', error);
+        setMessages(prevMessages => [...prevMessages, { text: 'Error connecting to chatbot. Please try again.', isUser: false }]);
+    } finally {
+        setIsLoading(false);
+    }
 
-      let parsedResponse;
-      try {
-          parsedResponse = JSON.parse(botReply);
-          if (typeof parsedResponse !== "object") throw new Error("Invalid JSON structure");
-      } catch (error) {
-          console.error("❌ Failed to parse bot response:", error);
-          parsedResponse = { reply: botReply, response_type: "text" }; // Fallback to plain text
-      }
-
-      // ✅ Handle Multi-Product Recommendations
-      if (Array.isArray(parsedResponse.products) && parsedResponse.products.length > 0) {
-          console.log("🔹 Chatbot provided multiple product options.");
-
-          // ✅ Format the product recommendations
-          const productList = parsedResponse.products.map(product => 
-              `- ${product.name} (${product.specifications?.slice(0, 3).join(", ") || "No details available"})`
-          ).join("\n");
-
-          setMessages(prevMessages => [...prevMessages, { 
-              text: `Here are some great options:\n${productList}\n\nWhich one are you interested in?`, 
-              isUser: false 
-          }]);
-
-          // ✅ Store last recommendations for future reference
-          sessionStorage.setItem("lastRecommendations", JSON.stringify(parsedResponse.products));
-
-          setIsLoading(false);
-          return; // Stop further execution to prevent duplicate responses
-      }
-
-      // ✅ Ensure Follow-Up Works When User Picks a Product
-      const lastRecommendations = JSON.parse(sessionStorage.getItem("lastRecommendations") || "[]");
-
-      const selectedProduct = lastRecommendations.find(product => 
-          inputText.toLowerCase().includes(product.name.toLowerCase())
-      );
-
-      if (selectedProduct) {
-          console.log("🔍 User selected a specific product:", selectedProduct.name);
-          setMessages(prevMessages => [...prevMessages, { 
-              text: `✅ Here are details for ${selectedProduct.name}:\n` + 
-                    selectedProduct.specifications.slice(0, 5).map(f => `- ${f}`).join("\n") + 
-                    `\nPrice: ${selectedProduct.price || 'Price not available'}`,
-              isUser: false
-          }]);
-
-          setIsLoading(false);
-          return; // Stop further execution to prevent unnecessary API call
-      }
-
-      // ✅ If chatbot is asking a follow-up question, store it
-      if (parsedResponse.response_type === "question") {
-          console.log("💬 Chatbot is asking for more info:", parsedResponse.message);
-
-          setSessionData(prevSession => ({
-              ...prevSession,
-              lastQuestion: parsedResponse.message
-          }));
-          sessionStorage.setItem("lastQuestion", parsedResponse.message);
-      }
-
-      setMessages(prevMessages => [...prevMessages, { text: parsedResponse.reply, isUser: false }]);
-
-  } catch (error) {
-      console.error('🔴 Chatbot API Error:', error);
-      setMessages(prevMessages => [...prevMessages, { 
-          text: 'Error connecting to chatbot. Please try again.', 
-          isUser: false 
-      }]);
-  } finally {
-      setIsLoading(false);
-  }
-
-  setInputText('');
+    setInputText('');
 };
 
 
