@@ -1,12 +1,76 @@
-function fetchProducts() {
-    return fetch('/api/products')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        });
+async function fetchProducts(category = 'all', brand = '') {
+    try {
+        // Build query string
+        const params = new URLSearchParams();
+        if (category !== 'all') {
+            params.set('category', category);
+        }
+        if (brand) {
+            params.set('brand', brand);
+        }
+        
+        // Make request
+        const response = await fetch(`/api/products?${params.toString()}`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+    }
 }
+
+// Fetch a single product by ID
+async function fetchProductById(productId) {
+    try {
+      console.log("Fetching product with ID:", productId);
+      
+      // Use absolute URL to match your backend
+      const response = await fetch(`http://localhost:5001/api/products`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const allProducts = await response.json();
+      console.log("Total products fetched:", allProducts.length);
+      
+      // Try several matching strategies
+      let product = null;
+      
+      // 1. Direct match
+      product = allProducts.find(p => p.id === productId);
+      
+      // 2. Match by number prefix
+      if (!product && productId.includes('-')) {
+        const numPrefix = productId.split('-')[0];
+        product = allProducts.find(p => p.id && p.id.startsWith(numPrefix + '-'));
+      }
+      
+      // 3. Fuzzy name match as last resort
+      if (!product && productId.includes('-')) {
+        const nameSlug = productId.split('-').slice(1).join('-');
+        product = allProducts.find(p => 
+          p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug)
+        );
+      }
+      
+      if (!product) {
+        console.error("Product not found with ID:", productId);
+        throw new Error('Product not found');
+      }
+      
+      console.log("Found product:", product);
+      return product;
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      throw error;
+    }
+  }
+
 
 function sendInquiry(data) {
     return fetch('/api/inquiry', {
@@ -24,7 +88,7 @@ function sendInquiry(data) {
 }
 
 // Send message to chatbot
-export async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanceId = null) {
+async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanceId = null) {
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
@@ -52,4 +116,4 @@ export async function sendMessageToChatbot(userMessage, isFirstMessage = false, 
     }
 }
 
-export { fetchProducts, sendInquiry };
+export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot };

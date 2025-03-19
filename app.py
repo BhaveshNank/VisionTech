@@ -8,6 +8,7 @@ import logging
 import json 
 import os
 from flask_session import Session
+from flask import send_from_directory
 
 app = Flask(__name__)
 # ✅ Configure Flask Session
@@ -69,6 +70,11 @@ def handle_server_error(error):
 def test():
     logging.info("Test API called")
     return jsonify({"message": "API is working!"}), 200
+
+@app.route('/images/<filename>')
+def serve_image(filename):
+    """Serve images from the static/images directory"""
+    return send_from_directory('static/images', filename)  # ✅ Securely serve images
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
@@ -199,14 +205,14 @@ def chat():
         
         # If this is the first message with empty content, just return the greeting
         if is_first_message and not user_message:
-            return jsonify({"reply": "Hi! I'm SmartShop's assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
+            return jsonify({"reply": "Hi! I'm SmartShop's virtual assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
             
         # For a regular message with content
         # First interaction: Greeting & Introduction
         if chat_data["chat_stage"] == "greeting":
             chat_data["chat_stage"] = "ask_purpose"
             session[session_key] = chat_data  # Update session
-            return jsonify({"reply": "Hi! I'm SmartShop's assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
+            return jsonify({"reply": "Hi! I'm smartshop's virtual assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
 
         # Step 1: Detect Product Category (Laptops, Phones, TVs)
         if chat_data["chat_stage"] == "ask_purpose":
@@ -296,6 +302,73 @@ def chat():
         traceback.print_exc()  # Print full stack trace for debugging
         return jsonify({"error": "An internal server error occurred while processing your request."}), 500
 
+
+@app.route('/api/products', methods=['GET'])
+def api_products():
+    try:
+        # Get query parameters
+        category = request.args.get('category', 'all').lower()
+        brand = request.args.get('brand', '').lower()
+        search = request.args.get('search', '').strip()
+        
+        # Fetch products from database
+        structured_products = fetch_products_from_database()
+        
+        # Handle empty database case
+        if not structured_products:
+            return jsonify([])
+            
+        # Prepare result array
+        result = []
+        
+        # If category is "all", gather products from all categories
+        if category == 'all':
+            for cat, products in structured_products.items():
+                for product in products:
+                    product['category'] = cat  # Add category to each product
+                    result.append(product)
+        else:
+            # Get products from the specific category
+            result = structured_products.get(category, [])
+            # Add category to each product
+            for product in result:
+                product['category'] = category
+        
+        # Apply brand filter if specified
+        if brand:
+            result = [p for p in result if brand.lower() in p.get('brand', '').lower()]
+        
+        # Apply search filter if specified
+        if search:
+            # Case-insensitive search in name and features
+            search_terms = search.lower().split()
+            filtered_results = []
+            
+            for product in result:
+                product_name = product.get('name', '').lower()
+                product_features = ' '.join(product.get('specifications', [])).lower()
+                product_text = f"{product_name} {product_features}"
+                
+                # Check if all search terms are found in the product text
+                if all(term in product_text for term in search_terms):
+                    filtered_results.append(product)
+            
+            result = filtered_results
+        
+        # Add ID field for each product
+        for i, product in enumerate(result):
+            name_slug = re.sub(r'[^a-z0-9]', '-', product['name'].lower())
+            name_slug = name_slug.strip('-')
+            name_slug = re.sub(r'-+', '-', name_slug)
+            product['id'] = f"{i+1}-{name_slug}"
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"❌ Error in /api/products: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/debug-db', methods=['GET'])
 def debug_db():
@@ -480,6 +553,8 @@ def send_to_gemini(user_data, structured_products):
         traceback.print_exc()
         return {"response_type": "recommendation", "message": "An error occurred while processing your request."}
 
+# Update the fetch_products_from_database function
+
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.
@@ -508,6 +583,7 @@ def fetch_products_from_database():
                     product_price = sub_prod.get("price", "N/A")
                     product_features = sub_prod.get("specifications", [])
                     product_brand = sub_prod.get("brand", "").strip()
+                    product_image = sub_prod.get("image", "")
 
                     # Skip products without a name
                     if not product_name:
@@ -520,12 +596,18 @@ def fetch_products_from_database():
                     if not product_brand:
                         product_brand = "Generic Brand"
                     
+                    # Create full image URL
+                    image_url = None
+                    if product_image:
+                        image_url = f"http://localhost:5001/images/{product_image}"
+                    
                     # Add to structured products
                     structured_products[category].append({
                         "name": product_name,
                         "price": f"${product_price}" if isinstance(product_price, (int, float)) else product_price,
                         "features": product_features,
-                        "brand": product_brand
+                        "brand": product_brand,
+                        "image": image_url  # Use the full URL path
                     })
 
         # Shorter summary debug
@@ -537,7 +619,6 @@ def fetch_products_from_database():
     except Exception as e:
         print(f"❌ MongoDB Error: {str(e)}")
         return {}
-
 
 
 def parse_budget_range(budget_string):
