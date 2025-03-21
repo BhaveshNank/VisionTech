@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import SearchBar from './SearchBar';
 import { useCart } from "../../context/CartContext"; // ✅ Ensure correct path
-
+import eventSystem from '../../utils/events';
 
 const NavContainer = styled.nav`
   display: flex;
@@ -80,9 +80,29 @@ const CartIcon = styled.div`
   }
 `;
 
+const HelpButton = styled.button`
+  padding: 8px 12px;
+  background: #2575fc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #1a65e0;
+    transform: translateY(-2px);
+  }
+`;
+
 const Navbar = () => {
   const { cartItems } = useCart();
   const itemCount = cartItems ? cartItems.reduce((total, item) => total + item.quantity, 0) : 0; // ✅ FIXED: Handles undefined cartItems
+
+  const openChatbot = () => {
+    eventSystem.emit('openChat');
+  };
 
   return (
     <NavContainer>
@@ -109,6 +129,10 @@ const Navbar = () => {
             {itemCount > 0 && <span>{itemCount}</span>}
           </Link>
         </CartIcon>
+        {/* Remove the HelpButton below */}
+        {/* <HelpButton onClick={openChatbot}>
+          Help Me Choose
+        </HelpButton> */}
       </NavRight>
     </NavContainer>
   );

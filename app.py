@@ -30,7 +30,6 @@ CORS(app,
      methods=["GET", "POST", "OPTIONS"]
 )
 
-
 # ✅ Initialize Flask-Session
 Session(app)
 
@@ -193,7 +192,7 @@ def chat():
         # Initialize session data for this instance if it doesn't exist or is a new chat
         if session_key not in session or is_first_message:
             session[session_key] = {
-                "chat_stage": "greeting",
+                "chat_stage": "ask_purpose",
                 "selected_category": "",
                 "selected_purpose": "",
                 "selected_features": [],
@@ -208,15 +207,7 @@ def chat():
         chat_data = session[session_key]
         
         # If this is the first message with empty content, just return the greeting
-        if is_first_message and not user_message:
-            return jsonify({"reply": "Hi! I'm SmartShop's virtual assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
             
-        # For a regular message with content
-        # First interaction: Greeting & Introduction
-        if chat_data["chat_stage"] == "greeting":
-            chat_data["chat_stage"] = "ask_purpose"
-            session[session_key] = chat_data  # Update session
-            return jsonify({"reply": "Hi! I'm smartshop's virtual assistant. We sell TVs, Phones, and Laptops. What kind of product are you looking for today?"})
 
         # Step 1: Detect Product Category (Laptops, Phones, TVs)
         if chat_data["chat_stage"] == "ask_purpose":
@@ -314,7 +305,7 @@ def chat():
                 
                 # Reset the conversation but keep the category for potential follow-up
                 original_category = chat_data["selected_category"]
-                chat_data["chat_stage"] = "greeting"
+                chat_data["chat_stage"] = "ask_purpose"
                 chat_data["selected_category"] = ""
                 chat_data["selected_purpose"] = ""
                 chat_data["selected_features"] = []
@@ -1001,9 +992,6 @@ def filter_products_for_gemini(user_data, structured_products):
     # 4. If still no matches, return all products in the category as fallback
     print(f"ℹ️ No specific matches, returning all {len(all_products)} products in category")
     return all_products
-
-
-
 
 
 if __name__ == "__main__":

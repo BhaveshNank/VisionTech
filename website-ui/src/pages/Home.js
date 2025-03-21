@@ -1,9 +1,10 @@
 import React from 'react';
 import styled, { keyframes, createGlobalStyle } from 'styled-components';
 import Categories from '../components/Categories';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 // Import icons for benefits section
 import { FaShippingFast, FaExchangeAlt, FaLock, FaGift } from 'react-icons/fa';
+import eventSystem from '../utils/events';
 
 // Add global style for grey background
 const GlobalStyle = createGlobalStyle`
@@ -361,7 +362,105 @@ const CategoriesSection = styled.div`
   margin-top: 4rem;
 `;
 
+const PrimaryButton = styled.button`
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: inline-block;
+  background: white;
+  color: #1a73e8;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(26, 115, 232, 0.1) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    
+    &:after {
+      transform: translateX(100%);
+    }
+  }
+  
+  &:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const SecondaryButton = styled.button`
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: inline-block;
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.25);
+    
+    &:after {
+      transform: translateX(100%);
+    }
+  }
+  
+  &:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.25);
+  }
+`;
+
 const Home = () => {
+  const navigate = useNavigate();
+  
   // Mock featured products data
   const featuredProducts = [
     {
@@ -399,6 +498,11 @@ const Home = () => {
     return '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '') + '☆'.repeat(5 - Math.ceil(rating));
   };
 
+  // Function to open the chat
+  const openChatbot = () => {
+    eventSystem.emit('openChat');
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -419,8 +523,12 @@ const Home = () => {
           </Subtitle>
           
           <ButtonContainer>
-            <Button to="/products" primary>Shop Now</Button>
-            <Button to="/products?deals=true">Today's Deals</Button>
+            <PrimaryButton onClick={() => navigate('/products')}>
+              Shop Now
+            </PrimaryButton>
+            <SecondaryButton onClick={openChatbot}>
+              Help Me Choose
+            </SecondaryButton>
           </ButtonContainer>
         </HeroSection>
 
