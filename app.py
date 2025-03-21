@@ -169,6 +169,8 @@ def reset_session():
     session["selected_features"] = []
     session["selected_budget"] = ""
     session["selected_brand"] = ""
+    session["recommended_products"] = []
+    session["chosen_product"] = None
     
     return jsonify({"status": "success", "message": "Session reset successfully"})
 
@@ -196,7 +198,9 @@ def chat():
                 "selected_purpose": "",
                 "selected_features": [],
                 "selected_budget": "",
-                "selected_brand": ""
+                "selected_brand": "",
+                "recommended_products": [],
+                "chosen_product": None
             }
             print(f"✅ Initialized new session for instance: {instance_id}")
         
@@ -243,6 +247,7 @@ def chat():
         if chat_data["chat_stage"] == "recommend_products":
             # Store the raw user response from the budget/brand question
             budget_brand_response = user_message
+            chat_data["budget_brand_response"] = budget_brand_response  # Store for later context
             
             # Prepare structured data - pass the raw response as additional context
             structured_query = {
@@ -266,6 +271,9 @@ def chat():
             if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
                 products = gemini_response["recommended_products"]
                 
+                # Store the recommended products in the session
+                chat_data["recommended_products"] = products
+                
                 # Format each product into a string with bullet points
                 product_strings = []
                 for product in products:
@@ -284,24 +292,88 @@ def chat():
                 intro_message = gemini_response.get("message", "Here are the best matching products:")
                 formatted_response = f"{intro_message}\n\n{'\n\n'.join(product_strings)}"
                 
-                # Reset the conversation
-                chat_data["chat_stage"] = "greeting"
+                # Add a prompt for further questions
+                follow_up_prompt = "\n\nIs there anything specific about these products you'd like to know more about? Or would you like me to help you choose the best option based on a specific feature?"
+                formatted_response += follow_up_prompt
+                
+                # Move to follow-up stage instead of resetting
+                chat_data["chat_stage"] = "followup_questions"
                 session[session_key] = chat_data
                 
                 return jsonify({"reply": formatted_response})
             
             # If no products were found or there was an error
             return jsonify({"reply": gemini_response.get("message", "I couldn't find suitable products.")})
-
-        # Handle any other unexpected stages - important fallback
-        return jsonify({"reply": "I'm not sure what to do next. Let's start over. What product are you looking for today?"})
+            
+        # NEW SECTION: Handle follow-up questions after recommendations
+        if chat_data["chat_stage"] == "followup_questions":
+            # Check for conversation closing signals
+            if any(keyword in user_message.lower() for keyword in ["thank you", "thanks", "great", "perfect", "buy", "purchase", "add to cart"]):
+                # User seems satisfied, provide a closing message and reset
+                closing_message = "I'm glad I could help you find the right product! Is there anything else you'd like to know about our products?"
+                
+                # Reset the conversation but keep the category for potential follow-up
+                original_category = chat_data["selected_category"]
+                chat_data["chat_stage"] = "greeting"
+                chat_data["selected_category"] = ""
+                chat_data["selected_purpose"] = ""
+                chat_data["selected_features"] = []
+                chat_data["selected_budget"] = ""
+                chat_data["selected_brand"] = ""
+                chat_data["recommended_products"] = []
+                chat_data["chosen_product"] = None
+                session[session_key] = chat_data
+                
+                return jsonify({"reply": closing_message})
+                
+            # Check if we have recommended products to discuss
+            if not chat_data["recommended_products"]:
+                # Fallback if somehow we lost our recommendations
+                chat_data["chat_stage"] = "greeting"
+                session[session_key] = chat_data
+                return jsonify({"reply": "I'm sorry, I've lost track of our product recommendations. Let's start over. What kind of product are you looking for today?"})
+            
+            # Prepare the follow-up query with context
+            followup_query = {
+                "category": chat_data["selected_category"],
+                "purpose": chat_data["selected_purpose"],
+                "features": chat_data["selected_features"],
+                "budget_brand_response": chat_data.get("budget_brand_response", ""),
+                "user_question": user_message,
+                "is_followup": True,
+                "recommended_products": chat_data["recommended_products"]
+            }
+            
+            # Send to Gemini for follow-up response
+            followup_response = send_followup_to_gemini(followup_query)
+            
+            # Check if the response indicates a final choice
+            if followup_response.get("final_choice"):
+                chat_data["chosen_product"] = followup_response["final_choice"]
+                
+                # Format the final choice message
+                final_product = followup_response["final_choice"]
+                final_message = followup_response.get("message", "Based on our conversation, I think this is the best choice for you:")
+                
+                # Create a formatted product string for the final choice
+                name = final_product.get("name", "Unknown Product")
+                price = final_product.get("price", "Price unavailable")
+                features = final_product.get("features", [])
+                feature_text = ", ".join(features[:3]) if features else "No features listed"
+                
+                final_response = f"{final_message}\n\n✅ {name} - {price}\n  Key features: {feature_text}\n\nWould you like to proceed with this product, or do you have more questions?"
+                
+                session[session_key] = chat_data
+                return jsonify({"reply": final_response})
+            
+            # For regular follow-up responses (not final choice)
+            return jsonify({"reply": followup_response.get("message", "I'm not sure about that. Could you clarify your question?")})
 
     except Exception as e:
         print(f"❌ ERROR in /chat: {e}")
         import traceback
         traceback.print_exc()  # Print full stack trace for debugging
         return jsonify({"error": "An internal server error occurred while processing your request."}), 500
-
 
 @app.route('/api/products', methods=['GET'])
 def api_products():
@@ -555,6 +627,99 @@ def send_to_gemini(user_data, structured_products):
 
 # Update the fetch_products_from_database function
 
+def send_followup_to_gemini(query_data):
+    """
+    Handles follow-up questions about previously recommended products.
+    """
+    recommended_products = query_data.get("recommended_products", [])
+    user_question = query_data.get("user_question", "")
+    category = query_data.get("category", "")
+    
+    if not recommended_products:
+        return {"message": "I don't have any recommendations to discuss. Let's start over with your product search."}
+    
+    # Convert products to JSON for Gemini
+    products_json = json.dumps(recommended_products, indent=2)
+    
+    # Context from previous conversation
+    context = []
+    if query_data.get("purpose"):
+        context.append(f"User needs a {category} for: {query_data['purpose']}")
+    if query_data.get("features"):
+        features_text = ", ".join(query_data['features']) if isinstance(query_data['features'], list) else query_data['features']
+        context.append(f"Desired features: {features_text}")
+    if query_data.get("budget_brand_response"):
+        context.append(f"Budget and brand preferences: {query_data['budget_brand_response']}")
+    
+    context_text = "\n".join([f"- {ctx}" for ctx in context])
+    
+    gpt_payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": f"""
+        You are a digital shopping assistant helping a customer choose between previously recommended products.
+
+        ### **CONVERSATION CONTEXT:**
+        {context_text}
+
+        ### **PREVIOUSLY RECOMMENDED PRODUCTS:**
+        ```json
+        {products_json}
+        ```
+
+        ### **USER'S FOLLOW-UP QUESTION:**
+        "{user_question}"
+
+        ### **INSTRUCTIONS:**
+        1. If the user is asking for more details about a specific product, provide those details from the product data.
+        2. If the user is asking to compare products, highlight the key differences.
+        3. If the user is expressing preference for a specific feature, explain which product best satisfies that preference.
+        4. If the user seems ready to make a final decision or asks "which is best", recommend a single product that best matches their overall requirements.
+        5. If you recommend a final choice, include it in the special "final_choice" field in your response.
+        6. Only mention the products in the provided list - do not invent or reference other products.
+
+        ### **RESPONSE FORMAT:**
+        ```json
+        {{
+          "message": "Your detailed response to the user's question",
+          "final_choice": null  // If making a final recommendation, include the full product object here
+        }}
+        ```
+        """
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(endpoint, headers=headers, json=gpt_payload)
+        
+        if response.status_code != 200:
+            print(f"❌ Gemini API Error: {response.text}")
+            return {"message": "I'm having trouble analyzing these products right now. Could you try again?"}
+
+        response_data = response.json()
+        generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
+        
+        # Extract JSON from Gemini response
+        json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
+        if not json_match:
+            print("❌ Failed to extract JSON from follow-up Gemini response")
+            return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
+
+        parsed_json = json.loads(json_match.group(1).strip())
+        return parsed_json
+
+    except Exception as e:
+        print(f"❌ Exception in follow-up Gemini API call: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"message": "I encountered an error while processing your question. Could we try again?"}
+    
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.

@@ -5,10 +5,12 @@ import Home from './pages/Home';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CategoriesPage from './pages/CategoriesPage';
+import About from './pages/About';
 import ChatInterface from './components/ChatInterface';
 import Footer from './components/UI/Footer';
 import styled from 'styled-components';
 import './styles/main.css';
+import Contact from './pages/Contact';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -33,6 +35,8 @@ function App() {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/product/:id" element={<ProductDetailPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </ContentContainer>
         <ChatInterface />

@@ -25,51 +25,76 @@ async function fetchProducts(category = 'all', brand = '') {
 
 // Fetch a single product by ID
 async function fetchProductById(productId) {
-    try {
-      console.log("Fetching product with ID:", productId);
-      
-      // Use absolute URL to match your backend
-      const response = await fetch(`http://localhost:5001/api/products`);
-      
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      
-      const allProducts = await response.json();
-      console.log("Total products fetched:", allProducts.length);
-      
-      // Try several matching strategies
-      let product = null;
-      
-      // 1. Direct match
-      product = allProducts.find(p => p.id === productId);
-      
-      // 2. Match by number prefix
-      if (!product && productId.includes('-')) {
-        const numPrefix = productId.split('-')[0];
-        product = allProducts.find(p => p.id && p.id.startsWith(numPrefix + '-'));
-      }
-      
-      // 3. Fuzzy name match as last resort
-      if (!product && productId.includes('-')) {
-        const nameSlug = productId.split('-').slice(1).join('-');
-        product = allProducts.find(p => 
-          p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug)
-        );
-      }
-      
-      if (!product) {
-        console.error("Product not found with ID:", productId);
-        throw new Error('Product not found');
-      }
-      
-      console.log("Found product:", product);
-      return product;
-    } catch (error) {
-      console.error('Error fetching product details:', error);
-      throw error;
+  try {
+    console.log("Fetching product with ID:", productId);
+    
+    const response = await fetch(`http://localhost:5001/api/products`);
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
     }
+    
+    const allProducts = await response.json();
+    console.log("Total products fetched:", allProducts.length);
+    
+    // Try more specific matching strategies
+    let product = null;
+    
+    // 1. Direct match by ID
+    product = allProducts.find(p => p.id === productId);
+    
+    // 2. If there's a category in the ID, respect it
+    if (!product && productId.includes('-')) {
+      const parts = productId.split('-');
+      const possibleCategory = parts[parts.length - 1]; // Last part might be category
+      
+      if (['phone', 'laptop', 'tv', 'smartwatch', 'earphone'].includes(possibleCategory)) {
+        // Match by category first
+        const categoryProducts = allProducts.filter(p => 
+          p.category && p.category.toLowerCase() === possibleCategory
+        );
+        
+        if (categoryProducts.length > 0) {
+          // Find best match within the correct category
+          const nameSlug = parts.slice(1, -1).join('-');
+          product = categoryProducts.find(p => 
+            p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug)
+          );
+        }
+      }
+    }
+    
+    // 3. Name-based match as last resort (but improved)
+    if (!product && productId.includes('-')) {
+      const nameSlug = productId.split('-').slice(1).join('-');
+      
+      // Get all products with matching name parts, then sort by relevance
+      const candidates = allProducts
+        .filter(p => p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug))
+        .sort((a, b) => {
+          // Prioritize products where the name is a closer match
+          const aName = a.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const bName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          return bName.indexOf(nameSlug) - aName.indexOf(nameSlug);
+        });
+      
+      if (candidates.length > 0) {
+        product = candidates[0];
+      }
+    }
+    
+    if (!product) {
+      console.error("Product not found with ID:", productId);
+      throw new Error('Product not found');
+    }
+    
+    console.log("Found product:", product);
+    return product;
+  } catch (error) {
+    console.error('Error fetching product details:', error);
+    throw error;
   }
+}
 
 
 function sendInquiry(data) {

@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 
-// Completely redesigned wrapper to eliminate any phantom areas
+// Using div instead of form to eliminate default form behavior
 const SearchContainer = styled.div`
   position: relative;
   width: 350px;
   margin: 0 1rem;
-  isolation: isolate; /* Creates a new stacking context */
 `;
 
-// Completely eliminate form behavior with simple div
+// Using div instead of form
 const SearchInputWrapper = styled.div`
   position: relative;
   width: 100%;
@@ -35,7 +34,6 @@ const SearchInput = styled.input`
   }
 `;
 
-// Enhanced button styling to ensure they're the only clickable elements
 const IconButton = styled.button`
   position: absolute;
   top: 50%;
@@ -49,7 +47,6 @@ const IconButton = styled.button`
   justify-content: center;
   transition: color 0.2s ease;
   z-index: 10;
-  padding: 0; /* Remove any default padding */
   
   &:hover {
     color: #2575fc;
@@ -57,14 +54,14 @@ const IconButton = styled.button`
 `;
 
 const SearchButton = styled(IconButton)`
-  right: 8px; /* Moved closer to edge */
+  right: 10px;
   font-size: 18px;
-  width: 32px; /* Slightly increased clickable area */
+  width: 32px;
   height: 32px;
 `;
 
 const ClearButton = styled(IconButton)`
-  right: 40px; /* Adjusted to prevent overlap */
+  right: 40px;
   font-size: 16px;
   width: 28px;
   height: 28px;
@@ -73,7 +70,7 @@ const ClearButton = styled(IconButton)`
 const SearchBar = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const inputRef = React.useRef(null);
+  const inputRef = useRef(null);
   
   const handleSearch = () => {
     if (query.trim()) {
@@ -83,23 +80,24 @@ const SearchBar = () => {
   
   const handleClear = () => {
     setQuery('');
-    // Focus back on input field after clearing
-    if (inputRef.current) inputRef.current.focus();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
+  // Handle keyboard events (including Enter)
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      handleClear();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent any default form submission
       handleSearch();
+    } else if (e.key === 'Escape') {
+      handleClear();
     }
   };
   
   return (
     <SearchContainer>
-      {/* Now using a plain div with no form-related behavior */}
+      {/* Changed from form to div to eliminate default form submission */}
       <SearchInputWrapper>
         <SearchInput 
           ref={inputRef}
@@ -109,7 +107,7 @@ const SearchBar = () => {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           aria-label="Search products"
-          role="searchbox" /* Added proper accessibility role */
+          role="searchbox"
         />
         
         {query && (
@@ -124,7 +122,7 @@ const SearchBar = () => {
         )}
         
         <SearchButton 
-          type="button"
+          type="button" 
           onClick={handleSearch}
           aria-label="Search"
         >
