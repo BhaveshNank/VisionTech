@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { sendMessageToChatbot } from '../utils/api';
-import { FaExpand, FaCompress, FaTimes, FaCommentAlt } from 'react-icons/fa';
+import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart } from 'react-icons/fa';
 import eventSystem from '../utils/events';
+import { useCart } from '../context/CartContext'; // Import the cart context hook
+
+// Define backend URL at the top of your file for consistency
+const BACKEND_URL = "http://localhost:5001";
 
 const ChatContainer = styled.div`
   max-width: 600px;
@@ -124,6 +128,15 @@ const Message = styled.div`
   `}
 `;
 
+// Add this new component to render messages with possible HTML content
+const MessageContent = ({ text, isHtml }) => {
+  return isHtml ? (
+    <div dangerouslySetInnerHTML={{ __html: text }} />
+  ) : (
+    <>{text}</>
+  );
+};
+
 // Generate a unique instance ID
 const generateUniqueId = () => Math.random().toString(36).substring(2, 15);
 
@@ -237,6 +250,136 @@ const UnreadBadge = styled.span`
   justify-content: center;
 `;
 
+const findProductImage = (productName) => {
+  const productNameLower = productName.toLowerCase();
+  // Map of some common product names to their images
+  const productImageMap = {
+    'iphone': `${BACKEND_URL}/images/iphone_16_pro_max.jpg`,
+    'samsung': `${BACKEND_URL}/images/samsung_s24_ultra.jpg`,
+    'galaxy': `${BACKEND_URL}/images/samsung_s24_ultra.jpg`,
+    'macbook': `${BACKEND_URL}/images/macbook_air_2024.jpg`,
+    'dell xps': `${BACKEND_URL}/images/dell_xps_13_plus.jpg`,
+    'sony': `${BACKEND_URL}/images/sony_bravia_8.jpg`,
+    'lg': `${BACKEND_URL}/images/lg_oled_cx_55.jpg`,
+    'xiaomi': `${BACKEND_URL}/images/xiaomi_14t_pro.jpg`,
+    'oneplus': `${BACKEND_URL}/images/oneplus_13r.jpg`,
+    'asus': `${BACKEND_URL}/images/asus_rog_strix_g16.jpg`,
+    'acer': `${BACKEND_URL}/images/acer_aspire_5.jpg`,
+  };
+  
+  // Try to find a matching product image
+  // Try to find a matching product image
+  for (const [key, imageUrl] of Object.entries(productImageMap)) {
+    if (productNameLower.includes(key)) {
+      console.log(`Found matching image for ${productName}: ${imageUrl}`);
+      return imageUrl;
+    }
+  }
+  
+  console.log(`No matching image found for ${productName}, using default`);
+  return `${BACKEND_URL}/images/default-product.jpg`;
+};
+
+const formatProductLinks = (text) => {
+  // Split the text on product bullet points
+  const parts = text.split("• ");
+  
+  if (parts.length <= 1) return text; // No product bullets found
+  
+  // Keep the intro text
+  let formattedText = parts[0];
+  
+  // Process each product
+  for (let i = 1; i < parts.length; i++) {
+    const productPart = parts[i];
+    
+    // Extract product name - assuming it's before the first dash
+    const dashIndex = productPart.indexOf(" - ");
+    if (dashIndex > 0) {
+      const productName = productPart.substring(0, dashIndex).trim();
+      // Extract price if available
+      const priceMatch = productPart.match(/\$(\d+(\.\d{1,2})?)/);
+      const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
+      
+      // Encode the product name for URL safety
+      const encodedName = encodeURIComponent(productName.toLowerCase().replace(/\s+/g, '-'));
+      
+      // Generate a product ID
+      const productId = `product-${i}-${Date.now()}`;
+      
+      // Try to extract image path from the text if present
+      // The AI might include image path in the recommendation text
+      const imagePathMatch = productPart.match(/image:([^,]+)/);
+      let productImage = `${BACKEND_URL}/images/default-product.jpg`;
+      
+      if (imagePathMatch && imagePathMatch[1]) {
+        // Clean up the extracted path
+        const extractedPath = imagePathMatch[1].trim();
+        if (extractedPath.startsWith('http')) {
+          productImage = extractedPath;
+        } else {
+          productImage = `${BACKEND_URL}/images/${extractedPath}`;
+        }
+      }
+      
+      // Format with image and link that opens in new tab
+      formattedText += `
+      <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #e9ecef;">
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <img 
+            src="${productImage}" 
+            alt="${productName}" 
+            style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+            onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
+          />
+          <div>
+            <strong>${productName}</strong>${productPart.substring(dashIndex)}
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="/product/${encodedName}" style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;">
+            View Details
+          </a>
+          <button 
+            class="add-to-cart-btn" 
+            data-id="${productId}" 
+            data-name="${productName.replace(/'/g, "\\'")}" 
+            data-price="${price}" 
+            data-image="${productImage}"
+            style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            Add to Cart
+          </button>
+        </div>
+      </div>`;
+    } else {
+      // If format doesn't match, keep original
+      formattedText += `• ${productPart}`;
+    }
+  }
+  
+  return formattedText;
+};
+
+const CartSuccessMessage = styled.div`
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  z-index: 1100;
+  animation: ${fadeIn} 0.3s ease-out;
+`;
+
 const ChatInterface = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false); // New state for expanded mode
@@ -247,7 +390,98 @@ const ChatInterface = () => {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [manuallyDismissed, setManuallyDismissed] = useState(false);
+  const [cartMessage, setCartMessage] = useState(null);
   const messagesEndRef = useRef(null); // Ref for auto-scrolling
+  
+  // Get cart dispatch function from context
+  const { dispatch } = useCart();
+
+  // Initialize the global function to add products to cart
+  useEffect(() => {
+    // Create global function that HTML buttons can call
+    window.addToCartFromChatbot = (id, name, price, image) => {
+      console.log("Add to cart called with:", {id, name, price, image});
+      
+      // Parse price as a number if it's a string
+      const parsedPrice = typeof price === 'string' ? parseFloat(price) : price;
+      
+      const product = {
+        id,
+        name,
+        price: parsedPrice,
+        image,
+        quantity: 1
+      };
+      
+      // Dispatch action to add to cart
+      dispatch({
+        type: "ADD_TO_CART",
+        payload: product
+      });
+      
+      // Show success message
+      setCartMessage({
+        product: name,
+        visible: true
+      });
+      
+      // Hide message after 3 seconds
+      setTimeout(() => {
+        setCartMessage(null);
+      }, 3000);
+    };
+    
+    // Cleanup function
+    return () => {
+      window.addToCartFromChatbot = undefined;
+    };
+  }, [dispatch]);
+
+
+  useEffect(() => {
+    const handleAddToCartClick = (e) => {
+      if (e.target.closest('.add-to-cart-btn')) {
+        const button = e.target.closest('.add-to-cart-btn');
+        const id = button.dataset.id;
+        const name = button.dataset.name;
+        const price = parseFloat(button.dataset.price);
+        const image = button.dataset.image;
+        
+        console.log("Add to cart clicked:", {id, name, price, image});
+        
+        // Add to cart
+        const product = {
+          id,
+          name,
+          price,
+          image,
+          quantity: 1
+        };
+        
+        // Dispatch action to add to cart
+        dispatch({
+          type: "ADD_TO_CART",
+          payload: product
+        });
+        
+        // Show success message
+        setCartMessage({
+          product: name,
+          visible: true
+        });
+        
+        // Hide message after 3 seconds
+        setTimeout(() => {
+          setCartMessage(null);
+        }, 3000);
+      }
+    };
+    
+    document.addEventListener('click', handleAddToCartClick);
+    return () => {
+      document.removeEventListener('click', handleAddToCartClick);
+    };
+  }, [dispatch]);
 
   // Initialize with a unique instance ID when component mounts
   useEffect(() => {
@@ -314,8 +548,21 @@ const ChatInterface = () => {
       console.log("🟢 Chatbot Response:", parsedResponse);
 
       // Add bot response to chat
-      const botText = parsedResponse.reply || "Sorry, something went wrong.";
-      setMessages(prevMessages => [...prevMessages, { text: botText, isUser: false }]);
+      let botText = parsedResponse.reply || "Sorry, something went wrong.";
+      let isHtml = false;
+      
+      // Check if the response contains product recommendations
+      if (botText.includes("• ") && (botText.includes("Here are") || botText.includes("best matching"))) {
+        // Format product links
+        isHtml = true;
+        botText = formatProductLinks(botText);
+      }
+      
+      setMessages(prevMessages => [...prevMessages, { 
+        text: botText, 
+        isUser: false,
+        isHtml
+      }]);
     } catch (error) {
       console.error('🔴 Chatbot API Error:', error);
       setMessages(prevMessages => [...prevMessages, { 
@@ -433,7 +680,7 @@ const ChatInterface = () => {
           <MessageList isExpanded={isExpanded}>
             {messages.map((msg, idx) => (
               <Message key={idx} isUser={msg.isUser}>
-                {msg.text}
+                <MessageContent text={msg.text} isHtml={msg.isHtml || false} />
               </Message>
             ))}
             {isLoading && <Message>Thinking...</Message>}
@@ -456,8 +703,43 @@ const ChatInterface = () => {
           </form>
         </div>
       </ChatPopup>
+      
+      {/* Add success message notification */}
+      {cartMessage && cartMessage.visible && (
+        <CartSuccessMessage>
+          <FaShoppingCart style={{ marginRight: '10px' }} />
+          Added {cartMessage.product} to cart!
+        </CartSuccessMessage>
+      )}
     </>
   );
 };
+
+// Add this to your file or paste in browser console
+function testImageUrls() {
+  const BACKEND_URL = "http://localhost:5001";
+  const testImages = [
+    `${BACKEND_URL}/images/default-product.jpg`,
+    `${BACKEND_URL}/images/iphone.jpg`,
+    `${BACKEND_URL}/images/samsung.jpg`,
+    `${BACKEND_URL}/images/macbook.jpg`
+  ];
+  
+  console.log("Testing image URLs...");
+  testImages.forEach(url => {
+    console.log(`Testing: ${url}`);
+    fetch(url)
+      .then(response => {
+        if (response.ok) {
+          console.log(`✅ Image exists: ${url}`);
+        } else {
+          console.error(`❌ Image not found (${response.status}): ${url}`);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ Error fetching image: ${url}`, error);
+      });
+  });
+}
 
 export default ChatInterface;

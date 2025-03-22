@@ -11,6 +11,8 @@ import Footer from './components/UI/Footer';
 import styled from 'styled-components';
 import './styles/main.css';
 import Contact from './pages/Contact';
+import { CartProvider } from './context/CartContext';
+import Cart from './pages/Cart';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -25,24 +27,31 @@ const ContentContainer = styled.div`
 `;
 
 function App() {
+  useEffect(() => {
+    window.addToCartFromChatbot('test-123', 'Test Product', 99.99, 'http://localhost:5001/images/default-product.jpg');
+  }, []);
+
   return (
-    <BrowserRouter>
-      <AppContainer>
-        <Navbar />
-        <ContentContainer>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/product/:id" element={<ProductDetailPage />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </ContentContainer>
-        <ChatInterface />
-        <Footer />
-      </AppContainer>
-    </BrowserRouter>
+    <CartProvider>
+      <BrowserRouter>
+        <AppContainer>
+          <Navbar />
+          <ContentContainer>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/product/:id" element={<ProductDetailPage />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/cart" element={<Cart />} />
+            </Routes>
+          </ContentContainer>
+          <ChatInterface />
+          <Footer />
+        </AppContainer>
+      </BrowserRouter>
+    </CartProvider>
   );
 }
 

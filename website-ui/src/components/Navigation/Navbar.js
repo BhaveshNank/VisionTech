@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import SearchBar from './SearchBar';
 import { useCart } from "../../context/CartContext"; // ✅ Ensure correct path
 import eventSystem from '../../utils/events';
+import { FaShoppingCart } from 'react-icons/fa';
 
 const NavContainer = styled.nav`
   display: flex;
@@ -63,6 +64,16 @@ const NavRight = styled.div`
 const CartIcon = styled.div`
   position: relative;
   cursor: pointer;
+  color: #333; // Add explicit color
+  font-size: 24px; // Increase size
+  margin-left: 15px; // Add spacing
+  
+  a {
+    display: flex;
+    align-items: center;
+    color: inherit; // Inherit color from parent
+    text-decoration: none;
+  }
   
   span {
     position: absolute;
@@ -98,7 +109,7 @@ const HelpButton = styled.button`
 
 const Navbar = () => {
   const { cartItems } = useCart();
-  const itemCount = cartItems ? cartItems.reduce((total, item) => total + item.quantity, 0) : 0; // ✅ FIXED: Handles undefined cartItems
+  const itemCount = cartItems.reduce((total, item) => total + (item.quantity || 1), 0);
 
   const openChatbot = () => {
     eventSystem.emit('openChat');
@@ -120,19 +131,11 @@ const Navbar = () => {
       <NavRight>
         <SearchBar />
         <CartIcon>
-          <Link to="/cart">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
+          <Link to="/cart" aria-label="View shopping cart">
+            <FaShoppingCart size={24} />
             {itemCount > 0 && <span>{itemCount}</span>}
           </Link>
         </CartIcon>
-        {/* Remove the HelpButton below */}
-        {/* <HelpButton onClick={openChatbot}>
-          Help Me Choose
-        </HelpButton> */}
       </NavRight>
     </NavContainer>
   );

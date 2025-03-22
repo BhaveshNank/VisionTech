@@ -10,7 +10,7 @@ import os
 from flask_session import Session
 from flask import send_from_directory
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 # ✅ Configure Flask Session
 app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -739,6 +739,8 @@ def fetch_products_from_database():
                     product_price = sub_prod.get("price", "N/A")
                     product_features = sub_prod.get("specifications", [])
                     product_brand = sub_prod.get("brand", "").strip()
+                    
+                    # Get image directly from database field
                     product_image = sub_prod.get("image", "")
 
                     # Skip products without a name
@@ -752,10 +754,13 @@ def fetch_products_from_database():
                     if not product_brand:
                         product_brand = "Generic Brand"
                     
-                    # Create full image URL
+                    # Create full image URL - use the image from database
                     image_url = None
                     if product_image:
                         image_url = f"http://localhost:5001/images/{product_image}"
+                    else:
+                        # If no image in database, create a generic name based on brand and product
+                        image_url = f"http://localhost:5001/images/default-product.jpg"
                     
                     # Add to structured products
                     structured_products[category].append({
