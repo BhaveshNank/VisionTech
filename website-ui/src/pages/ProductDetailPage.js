@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchProductById } from '../utils/api';
+import { fetchProductById, fetchProductByName } from '../utils/api';
+import { useCart } from '../context/CartContext';
+import { FaShoppingCart } from 'react-icons/fa';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -100,18 +102,23 @@ const FeatureItem = styled.li`
 `;
 
 const Button = styled.button`
-  padding: 0.8rem 1.8rem;
-  background-color: #3498db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.8rem 1.5rem;
+  background-color: #28a745;
   color: white;
+  font-size: 16px;
+  font-weight: 500;
   border: none;
   border-radius: 4px;
-  font-size: 1.1rem;
-  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-top: 2rem;
   
   &:hover {
-    background-color: #2980b9;
+    background-color: #218838;
   }
 `;
 
@@ -128,21 +135,42 @@ const ErrorMessage = styled.div`
   }
 `;
 
-const ProductDetailPage = () => {
+const ProductDetailPage = (props) => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { dispatch } = useCart();
+  
+  // Success message state
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const getProduct = async () => {
       setLoading(true);
       try {
-        console.log("Product ID from URL param:", id);
-        const data = await fetchProductById(id);
-        console.log("Product successfully retrieved:", data);
-        setProduct(data);
-        setError(null);
+        // Get ID from useParams hook, not props.match.params
+        console.log("Looking up product with ID:", id);
+        
+        // Try to fetch by ID first
+        let data = await fetchProductById(id);
+        
+        // If that fails, try by name (using the ID as a name)
+        if (!data) {
+          console.log("No product found by ID, trying by name:", id);
+          // Extract name part (remove any numeric prefix)
+          const nameParam = id.replace(/^\d+-/, '').replace(/-/g, ' ');
+          data = await fetchProductByName(nameParam);
+        }
+        
+        if (data) {
+          console.log("Product successfully retrieved:", data);
+          setProduct(data);
+          setError(null);
+        } else {
+          console.error("Product not found by ID or name");
+          setError('Product not found');
+        }
       } catch (err) {
         console.error('Error fetching product:', err);
         setError('Failed to load product details');
@@ -150,9 +178,37 @@ const ProductDetailPage = () => {
         setLoading(false);
       }
     };
-  
+
     getProduct();
-  }, [id]);
+  }, [id]); // Remove props.fallbackName from dependencies since we're not using it
+
+  // Function to handle adding product to cart
+  const handleAddToCart = () => {
+    if (!product) return;
+    
+    const productImage = product.image || `https://via.placeholder.com/500x400?text=${encodeURIComponent(product.name)}`;
+    
+    const cartItem = {
+      id: product.id || id,
+      name: product.name,
+      price: parseFloat(product.price) || 0,
+      image: productImage,
+      quantity: 1
+    };
+    
+    dispatch({
+      type: "ADD_TO_CART",
+      payload: cartItem
+    });
+    
+    // Show success message
+    setShowSuccess(true);
+    
+    // Hide message after 3 seconds
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 3000);
+  };
 
   // Generate breadcrumb category name
   const getCategoryName = () => {
@@ -250,7 +306,22 @@ const ProductDetailPage = () => {
             ))}
           </FeaturesList>
           
-          <Button>Add to Cart</Button>
+          <Button onClick={handleAddToCart}>
+            <FaShoppingCart /> Add to Cart
+          </Button>
+          
+          {showSuccess && (
+            <div style={{
+              marginTop: '15px',
+              padding: '10px',
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              borderRadius: '4px',
+              textAlign: 'center'
+            }}>
+              Added to cart successfully!
+            </div>
+          )}
         </ProductInfo>
       </ProductLayout>
     </PageContainer>

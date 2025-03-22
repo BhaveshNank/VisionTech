@@ -110,6 +110,72 @@ def get_products_by_category(category):
 
     return jsonify({"reply": "\n".join(product_list)})
 
+@app.route('/api/product-image/<product_name>')
+def get_product_image(product_name):
+    """Dynamically find and serve the appropriate product image without hardcoded categories"""
+    try:
+        # Normalize product name
+        product_name = product_name.lower()
+        
+        # First, try to match from database
+        product = db.products.find_one({"name": {"$regex": product_name, "$options": "i"}})
+        if product and "image" in product and product["image"]:
+            # Instead of redirect, return a JSON with the image URL
+            image_url = product["image"]
+            return jsonify({"image_url": image_url})
+            
+        # If we have a category in the product, use it
+        if product and "category" in product:
+            product_category = product["category"].lower()
+        else:
+            # No need to guess categories - we'll do direct image matching
+            product_category = None
+        
+        # Look for images in static/images directory
+        image_dir = os.path.join(app.static_folder, 'images')
+        
+        # Try to match by exact name first
+        for image_file in os.listdir(image_dir):
+            if image_file.endswith(('.jpg', '.png', '.jpeg', '.gif')):
+                normalized_filename = image_file.lower()
+                # Look for exact product name match
+                if product_name.replace(' ', '_') in normalized_filename:
+                    print(f"Found exact match for {product_name}: {image_file}")
+                    return send_from_directory('static/images', image_file)
+        
+        # Try to match by individual keywords in the product name
+        product_keywords = set(product_name.split())
+        best_match = None
+        best_match_score = 0
+        
+        for image_file in os.listdir(image_dir):
+            if image_file.endswith(('.jpg', '.png', '.jpeg', '.gif')):
+                # Calculate score based on how many keywords match
+                filename_words = set(image_file.lower().replace('.jpg', '').replace('.png', '').replace('_', ' ').split())
+                match_score = len(product_keywords.intersection(filename_words))
+                
+                if match_score > best_match_score:
+                    best_match_score = match_score
+                    best_match = image_file
+                    
+                # If we have an exact match, use it immediately
+                if match_score == len(product_keywords):
+                    print(f"Found perfect keyword match for {product_name}: {image_file}")
+                    return send_from_directory('static/images', image_file)
+        
+        # If we found a partial match with at least one keyword
+        if best_match and best_match_score > 0:
+            print(f"Found best keyword match for {product_name}: {best_match} (score: {best_match_score})")
+            return send_from_directory('static/images', best_match)
+                    
+        # If no match is found, return a default image
+        print(f"No image match found for {product_name}, using default")
+        return send_from_directory('static/images', 'default-product.jpg')
+    
+    except Exception as e:
+        print(f"Error finding product image: {str(e)}")
+        return send_from_directory('static/images', 'default-product.jpg')
+
 # @app.route('/debug-products', methods=['GET'])
 # def debug_products():
 #     try:
@@ -218,14 +284,37 @@ def chat():
             chat_data["selected_category"] = detected_category
             chat_data["chat_stage"] = "ask_features"
             session[session_key] = chat_data  # Update session
-            return jsonify({"reply": f"Great! What will you primarily use this {detected_category} for? (e.g., Gaming, Work, Entertainment)"})
+            
+            # Get category-specific first question
+            if detected_category == 'tv':
+                purpose_question = "Great! What kind of content do you usually watch on TV? (e.g., Sports, Movies, Gaming)"
+            elif detected_category == 'phone':
+                purpose_question = "Great! What will you primarily use this phone for? (e.g., Gaming, work or basic use)"
+            elif detected_category == 'laptop':
+                purpose_question = "Great! What will you primarily use this laptop for? (e.g., Gaming, Work, Entertainment)?"
+            else:
+                purpose_question = f"Great! What will you primarily use this {detected_category} for?"
+            
+            return jsonify({"reply": purpose_question})
 
         # Step 2: Ask for Features
         if chat_data["chat_stage"] == "ask_features":
             chat_data["selected_purpose"] = user_message
             chat_data["chat_stage"] = "ask_budget"
             session[session_key] = chat_data  # Update session
-            return jsonify({"reply": f"Do you have any specific features in mind for this {chat_data['selected_category']}? (e.g., High Battery Life, Camera Quality, RAM, Screen Size)"})
+            
+            # Category-specific feature prompts
+            if chat_data["selected_category"] == "phone":
+                feature_prompt = "Do you have any specific features in mind for this phone? (e.g., Camera quality, Battery life, Storage capacity, Processing power)"
+            elif chat_data["selected_category"] == "laptop":
+                feature_prompt = "Do you have any specific features in mind for this laptop? (e.g., RAM, Processor type, Storage capacity, Screen size, Weight)"
+            elif chat_data["selected_category"] == "tv":
+                feature_prompt = "Do you have any specific features in mind for this TV? (e.g., Screen size, Resolution, Panel type, Smart features, HDMI ports)"
+            else:
+                # Generic fallback
+                feature_prompt = f"Do you have any specific features in mind for this {chat_data['selected_category']}?"
+            
+            return jsonify({"reply": feature_prompt})
 
         # Step 3: Ask for Budget & Brand
         if chat_data["chat_stage"] == "ask_budget":
@@ -282,9 +371,28 @@ def chat():
                 # Combine intro message with product list
                 intro_message = gemini_response.get("message", "Here are the best matching products:")
                 formatted_response = f"{intro_message}\n\n{'\n\n'.join(product_strings)}"
-                
-                # Add a prompt for further questions
-                follow_up_prompt = "\n\nIs there anything specific about these products you'd like to know more about? Or would you like me to help you choose the best option based on a specific feature?"
+
+                # Determine product category from first recommended product (if available)
+                product_category = None
+                if products and len(products) > 0:
+                    first_product = products[0]
+                    if 'category' in first_product:
+                        product_category = first_product['category'].lower()
+                    else:
+                        # Try to guess from product name
+                        product_name = first_product.get('name', '').lower()
+                        if any(term in product_name for term in ['tv', 'television']):
+                            product_category = 'tv'
+                        elif any(term in product_name for term in ['phone', 'smartphone', 'iphone']):
+                            product_category = 'phone'
+                        elif any(term in product_name for term in ['laptop', 'computer', 'macbook']):
+                            product_category = 'laptop'
+
+                # Generate category-specific follow-up question
+                category_specific_question = get_category_specific_follow_up(user_message, product_category)
+
+                # Add the category-specific prompt with clear separation markers
+                follow_up_prompt = f"\n\n---\n\n{category_specific_question} Or would you like me to help you choose between these options?"
                 formatted_response += follow_up_prompt
                 
                 # Move to follow-up stage instead of resetting
@@ -544,6 +652,7 @@ def send_to_gemini(user_data, structured_products):
         7. If a specific product line is mentioned (like "iPhone"), prioritize those products
         8. If no products match ALL criteria, prioritize brand preference first, then budget constraints
         9. If a preferred brand is mentioned, try to recommend only that brand's products
+        10. IMPORTANT: Always include the product's image field in your recommendations
 
         ### **AVAILABLE PRODUCTS (ONLY recommend from this list):**
         ```json
@@ -561,7 +670,8 @@ def send_to_gemini(user_data, structured_products):
             {{
               "name": "Exact Product Name from List",
               "price": "Price from List",
-              "features": ["Feature1", "Feature2", "Feature3"]
+              "features": ["Feature1", "Feature2", "Feature3"],
+              "image": "The image URL from the product data"
             }}
           ]
         }}
@@ -599,6 +709,12 @@ def send_to_gemini(user_data, structured_products):
             
             for product in parsed_json["recommended_products"]:
                 if product["name"] in available_product_names:
+                    # Find the matching product in our database to ensure we have the correct image
+                    matching_product = next((p for p in all_products if p["name"] == product["name"]), None)
+                    if matching_product:
+                        # Make sure we have the image from our database
+                        product["image"] = matching_product.get("image", product.get("image", "default-product.jpg"))
+
                     valid_products.append(product)
                 else:
                     print(f"⚠️ Warning: Gemini recommended '{product['name']}' which is not in our database")
@@ -998,6 +1114,29 @@ def filter_products_for_gemini(user_data, structured_products):
     print(f"ℹ️ No specific matches, returning all {len(all_products)} products in category")
     return all_products
 
+def get_category_specific_follow_up(user_message, product_category=None):
+    """Generate category-specific follow-up questions"""
+    
+    # First try to detect category from the user message if not provided
+    if not product_category:
+        message_lower = user_message.lower()
+        
+        if any(term in message_lower for term in ['tv', 'television', 'screen', 'display']):
+            product_category = 'tv'
+        elif any(term in message_lower for term in ['phone', 'smartphone', 'iphone', 'android', 'mobile']):
+            product_category = 'phone'
+        elif any(term in message_lower for term in ['laptop', 'computer', 'notebook', 'macbook']):
+            product_category = 'laptop'
+    
+    # Return category-specific follow-up
+    if product_category == 'tv':
+        return "What kind of content do you usually watch on your TV? (e.g., Sports, Movies, Gaming)"
+    elif product_category == 'phone':
+        return "What features are most important to you in a phone? (e.g., Camera quality, Battery life, Performance)"
+    elif product_category == 'laptop':
+        return "What will you primarily use this laptop for? (e.g., Gaming, Work, Entertainment)?"
+    else:
+        return "Is there anything specific you're looking for in this product? (e.g., Brand preference, Price range, Key features)"
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

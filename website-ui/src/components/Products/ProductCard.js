@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import { useCart } from '../../context/CartContext';
+import { FaShoppingCart } from 'react-icons/fa';
+import SuccessToast from '../UI/SuccessToast';
 
 const Card = styled.div`
   background: white;
@@ -75,7 +78,13 @@ const Feature = styled.div`
   }
 `;
 
-const Button = styled(Link)`
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+`;
+
+const ViewButton = styled(Link)`
   display: inline-block;
   padding: 0.6rem 1.2rem;
   background-color: #3498db;
@@ -85,13 +94,38 @@ const Button = styled(Link)`
   font-weight: 500;
   transition: background-color 0.2s;
   text-align: center;
+  flex: 1;
   
   &:hover {
     background-color: #2980b9;
   }
 `;
 
+const CartButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.6rem 1rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex: 1;
+  
+  &:hover {
+    background-color: #218838;
+  }
+`;
+
 const ProductCard = ({ product }) => {
+  const { dispatch } = useCart();
+  // Add state for success message
+  const [showSuccess, setShowSuccess] = useState(false);
+  
   // Generate placeholder image based on product name if no image is provided
   const placeholderImage = `https://via.placeholder.com/300x200?text=${encodeURIComponent(product.name)}`;
   
@@ -102,34 +136,70 @@ const ProductCard = ({ product }) => {
     
   // Ensure product ID exists to prevent routing errors
   const productId = product.id || `1-${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+  
+  // Function to handle adding product to cart
+  const handleAddToCart = () => {
+    const cartItem = {
+      id: productId,
+      name: product.name,
+      price: parseFloat(product.price) || 0,
+      image: product.image || placeholderImage,
+      quantity: 1
+    };
+    
+    dispatch({
+      type: "ADD_TO_CART",
+      payload: cartItem
+    });
+    
+    // Show success message
+    setShowSuccess(true);
+    
+    // Hide message after 3 seconds
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 3000);
+  };
 
   return (
-    <Card>
-      <ProductImage>
-        {/* The image URL is now directly stored in product.image */}
-        <img 
-          src={product.image || placeholderImage} 
-          alt={product.name} 
-          onError={(e) => {
-            e.target.onerror = null; // Prevent infinite loop
-            e.target.src = placeholderImage;
-          }}
-        />
-      </ProductImage>
-      <ProductInfo>
-        <ProductName>{product.name}</ProductName>
-        <ProductBrand>{product.brand || 'Generic Brand'}</ProductBrand>
-        <ProductPrice>{product.price || '$N/A'}</ProductPrice>
-        
-        <ProductFeatures>
-          {displayFeatures.map((feature, index) => (
-            <Feature key={index}>{feature}</Feature>
-          ))}
-        </ProductFeatures>
-        
-        <Button to={`/product/${productId}`}>View Details</Button>
-      </ProductInfo>
-    </Card>
+    <>
+      <Card>
+        <ProductImage>
+          <img 
+            src={product.image || placeholderImage} 
+            alt={product.name} 
+            onError={(e) => {
+              e.target.onerror = null; // Prevent infinite loop
+              e.target.src = placeholderImage;
+            }}
+          />
+        </ProductImage>
+        <ProductInfo>
+          <ProductName>{product.name}</ProductName>
+          <ProductBrand>{product.brand || 'Generic Brand'}</ProductBrand>
+          <ProductPrice>{product.price || '$N/A'}</ProductPrice>
+          
+          <ProductFeatures>
+            {displayFeatures.map((feature, index) => (
+              <Feature key={index}>{feature}</Feature>
+            ))}
+          </ProductFeatures>
+          
+          <ButtonContainer>
+            <ViewButton to={`/product/${productId}`}>View Details</ViewButton>
+            <CartButton onClick={handleAddToCart}>
+              <FaShoppingCart size={14} />
+              Add to Cart
+            </CartButton>
+          </ButtonContainer>
+        </ProductInfo>
+      </Card>
+      
+      {/* Add the success toast */}
+      {showSuccess && (
+        <SuccessToast message={`Added ${product.name} to cart!`} />
+      )}
+    </>
   );
 };
 

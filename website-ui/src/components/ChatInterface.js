@@ -39,8 +39,8 @@ const ChatPopup = styled.div`
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: ${props => props.isExpanded ? '650px' : '350px'};
-  height: ${props => props.isExpanded ? '600px' : '500px'};
+  width: ${props => props.isExpanded ? '800px' : '350px'};  /* Increased from 650px to 800px */
+  height: ${props => props.isExpanded ? '700px' : '500px'}; /* Increased from 600px to 700px */
   background: white;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -82,7 +82,7 @@ const IconButton = styled.button`
 `;
 
 const MessageList = styled.div`
-  height: ${props => props.isExpanded ? '450px' : '350px'};
+  height: ${props => props.isExpanded ? '550px' : '350px'}; 
   overflow-y: auto;
   margin-bottom: 1rem;
   padding: 1rem;
@@ -251,33 +251,8 @@ const UnreadBadge = styled.span`
 `;
 
 const findProductImage = (productName) => {
-  const productNameLower = productName.toLowerCase();
-  // Map of some common product names to their images
-  const productImageMap = {
-    'iphone': `${BACKEND_URL}/images/iphone_16_pro_max.jpg`,
-    'samsung': `${BACKEND_URL}/images/samsung_s24_ultra.jpg`,
-    'galaxy': `${BACKEND_URL}/images/samsung_s24_ultra.jpg`,
-    'macbook': `${BACKEND_URL}/images/macbook_air_2024.jpg`,
-    'dell xps': `${BACKEND_URL}/images/dell_xps_13_plus.jpg`,
-    'sony': `${BACKEND_URL}/images/sony_bravia_8.jpg`,
-    'lg': `${BACKEND_URL}/images/lg_oled_cx_55.jpg`,
-    'xiaomi': `${BACKEND_URL}/images/xiaomi_14t_pro.jpg`,
-    'oneplus': `${BACKEND_URL}/images/oneplus_13r.jpg`,
-    'asus': `${BACKEND_URL}/images/asus_rog_strix_g16.jpg`,
-    'acer': `${BACKEND_URL}/images/acer_aspire_5.jpg`,
-  };
-  
-  // Try to find a matching product image
-  // Try to find a matching product image
-  for (const [key, imageUrl] of Object.entries(productImageMap)) {
-    if (productNameLower.includes(key)) {
-      console.log(`Found matching image for ${productName}: ${imageUrl}`);
-      return imageUrl;
-    }
-  }
-  
-  console.log(`No matching image found for ${productName}, using default`);
-  return `${BACKEND_URL}/images/default-product.jpg`;
+  // Directly query backend for image based on product name
+  return `${BACKEND_URL}/api/product-image/${encodeURIComponent(productName)}`;
 };
 
 const formatProductLinks = (text) => {
@@ -297,32 +272,28 @@ const formatProductLinks = (text) => {
     const dashIndex = productPart.indexOf(" - ");
     if (dashIndex > 0) {
       const productName = productPart.substring(0, dashIndex).trim();
+      
       // Extract price if available
       const priceMatch = productPart.match(/\$(\d+(\.\d{1,2})?)/);
       const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
       
-      // Encode the product name for URL safety
-      const encodedName = encodeURIComponent(productName.toLowerCase().replace(/\s+/g, '-'));
+      // Generate a product ID for routing that's more compatible
+      // This creates a format similar to how IDs are generated in your API
+      const nameSlug = productName.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')  // Replace all non-alphanumeric with hyphens
+        .replace(/^-+|-+$/g, '');     // Remove leading/trailing hyphens
       
-      // Generate a product ID
+      // Add a numeric prefix to match API format (using index number)
+      const encodedName = `${i}-${nameSlug}`;
+      
+      // Generate a product ID for data attributes
       const productId = `product-${i}-${Date.now()}`;
       
-      // Try to extract image path from the text if present
-      // The AI might include image path in the recommendation text
-      const imagePathMatch = productPart.match(/image:([^,]+)/);
-      let productImage = `${BACKEND_URL}/images/default-product.jpg`;
-      
-      if (imagePathMatch && imagePathMatch[1]) {
-        // Clean up the extracted path
-        const extractedPath = imagePathMatch[1].trim();
-        if (extractedPath.startsWith('http')) {
-          productImage = extractedPath;
-        } else {
-          productImage = `${BACKEND_URL}/images/${extractedPath}`;
-        }
-      }
+      // Find a product image
+      const productImage = findProductImage(productName);
       
       // Format with image and link that opens in new tab
+      // Use proper error handling for image loading
       formattedText += `
       <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #e9ecef;">
         <div style="display: flex; align-items: center; margin-bottom: 10px;">
@@ -330,14 +301,21 @@ const formatProductLinks = (text) => {
             src="${productImage}" 
             alt="${productName}" 
             style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-            onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
+            onerror="console.log('Image load failed:', this.src); this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
           />
           <div>
             <strong>${productName}</strong>${productPart.substring(dashIndex)}
           </div>
         </div>
         <div style="display: flex; gap: 10px;">
-          <a href="/product/${encodedName}" style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;">
+          <a 
+            href="/product/${encodedName}" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+            data-product-name="${productName.replace(/"/g, '&quot;')}"
+            onclick="console.log('View details clicked for:', '${productName.replace(/'/g, "\\'")}')"
+          >
             View Details
           </a>
           <button 

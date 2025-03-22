@@ -141,4 +141,93 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
     }
 }
 
-export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot };
+const fetchProductByName = async (productName) => {
+  try {
+    console.log(`Fetching product by name: "${productName}"`);
+    
+    // Normalize the input name
+    const normalizedName = productName.toLowerCase().trim();
+    
+    // Get all products from API
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/products`);
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const products = await response.json();
+    console.log(`Total available products: ${products.length}`);
+    
+    // Break input name into tokens for flexible matching
+    const nameTokens = normalizedName
+      .split(/[\s-]+/)
+      .filter(token => token.length > 1);
+    
+    // Calculate match score for each product without hardcoding
+    const scoredProducts = products
+      .filter(p => p && p.name)
+      .map(product => {
+        const productNameLower = product.name.toLowerCase();
+        let score = 0;
+        
+        // Exact match gives highest score
+        if (productNameLower === normalizedName) {
+          score += 100;
+        }
+        
+        // Strong partial matches
+        if (productNameLower.includes(normalizedName)) {
+          score += 50;
+        } else if (normalizedName.includes(productNameLower)) {
+          score += 40;
+        }
+        
+        // Match by individual tokens (more flexible)
+        for (const token of nameTokens) {
+          if (productNameLower.includes(token)) {
+            // Give higher weight to longer token matches
+            score += Math.min(30, token.length * 2);
+          }
+        }
+        
+        // Token density score: what percentage of tokens match?
+        const productTokens = productNameLower.split(/[\s-]+/).filter(t => t.length > 1);
+        const matchingTokens = nameTokens.filter(t => 
+          productTokens.some(pt => pt.includes(t) || t.includes(pt))
+        );
+        
+        if (nameTokens.length > 0) {
+          const densityScore = (matchingTokens.length / nameTokens.length) * 40;
+          score += densityScore;
+        }
+        
+        // Consider product category if available
+        if (product.category && normalizedName.includes(product.category.toLowerCase())) {
+          score += 15;
+        }
+        
+        return { product, score };
+      })
+      .filter(item => item.score > 15) // Only consider reasonable matches
+      .sort((a, b) => b.score - a.score); // Sort by descending score
+    
+    // Log the top candidates for debugging
+    scoredProducts.slice(0, 3).forEach(item => {
+      console.log(`Match candidate: "${item.product.name}" with score ${item.score}`);
+    });
+    
+    // Return the best match if found
+    if (scoredProducts.length > 0) {
+      console.log(`Best match for "${productName}": "${scoredProducts[0].product.name}"`);
+      return scoredProducts[0].product;
+    }
+    
+    console.log(`No matching product found for "${productName}"`);
+    return null;
+  } catch (error) {
+    console.error('Error in fetchProductByName:', error);
+    return null;
+  }
+};
+
+export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot, fetchProductByName };
