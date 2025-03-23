@@ -444,25 +444,7 @@ const ProductsPage = () => {
             </h1>
             
             <div style={{ position: 'relative' }}>
-              {/* Search form always present, but visually hidden when showing results */}
-              <SearchForm 
-                onSubmit={handleSearch}
-                style={{ 
-                  visibility: searchQuery ? 'hidden' : 'visible',
-                  position: searchQuery ? 'absolute' : 'static',
-                  zIndex: searchQuery ? -1 : 1
-                }}
-              >
-                <SearchInput 
-                  type="text" 
-                  name="search" 
-                  placeholder="Search products..." 
-                  defaultValue={searchQuery}
-                />
-                <SearchButton type="submit">Search</SearchButton>
-              </SearchForm>
-              
-              {/* Results bar conditionally rendered on top */}
+              {/* Only show the search results info, remove the duplicate search form */}
               {searchQuery && (
                 <SearchResultsBar>
                   <span>
