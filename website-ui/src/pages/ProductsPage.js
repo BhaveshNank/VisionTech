@@ -1,314 +1,531 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { useSearchParams } from 'react-router-dom';
+import { fetchProducts } from '../utils/api';
 import ProductCard from '../components/Products/ProductCard';
+import { FaMobileAlt, FaLaptop, FaTv, FaList, FaFilter } from 'react-icons/fa';
+// Import the styled components from App.js
+import {
+  CategoryItem,
+  CategoryCount,
+  FilterSection,
+  RangeContainer,
+  PriceInputs,
+  PriceInput,
+  PriceSeparator,
+  ApplyButton,
+  MobileFilterToggle,
+  Sidebar,
+  ClearFiltersButton
+} from '../App';
+
+// Add your other styled components for ProductsPage
+
+export const CategoryTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+`;
+
+export const CategoryList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
 
 const PageContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0 16px;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 2.5rem;
-  color: #2c3e50;
-  margin-bottom: 1rem;
-`;
-
-const PageDescription = styled.p`
-  font-size: 1.2rem;
-  color: #7f8c8d;
-  margin-bottom: 2rem;
-`;
-
-const ProductsLayout = styled.div`
+const SidebarLayout = styled.div`
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 3fr;
-  gap: 2rem;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const Sidebar = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  align-self: start;
-  position: sticky;
-  top: 20px;
+const MainContent = styled.div`
+  width: 100%;
 `;
 
-const FilterSection = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const FilterTitle = styled.h3`
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 0.5rem;
-`;
-
-const FilterItem = styled.div`
+const ProductsHeader = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  
-  label {
-    margin-left: 8px;
-    cursor: pointer;
-  }
-  
-  input {
-    cursor: pointer;
-  }
-`;
-
-const ProductsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
-`;
-
-const ErrorMessage = styled.div`
-  background-color: #fff3f3;
-  border-left: 4px solid #ff6b6b;
-  padding: 1rem;
-  border-radius: 4px;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    
+    h1 {
+      margin-bottom: 1rem;
+    }
+  }
 `;
 
-const NoProductsMessage = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  grid-column: 1 / -1;
+const SearchForm = styled.form`
+  display: flex;
+  width: 300px;
   
-  h3 {
-    color: #2c3e50;
-    margin-bottom: 1rem;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const SearchInput = styled.input`
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-right: none;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+`;
+
+const SearchButton = styled.button`
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #0069d9;
+  }
+`;
+
+const SearchResultsBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #495057;
+  min-width: 300px;
+  border: 1px solid #cce5ff;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const ClearButton = styled.button`
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 14px;
+  
+  &:hover {
+    color: #495057;
+    text-decoration: underline;
+  }
+`;
+
+const NoResultsMessage = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  
+  h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
   }
   
   p {
-    color: #7f8c8d;
+    margin-bottom: 20px;
   }
-`;
-
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(0,0,0,0.1);
-  border-radius: 50%;
-  border-top-color: #1a73e8;
-  animation: spin 1s ease-in-out infinite;
-  margin: 3rem auto;
   
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    
+    &:hover {
+      background: #0069d9;
+    }
   }
 `;
 
-const LoadingContainer = styled.div`
-  text-align: center;
-  grid-column: 1 / -1;
+const ProductGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const ProductsPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    category: searchParams.get('category') || 'all',
-    brand: searchParams.get('brand') || '',
-  });
-
-  // Effect to fetch products when filters change
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [allProducts, setAllProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const productRefs = useRef({});
+  
+  // Extract search query and category from URL params when location changes
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError(null);
-      
+    const params = new URLSearchParams(location.search);
+    const query = params.get('search');
+    const category = params.get('category') || 'all';
+    
+    setSelectedCategory(category);
+    
+    if (query) {
+      setSearchQuery(query.toLowerCase());
+      console.log("Search query detected:", query);
+    } else {
+      setSearchQuery('');
+    }
+  }, [location.search]);
+  
+  // Fetch all products on component mount
+  useEffect(() => {
+    const fetchAllProducts = async () => {
       try {
-        // Build query string from filters
-        const queryParams = new URLSearchParams();
-        if (filters.category !== 'all') {
-          queryParams.set('category', filters.category);
-        }
-        if (filters.brand) {
-          queryParams.set('brand', filters.brand);
-        }
-        
-        // Add search parameter if it exists in URL
-        const searchQuery = searchParams.get('search');
-        if (searchQuery) {
-          queryParams.set('search', searchQuery);
-        }
-        
-        // Fetch products with all parameters
-        const response = await fetch(`http://localhost:5001/api/products?${queryParams.toString()}`);
+        // Your existing code to fetch products
+        const response = await fetch(`http://localhost:5001/api/products`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch products: ${response.statusText}`);
         }
         
         const data = await response.json();
-        setProducts(data);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        setAllProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
       }
     };
+    
+    fetchAllProducts();
+  }, []);
   
-    fetchProducts();
-  }, [filters, searchParams]);
-
-  // Update URL when filters change
+  // Filter products based on search query and category
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (filters.category !== 'all') {
-      params.set('category', filters.category);
+    let filtered = [...allProducts];
+    
+    // Filter by category first
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(product => 
+        product.category && product.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
     }
-    if (filters.brand) {
-      params.set('brand', filters.brand);
+    
+    // Extract min and max price from URL parameters
+    const params = new URLSearchParams(location.search);
+    const minPrice = params.get('min') ? Number(params.get('min')) : null;
+    const maxPrice = params.get('max') ? Number(params.get('max')) : null;
+    
+    // Update price input fields to reflect URL parameters
+    if (minPrice) setPriceMin(minPrice.toString());
+    if (maxPrice) setPriceMax(maxPrice.toString());
+    
+    // Filter by price if parameters exist
+    if (minPrice || maxPrice) {
+      filtered = filtered.filter(product => {
+        // Extract numeric price (handle different price formats)
+        const priceString = product.price && product.price.toString();
+        const numericPrice = priceString ? 
+          parseFloat(priceString.replace(/[^0-9.]/g, '')) : 0;
+        
+        // Apply min filter if exists
+        if (minPrice && numericPrice < minPrice) return false;
+        
+        // Apply max filter if exists
+        if (maxPrice && numericPrice > maxPrice) return false;
+        
+        return true;
+      });
     }
-    setSearchParams(params);
-  }, [filters, setSearchParams]);
-
-  // Handle filter changes
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
+    
+    // Then filter by search query if present
+    if (searchQuery) {
+      // Your existing search filter code should be here
+      filtered = filtered.filter(product => {
+        // Keep your existing search logic
+        return product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      });
+    }
+    
+    setFilteredProducts(filtered);
+    
+  }, [searchQuery, selectedCategory, allProducts, location.search]);
+  
+  // Handle category change
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    const params = new URLSearchParams(location.search);
+    params.set('category', category);
+    
+    // Preserve search query if present
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    } else {
+      params.delete('search');
+    }
+    
+    navigate(`/products?${params.toString()}`);
+  };
+  
+  // Handle search form submission
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const formSearchQuery = e.target.elements.search.value;
+    
+    if (formSearchQuery.trim()) {
+      const params = new URLSearchParams(location.search);
+      params.set('search', formSearchQuery.trim());
+      
+      // Preserve category if present
+      if (selectedCategory !== 'all') {
+        params.set('category', selectedCategory);
+      } else {
+        params.delete('category');
+      }
+      
+      navigate(`/products?${params.toString()}`);
+    }
+  };
+  
+  // Clear search results
+  const clearSearch = () => {
+    // Update state immediately to avoid flashing UI
+    setSearchQuery('');
+    
+    // Then update URL params
+    const params = new URLSearchParams(location.search);
+    params.delete('search');
+    
+    // Preserve category if present
+    if (selectedCategory !== 'all') {
+      params.set('category', selectedCategory);
+    } else {
+      params.delete('category');
+    }
+    
+    // Use replace instead of navigate to avoid adding to history stack
+    navigate(`/products?${params.toString()}`, { replace: true });
   };
 
-  // Get appropriate title based on category
-  const getCategoryTitle = () => {
-    switch(filters.category) {
-      case 'phone': return 'Phones';
-      case 'laptop': return 'Laptops';
-      case 'tv': return 'TVs';
-      default: return 'All Products';
-    }
+  const applyPriceFilter = () => {
+    const min = priceMin ? Number(priceMin) : 0;
+    const max = priceMax ? Number(priceMax) : Infinity;
+    
+    // Apply filtering
+    const params = new URLSearchParams(location.search);
+    if (min > 0) params.set('min', min);
+    else params.delete('min');
+    
+    if (max < Infinity) params.set('max', max);
+    else params.delete('max');
+    
+    navigate(`/products?${params.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory('all');
+    setPriceMin('');
+    setPriceMax('');
+    setSearchQuery('');
+    
+    // Update URL
+    navigate('/products', { replace: true });
   };
 
   return (
     <PageContainer>
-      <PageTitle>{getCategoryTitle()}</PageTitle>
-      <PageDescription>
-        Browse our wide selection of {filters.category !== 'all' ? filters.category + 's' : 'products'}. 
-        Use the filters to find exactly what you're looking for.
-      </PageDescription>
-      
-      {error && (
-        <ErrorMessage>
-          <strong>Error:</strong> {error}
-        </ErrorMessage>
-      )}
-      
-      <ProductsLayout>
-        <Sidebar>
+      <MobileFilterToggle onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}>
+        <FaFilter /> {isMobileFilterOpen ? 'Hide Filters' : 'Show Filters'}
+      </MobileFilterToggle>
+              
+      <SidebarLayout>
+        <Sidebar isOpen={isMobileFilterOpen}>
+          <CategoryList>
+            <CategoryItem 
+              active={selectedCategory === 'all'} 
+              onClick={() => handleCategoryChange('all')}
+            >
+              <FaList /> All Products
+            </CategoryItem>
+            <CategoryItem 
+              active={selectedCategory === 'phone'} 
+              onClick={() => handleCategoryChange('phone')}
+            >
+              <FaMobileAlt /> Phones 
+              <CategoryCount active={selectedCategory === 'phone'}>
+                {allProducts.filter(p => p.category === 'phone').length}
+              </CategoryCount>
+            </CategoryItem>
+            <CategoryItem 
+              active={selectedCategory === 'laptop'} 
+              onClick={() => handleCategoryChange('laptop')}
+            >
+              <FaLaptop /> Laptops
+              <CategoryCount active={selectedCategory === 'laptop'}>
+                {allProducts.filter(p => p.category === 'laptop').length}
+              </CategoryCount>
+            </CategoryItem>
+            <CategoryItem 
+              active={selectedCategory === 'tv'} 
+              onClick={() => handleCategoryChange('tv')}
+            >
+              <FaTv /> TVs
+              <CategoryCount active={selectedCategory === 'tv'}>
+                {allProducts.filter(p => p.category === 'tv').length}
+              </CategoryCount>
+            </CategoryItem>
+          </CategoryList>
           <FilterSection>
-            <FilterTitle>Category</FilterTitle>
-            <FilterItem>
-              <input 
-                type="radio" 
-                id="all" 
-                name="category"
-                checked={filters.category === 'all'} 
-                onChange={() => handleFilterChange('category', 'all')} 
-              />
-              <label htmlFor="all">All Products</label>
-            </FilterItem>
-            <FilterItem>
-              <input 
-                type="radio" 
-                id="phone" 
-                name="category"
-                checked={filters.category === 'phone'} 
-                onChange={() => handleFilterChange('category', 'phone')} 
-              />
-              <label htmlFor="phone">Phones</label>
-            </FilterItem>
-            <FilterItem>
-              <input 
-                type="radio" 
-                id="laptop" 
-                name="category"
-                checked={filters.category === 'laptop'} 
-                onChange={() => handleFilterChange('category', 'laptop')} 
-              />
-              <label htmlFor="laptop">Laptops</label>
-            </FilterItem>
-            <FilterItem>
-              <input 
-                type="radio" 
-                id="tv" 
-                name="category"
-                checked={filters.category === 'tv'} 
-                onChange={() => handleFilterChange('category', 'tv')} 
-              />
-              <label htmlFor="tv">TVs</label>
-            </FilterItem>
-          </FilterSection>
-          
-          <FilterSection>
-            <FilterTitle>Brand</FilterTitle>
-            <FilterItem>
-              <input 
-                type="radio" 
-                id="all-brands" 
-                name="brand"
-                checked={filters.brand === ''} 
-                onChange={() => handleFilterChange('brand', '')} 
-              />
-              <label htmlFor="all-brands">All Brands</label>
-            </FilterItem>
-            {['Apple', 'Samsung', 'Dell', 'Sony', 'LG', 'Microsoft'].map(brand => (
-              <FilterItem key={brand}>
-                <input 
-                  type="radio" 
-                  id={brand.toLowerCase()} 
-                  name="brand"
-                  checked={filters.brand === brand.toLowerCase()} 
-                  onChange={() => handleFilterChange('brand', brand.toLowerCase())} 
+            <CategoryTitle>Price Range</CategoryTitle>
+            <RangeContainer>
+              <PriceInputs>
+                <PriceInput 
+                  type="number" 
+                  placeholder="Min" 
+                  min="0"
+                  value={priceMin} 
+                  onChange={(e) => setPriceMin(e.target.value)} 
                 />
-                <label htmlFor={brand.toLowerCase()}>{brand}</label>
-              </FilterItem>
-            ))}
+                <PriceSeparator>to</PriceSeparator>
+                <PriceInput 
+                  type="number" 
+                  placeholder="Max" 
+                  min="0"
+                  value={priceMax} 
+                  onChange={(e) => setPriceMax(e.target.value)} 
+                />
+              </PriceInputs>
+              <ApplyButton onClick={applyPriceFilter}>Apply</ApplyButton>
+            </RangeContainer>
+            <ClearFiltersButton onClick={clearAllFilters}>
+              Clear All Filters
+            </ClearFiltersButton>
           </FilterSection>
         </Sidebar>
         
-        <div>
-          {loading ? (
-            <LoadingContainer>
-              <LoadingSpinner />
-              <p>Loading products...</p>
-            </LoadingContainer>
-          ) : products.length > 0 ? (
-            <ProductsGrid>
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </ProductsGrid>
+        <MainContent>
+          <ProductsHeader>
+            <h1>{selectedCategory === 'all' ? 'All Products' : 
+              `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}s`}
+            </h1>
+            
+            <div style={{ position: 'relative' }}>
+              {/* Search form always present, but visually hidden when showing results */}
+              <SearchForm 
+                onSubmit={handleSearch}
+                style={{ 
+                  visibility: searchQuery ? 'hidden' : 'visible',
+                  position: searchQuery ? 'absolute' : 'static',
+                  zIndex: searchQuery ? -1 : 1
+                }}
+              >
+                <SearchInput 
+                  type="text" 
+                  name="search" 
+                  placeholder="Search products..." 
+                  defaultValue={searchQuery}
+                />
+                <SearchButton type="submit">Search</SearchButton>
+              </SearchForm>
+              
+              {/* Results bar conditionally rendered on top */}
+              {searchQuery && (
+                <SearchResultsBar>
+                  <span>
+                    {filteredProducts.length === 0 
+                      ? 'No products found for: ' 
+                      : `Showing ${filteredProducts.length} result${filteredProducts.length !== 1 ? 's' : ''} for: `}
+                    <strong>{searchQuery}</strong>
+                  </span>
+                  <ClearButton onClick={clearSearch}>Clear Search</ClearButton>
+                </SearchResultsBar>
+              )}
+            </div>
+          </ProductsHeader>
+          
+          {filteredProducts.length === 0 && searchQuery ? (
+            <NoResultsMessage>
+              <h2>No products found</h2>
+              <p>Try adjusting your search or filters to find what you're looking for.</p>
+              <button onClick={clearSearch}>Clear Search</button>
+            </NoResultsMessage>
           ) : (
-            <NoProductsMessage>
-              <h3>No products found</h3>
-              <p>Try adjusting your filters or check back later for new products.</p>
-            </NoProductsMessage>
+            <ProductGrid>
+              {filteredProducts.map(product => {
+                // Ensure product.id exists, create a fallback id if needed
+                const productId = product.id || `${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                
+                return (
+                  <ProductCard
+                    key={productId}
+                    ref={el => {
+                      if (el) {
+                        productRefs.current[productId] = el;
+                      }
+                    }}
+                    className={searchQuery && product.name.toLowerCase().includes(searchQuery) ? 'search-match' : ''}
+                    product={product}
+                  />
+                );
+              })}
+            </ProductGrid>
           )}
-        </div>
-      </ProductsLayout>
+        </MainContent>
+      </SidebarLayout>
     </PageContainer>
   );
 };
+
+// Add this CSS to your stylesheet
+const styles = `
+  .search-match {
+    border: 2px solid #007bff !important;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.3) !important;
+  }
+  
+  @keyframes highlight {
+    0% { background-color: rgba(0, 123, 255, 0.1); }
+    50% { background-color: rgba(0, 123, 255, 0.3); }
+    100% { background-color: transparent; }
+  }
+  
+  .highlight-product {
+    animation: highlight 2s ease;
+  }
+`;
 
 export default ProductsPage;

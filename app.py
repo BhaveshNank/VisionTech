@@ -86,6 +86,46 @@ def chat_options():
     return response, 200
 
 
+@app.route('/api/search-suggestions', methods=['GET'])
+def search_suggestions():
+    """Return product name suggestions based on a search query"""
+    try:
+        query = request.args.get('query', '').strip().lower()
+        if not query or len(query) < 2:
+            return jsonify([])
+            
+        # Fetch products from database
+        structured_products = fetch_products_from_database()
+        
+        # Extract all product names from all categories
+        all_products = []
+        for category, products in structured_products.items():
+            for product in products:
+                product['category'] = category  # Add category to each product
+            all_products.extend(products)
+            
+        # Find matching products (by name or brand)
+        matches = []
+        for product in all_products:
+            product_name = product.get('name', '').lower()
+            product_brand = product.get('brand', '').lower()
+            
+            if query in product_name or query in product_brand:
+                matches.append({
+                    'name': product.get('name', ''),
+                    'category': product.get('category', ''),
+                    'image': product.get('image', '')
+                })
+                
+        # Sort by relevance (exact matches first)
+        matches.sort(key=lambda x: 0 if x['name'].lower().startswith(query) else 1)
+                
+        # Limit results
+        return jsonify(matches[:10])
+        
+    except Exception as e:
+        print(f"❌ Error in search suggestions: {str(e)}")
+        return jsonify([])
 
 @app.route('/products/<category>', methods=['GET'])
 def get_products_by_category(category):

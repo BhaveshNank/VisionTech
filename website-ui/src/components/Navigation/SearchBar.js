@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaSearch, FaTimes } from 'react-icons/fa';
@@ -67,22 +67,139 @@ const ClearButton = styled(IconButton)`
   height: 28px;
 `;
 
+const SuggestionsContainer = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+`;
+
+const SuggestionItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background-color: #f5f9ff;
+  }
+`;
+
+const SuggestionImage = styled.img`
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  margin-right: 12px;
+  border-radius: 4px;
+`;
+
+const SuggestionText = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SuggestionName = styled.div`
+  font-size: 14px;
+  color: #333;
+`;
+
+const SuggestionCategory = styled.div`
+  font-size: 12px;
+  color: #999;
+  text-transform: capitalize;
+`;
+
 const SearchBar = () => {
   const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
   const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  
+  // Fetch suggestions when query changes
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (query.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/search-suggestions?query=${encodeURIComponent(query)}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch suggestions: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Suggestions received:", data); // Debug log
+        setSuggestions(data);
+      } catch (err) {
+        console.error('Error fetching suggestions:', err);
+        setSuggestions([]);
+      }
+    };
+    
+    // Debounce API calls
+    const timerId = setTimeout(() => {
+      fetchSuggestions();
+    }, 300);
+    
+    return () => clearTimeout(timerId);
+  }, [query]);
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(e.target) && 
+        inputRef.current && 
+        !inputRef.current.contains(e.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   const handleSearch = () => {
     if (query.trim()) {
       navigate(`/products?search=${encodeURIComponent(query.trim())}`);
+      setShowSuggestions(false); // Hide suggestions after search
     }
   };
   
   const handleClear = () => {
     setQuery('');
+    setSuggestions([]); // Clear suggestions
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setQuery(suggestion.name);
+    setShowSuggestions(false);
+    navigate(`/products?search=${encodeURIComponent(suggestion.name.trim())}`);
   };
 
   // Handle keyboard events (including Enter)
@@ -92,6 +209,7 @@ const SearchBar = () => {
       handleSearch();
     } else if (e.key === 'Escape') {
       handleClear();
+      setShowSuggestions(false); // Also hide suggestions
     }
   };
   
@@ -104,7 +222,11 @@ const SearchBar = () => {
           type="text" 
           placeholder="Search products..." 
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setShowSuggestions(true); // Show suggestions when typing
+          }}
+          onFocus={() => setShowSuggestions(true)} // Show suggestions on focus
           onKeyDown={handleKeyDown}
           aria-label="Search products"
           role="searchbox"
@@ -129,6 +251,33 @@ const SearchBar = () => {
           <FaSearch />
         </SearchButton>
       </SearchInputWrapper>
+      
+      {/* Render the suggestions */}
+      {showSuggestions && suggestions.length > 0 && (
+        <SuggestionsContainer ref={suggestionsRef}>
+          {suggestions.map((suggestion, index) => (
+            <SuggestionItem 
+              key={index} 
+              onClick={() => handleSuggestionClick(suggestion)}
+            >
+              {suggestion.image && (
+                <SuggestionImage 
+                  src={suggestion.image} 
+                  alt={suggestion.name} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/images/default-product.jpg`;
+                  }}
+                />
+              )}
+              <SuggestionText>
+                <SuggestionName>{suggestion.name}</SuggestionName>
+                <SuggestionCategory>{suggestion.category}</SuggestionCategory>
+              </SuggestionText>
+            </SuggestionItem>
+          ))}
+        </SuggestionsContainer>
+      )}
     </SearchContainer>
   );
 };

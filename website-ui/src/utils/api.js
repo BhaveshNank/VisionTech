@@ -23,79 +23,132 @@ async function fetchProducts(category = 'all', brand = '') {
     }
 }
 
-// Fetch a single product by ID
+// Improve the fetchProductById function for more robust matching
 async function fetchProductById(productId) {
   try {
-    console.log("Fetching product with ID:", productId);
+    console.group(`🔍 Debug - fetchProductById(${productId})`);
     
-    const response = await fetch(`http://localhost:5001/api/products`);
+    if (!productId) {
+      console.error("No product ID provided");
+      console.groupEnd();
+      return null;
+    }
+    
+    // Fetch all products
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/products`);
     
     if (!response.ok) {
+      console.error(`API error: ${response.status}`);
+      console.groupEnd();
       throw new Error('Network response was not ok');
     }
     
     const allProducts = await response.json();
-    console.log("Total products fetched:", allProducts.length);
+    console.log(`Fetched ${allProducts.length} products from API`);
     
-    // Try more specific matching strategies
-    let product = null;
+    // Direct ID match - most reliable
+    let product = allProducts.find(p => p.id && p.id === productId);
     
-    // 1. Direct match by ID
-    product = allProducts.find(p => p.id === productId);
+    if (product) {
+      console.log("✅ Found product by direct ID match");
+      console.groupEnd();
+      return product;
+    }
     
-    // 2. If there's a category in the ID, respect it
-    if (!product && productId.includes('-')) {
-      const parts = productId.split('-');
-      const possibleCategory = parts[parts.length - 1]; // Last part might be category
+    // If productId matches our generated format (1-name-category)
+    if (productId.startsWith('1-')) {
+      // Extract the name part (without the prefix and potential category suffix)
+      const nameSlug = productId.replace(/^1-/, '');
+      const nameWithoutCategory = nameSlug.replace(/-(?:phone|laptop|tv)$/, '');
       
-      if (['phone', 'laptop', 'tv', 'smartwatch', 'earphone'].includes(possibleCategory)) {
-        // Match by category first
-        const categoryProducts = allProducts.filter(p => 
-          p.category && p.category.toLowerCase() === possibleCategory
-        );
-        
-        if (categoryProducts.length > 0) {
-          // Find best match within the correct category
-          const nameSlug = parts.slice(1, -1).join('-');
-          product = categoryProducts.find(p => 
-            p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug)
-          );
+      console.log("Looking for name match using:", nameWithoutCategory);
+      
+      // First try exact slug match
+      const slugMatches = allProducts.filter(p => {
+        if (!p.name) return false;
+        const pSlug = p.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        return pSlug === nameWithoutCategory || nameWithoutCategory === pSlug;
+      });
+      
+      if (slugMatches.length > 0) {
+        console.log("✅ Found product by exact slug match");
+        console.groupEnd();
+        return slugMatches[0];
+      }
+      
+      // Then try contains match
+      const containsMatches = allProducts.filter(p => {
+        if (!p.name) return false;
+        const pNameLower = p.name.toLowerCase();
+        const searchName = nameWithoutCategory.replace(/-/g, ' ');
+        return pNameLower.includes(searchName) || searchName.includes(pNameLower);
+      });
+      
+      if (containsMatches.length > 0) {
+        console.log("✅ Found product by contains match");
+        console.groupEnd();
+        return containsMatches[0];
+      }
+      
+      // Try token matching as last resort
+      const tokens = nameWithoutCategory.split('-').filter(t => t.length > 2);
+      if (tokens.length > 0) {
+        const tokenMatches = allProducts
+          .map(p => {
+            if (!p.name) return { product: p, score: 0 };
+            const pNameLower = p.name.toLowerCase();
+            let score = 0;
+            
+            for (const token of tokens) {
+              if (pNameLower.includes(token)) {
+                score += token.length;
+              }
+            }
+            
+            return { product: p, score };
+          })
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score);
+          
+        if (tokenMatches.length > 0) {
+          console.log("✅ Found product by token matching");
+          console.groupEnd();
+          return tokenMatches[0].product;
         }
       }
     }
     
-    // 3. Name-based match as last resort (but improved)
-    if (!product && productId.includes('-')) {
-      const nameSlug = productId.split('-').slice(1).join('-');
-      
-      // Get all products with matching name parts, then sort by relevance
-      const candidates = allProducts
-        .filter(p => p.name && p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(nameSlug))
-        .sort((a, b) => {
-          // Prioritize products where the name is a closer match
-          const aName = a.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          const bName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          return bName.indexOf(nameSlug) - aName.indexOf(nameSlug);
-        });
-      
-      if (candidates.length > 0) {
-        product = candidates[0];
-      }
-    }
-    
-    if (!product) {
-      console.error("Product not found with ID:", productId);
-      throw new Error('Product not found');
-    }
-    
-    console.log("Found product:", product);
-    return product;
+    console.log("❌ No product found for ID:", productId);
+    console.groupEnd();
+    return null;
   } catch (error) {
-    console.error('Error fetching product details:', error);
-    throw error;
+    console.error('Error in fetchProductById:', error);
+    console.groupEnd();
+    return null;
   }
 }
 
+// Helper function to determine match score
+function getMatchScore(productName, searchName) {
+  if (productName === searchName) return 100;
+  if (productName.startsWith(searchName)) return 80;
+  if (searchName.startsWith(productName)) return 70;
+  if (productName.includes(searchName)) return 60;
+  if (searchName.includes(productName)) return 50;
+  
+  // Count matching words
+  const productWords = productName.split(/\s+/);
+  const searchWords = searchName.split(/\s+/);
+  let matchingWords = 0;
+  
+  for (const word of searchWords) {
+    if (word.length > 2 && productWords.some(w => w.includes(word) || word.includes(w))) {
+      matchingWords++;
+    }
+  }
+  
+  return matchingWords * 10;
+}
 
 function sendInquiry(data) {
     return fetch('/api/inquiry', {
@@ -143,20 +196,28 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
 
 const fetchProductByName = async (productName) => {
   try {
-    console.log(`Fetching product by name: "${productName}"`);
+    console.group(`Fetching product by name: "${productName}"`);
     
     // Normalize the input name
     const normalizedName = productName.toLowerCase().trim();
+    console.log("Normalized search term:", normalizedName);
     
     // Get all products from API
     const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/products`);
     
     if (!response.ok) {
+      console.error(`API error: ${response.status}`);
+      console.groupEnd();
       throw new Error(`API error: ${response.status}`);
     }
     
     const products = await response.json();
     console.log(`Total available products: ${products.length}`);
+    
+    // Log a few product examples to verify structure
+    if (products.length > 0) {
+      console.log("Sample product:", products[0]);
+    }
     
     // Break input name into tokens for flexible matching
     const nameTokens = normalizedName
@@ -219,15 +280,32 @@ const fetchProductByName = async (productName) => {
     // Return the best match if found
     if (scoredProducts.length > 0) {
       console.log(`Best match for "${productName}": "${scoredProducts[0].product.name}"`);
+      console.groupEnd();
       return scoredProducts[0].product;
     }
     
     console.log(`No matching product found for "${productName}"`);
+    console.groupEnd();
     return null;
   } catch (error) {
+    console.groupEnd();
     console.error('Error in fetchProductByName:', error);
     return null;
   }
 };
 
-export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot, fetchProductByName };
+function generateConsistentProductId(product) {
+  if (!product || !product.name) return null;
+  
+  const nameSlug = product.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  const category = product.category ? `-${product.category}` : '';
+  return `1-${nameSlug}${category}`;
+}
+
+// Export this function along with your other exports
+export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot, fetchProductByName, generateConsistentProductId };
+

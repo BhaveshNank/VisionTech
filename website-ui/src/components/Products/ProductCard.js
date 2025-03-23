@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { FaShoppingCart } from 'react-icons/fa';
 import SuccessToast from '../UI/SuccessToast';
+import { generateConsistentProductId } from '../../utils/api';
 
 const Card = styled.div`
   background: white;
@@ -121,7 +122,7 @@ const CartButton = styled.button`
   }
 `;
 
-const ProductCard = ({ product }) => {
+const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
   const { dispatch } = useCart();
   // Add state for success message
   const [showSuccess, setShowSuccess] = useState(false);
@@ -134,18 +135,27 @@ const ProductCard = ({ product }) => {
     ? product.features.slice(0, 3) 
     : [];
     
-  // Ensure product ID exists to prevent routing errors
-  const productId = product.id || `1-${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+  // Use the consistent product ID generator
+  const productId = generateConsistentProductId(product);
   
   // Function to handle adding product to cart
   const handleAddToCart = () => {
-    const cartItem = {
-      id: productId,
-      name: product.name,
-      price: parseFloat(product.price) || 0,
-      image: product.image || placeholderImage,
-      quantity: 1
-    };
+    if (!product) return;
+    
+    const productImage = product.image || `https://via.placeholder.com/500x400?text=${encodeURIComponent(product.name)}`;
+    
+    // Parse price to ensure it's a clean number
+    const parsedPrice = typeof product.price === 'string' 
+      ? parseFloat(product.price.replace(/[^0-9.-]+/g, '')) 
+      : parseFloat(product.price) || 0;
+    
+      const cartItem = {
+        id: product.id || productId, // Use the productId you generated earlier
+        name: product.name,
+        price: parsedPrice,
+        image: productImage,
+        quantity: 1
+      };
     
     dispatch({
       type: "ADD_TO_CART",
@@ -162,7 +172,7 @@ const ProductCard = ({ product }) => {
   };
 
   return (
-    <>
+    <div ref={ref} className={`product-card ${className || ''}`}>
       <Card>
         <ProductImage>
           <img 
@@ -199,8 +209,9 @@ const ProductCard = ({ product }) => {
       {showSuccess && (
         <SuccessToast message={`Added ${product.name} to cart!`} />
       )}
-    </>
+    </div>
   );
-};
+});
+  
 
 export default ProductCard;

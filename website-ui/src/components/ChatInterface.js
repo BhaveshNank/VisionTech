@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { sendMessageToChatbot } from '../utils/api';
+import { sendMessageToChatbot, generateConsistentProductId } from '../utils/api';
 import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart } from 'react-icons/fa';
 import eventSystem from '../utils/events';
 import { useCart } from '../context/CartContext'; // Import the cart context hook
@@ -255,6 +255,54 @@ const findProductImage = (productName) => {
   return `${BACKEND_URL}/api/product-image/${encodeURIComponent(productName)}`;
 };
 
+// Create a consistent product ID for links
+const generateProductId = (name, category = '') => {
+  // Clean up the name for URL usage
+  const nameSlug = name.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  // Add category if provided
+  if (category) {
+    return `1-${nameSlug}-${category}`;
+  }
+  
+  // Detect category from name
+  const categories = ['phone', 'laptop', 'tv'];
+  for (const cat of categories) {
+    if (name.toLowerCase().includes(cat)) {
+      return `1-${nameSlug}-${cat}`;
+    }
+  }
+  
+  // Default with no category
+  return `1-${nameSlug}`;
+};
+
+const generateChatProductId = (productName, category) => {
+  // Clean up the name for URL usage
+  const nameSlug = productName.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  // Create mock product for ID generation
+  const mockProduct = { 
+    name: productName,
+    category: category || detectCategory(productName)
+  };
+  
+  return generateConsistentProductId(mockProduct);
+};
+
+// Helper to detect category from name
+const detectCategory = (name) => {
+  name = name.toLowerCase();
+  if (name.includes('phone') || name.includes('iphone') || name.includes('galaxy')) return 'phone';
+  if (name.includes('laptop') || name.includes('macbook') || name.includes('notebook')) return 'laptop';
+  if (name.includes('tv') || name.includes('television') || name.includes('smart tv')) return 'tv';
+  return '';
+};
+
 const formatProductLinks = (text) => {
   // Split the text on product bullet points
   const parts = text.split("• ");
@@ -278,16 +326,7 @@ const formatProductLinks = (text) => {
       const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
       
       // Generate a product ID for routing that's more compatible
-      // This creates a format similar to how IDs are generated in your API
-      const nameSlug = productName.toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')  // Replace all non-alphanumeric with hyphens
-        .replace(/^-+|-+$/g, '');     // Remove leading/trailing hyphens
-      
-      // Add a numeric prefix to match API format (using index number)
-      const encodedName = `${i}-${nameSlug}`;
-      
-      // Generate a product ID for data attributes
-      const productId = `product-${i}-${Date.now()}`;
+      const productId = generateChatProductId(productName);
       
       // Find a product image
       const productImage = findProductImage(productName);
@@ -301,7 +340,7 @@ const formatProductLinks = (text) => {
             src="${productImage}" 
             alt="${productName}" 
             style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-            onerror="console.log('Image load failed:', this.src); this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
+            onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
           />
           <div>
             <strong>${productName}</strong>${productPart.substring(dashIndex)}
@@ -309,12 +348,12 @@ const formatProductLinks = (text) => {
         </div>
         <div style="display: flex; gap: 10px;">
           <a 
-            href="/product/${encodedName}" 
-            target="_blank" 
+            href="/product/${productId}" 
+            target="_self"
             rel="noopener noreferrer" 
             style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+            data-product-id="${productId}"
             data-product-name="${productName.replace(/"/g, '&quot;')}"
-            onclick="console.log('View details clicked for:', '${productName.replace(/'/g, "\\'")}')"
           >
             View Details
           </a>
@@ -692,32 +731,5 @@ const ChatInterface = () => {
     </>
   );
 };
-
-// Add this to your file or paste in browser console
-function testImageUrls() {
-  const BACKEND_URL = "http://localhost:5001";
-  const testImages = [
-    `${BACKEND_URL}/images/default-product.jpg`,
-    `${BACKEND_URL}/images/iphone.jpg`,
-    `${BACKEND_URL}/images/samsung.jpg`,
-    `${BACKEND_URL}/images/macbook.jpg`
-  ];
-  
-  console.log("Testing image URLs...");
-  testImages.forEach(url => {
-    console.log(`Testing: ${url}`);
-    fetch(url)
-      .then(response => {
-        if (response.ok) {
-          console.log(`✅ Image exists: ${url}`);
-        } else {
-          console.error(`❌ Image not found (${response.status}): ${url}`);
-        }
-      })
-      .catch(error => {
-        console.error(`❌ Error fetching image: ${url}`, error);
-      });
-  });
-}
 
 export default ChatInterface;

@@ -135,52 +135,82 @@ const ErrorMessage = styled.div`
   }
 `;
 
-const ProductDetailPage = (props) => {
-  const { id } = useParams();
+const ProductDetailPage = () => {
+  const { idOrName } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { dispatch } = useCart();
-  
-  // Success message state
   const [showSuccess, setShowSuccess] = useState(false);
-
+  
+  // Decode the URL parameter if it's encoded
+  const id = decodeURIComponent(idOrName);
+  
   useEffect(() => {
     const getProduct = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        // Get ID from useParams hook, not props.match.params
-        console.log("Looking up product with ID:", id);
+        console.group(`🔍 Debug - ProductDetailPage Getting Product: ${id}`);
         
         // Try to fetch by ID first
         let data = await fetchProductById(id);
+        console.log("ID lookup result:", data ? "Found" : "Not found");
         
-        // If that fails, try by name (using the ID as a name)
-        if (!data) {
-          console.log("No product found by ID, trying by name:", id);
-          // Extract name part (remove any numeric prefix)
+        // If that fails, try by name (with better error handling)
+        if (!data && id.includes('-')) {
           const nameParam = id.replace(/^\d+-/, '').replace(/-/g, ' ');
-          data = await fetchProductByName(nameParam);
+          console.log("Trying name lookup:", nameParam);
+          
+          try {
+            data = await fetchProductByName(nameParam);
+            console.log("Name lookup result:", data ? "Found" : "Not found");
+          } catch (nameErr) {
+            console.error("Name lookup failed:", nameErr);
+          }
         }
         
         if (data) {
-          console.log("Product successfully retrieved:", data);
+          console.log("✅ Product successfully retrieved:", data.name);
           setProduct(data);
           setError(null);
         } else {
-          console.error("Product not found by ID or name");
-          setError('Product not found');
+          // If everything fails, try one more desperate attempt with partial matching
+          const rawName = id.replace(/^\d+-/, '')
+                           .replace(/-/g, ' ')
+                           .replace(/(-phone|-laptop|-tv)$/, '');
+          
+          console.log("Attempting last-resort lookup with:", rawName);
+          try {
+            data = await fetchProductByName(rawName);
+            if (data) {
+              console.log("✅ Last-resort lookup succeeded:", data.name);
+              setProduct(data);
+              setError(null);
+            } else {
+              console.error("❌ All lookup methods failed");
+              setError(`Product not found: ${id}`);
+            }
+          } catch (err) {
+            console.error("Last-resort lookup failed:", err);
+            setError(`Product not found: ${id}`);
+          }
         }
+        
+        console.groupEnd();
       } catch (err) {
         console.error('Error fetching product:', err);
-        setError('Failed to load product details');
+        setError(`Failed to load product details: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
-
-    getProduct();
-  }, [id]); // Remove props.fallbackName from dependencies since we're not using it
+  
+    if (id) {
+      getProduct();
+    }
+  }, [id]);
 
   // Function to handle adding product to cart
   const handleAddToCart = () => {
