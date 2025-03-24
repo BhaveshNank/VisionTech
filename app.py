@@ -40,7 +40,7 @@ collection = db["products"]  # The collection in that database
 
 
 # Google Gemini API Setup
-api_key = "AIzaSyC7Jz_zIbn6yBgcaZCOpRoph_EC020SsRo"
+api_key = "GEMINI_KEY_HERE"
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
 
 headers = {
@@ -311,9 +311,6 @@ def chat():
         
         # Get the chat data for this specific instance
         chat_data = session[session_key]
-        
-        # If this is the first message with empty content, just return the greeting
-            
 
         # Step 1: Detect Product Category (Laptops, Phones, TVs)
         if chat_data["chat_stage"] == "ask_purpose":
@@ -322,10 +319,46 @@ def chat():
                 return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, or TV?"})
 
             chat_data["selected_category"] = detected_category
-            chat_data["chat_stage"] = "ask_features"
-            session[session_key] = chat_data  # Update session
             
-            # Get category-specific first question
+            # Check if user already mentioned purpose in their first message
+            purpose_keywords = {
+                "gaming": ["gaming", "game", "games", "play games", "gamer", "play"],
+                "work": ["work", "office", "professional", "business", "coding", "code"],
+                "entertainment": ["movies", "watch", "streaming", "entertainment", "videos"],
+                "student": ["school", "college", "student", "education", "study"]
+            }
+            
+            detected_purpose = None
+            user_msg_lower = user_message.lower()
+            for purpose, keywords in purpose_keywords.items():
+                if any(keyword in user_msg_lower for keyword in keywords):
+                    detected_purpose = user_msg_lower
+                    break
+            
+            if detected_purpose:
+                # User already mentioned purpose, skip to features
+                chat_data["selected_purpose"] = detected_purpose
+                chat_data["chat_stage"] = "ask_features"
+                session[session_key] = chat_data
+                
+                # Get category-specific feature prompt
+                if detected_category == "phone":
+                    feature_prompt = "Great! Do you have any specific features in mind for this phone? (e.g., Camera quality, Battery life, Storage capacity, Processing power)"
+                elif detected_category == "laptop":
+                    feature_prompt = "Great! Do you have any specific features in mind for this laptop? (e.g., RAM, Processor type, Storage capacity, Screen size, Weight)"
+                elif detected_category == "tv":
+                    feature_prompt = "Great! Do you have any specific features in mind for this TV? (e.g., Screen size, Resolution, Panel type, Smart features, HDMI ports)"
+                else:
+                    # Generic fallback
+                    feature_prompt = f"Great! Do you have any specific features in mind for this {detected_category}?"
+                
+                return jsonify({"reply": feature_prompt})
+            
+            # User didn't mention purpose, ask for it
+            chat_data["chat_stage"] = "ask_features"
+            session[session_key] = chat_data
+            
+            # Get category-specific purpose question
             if detected_category == 'tv':
                 purpose_question = "Great! What kind of content do you usually watch on TV? (e.g., Sports, Movies, Gaming)"
             elif detected_category == 'phone':
@@ -339,9 +372,39 @@ def chat():
 
         # Step 2: Ask for Features
         if chat_data["chat_stage"] == "ask_features":
-            chat_data["selected_purpose"] = user_message
+            # Check if the user is correcting us about the purpose
+            correction_phrases = [
+                "i just said", "i already told you", "i mentioned", 
+                "as i said", "like i said", "i just told you"
+            ]
+            
+            is_correction = any(phrase in user_message.lower() for phrase in correction_phrases)
+            
+            if is_correction:
+                # Extract the actual purpose from the correction
+                purpose_keywords = {
+                    "gaming": ["gaming", "game", "games", "play games", "gamer", "play"],
+                    "work": ["work", "office", "professional", "business", "coding", "code"],
+                    "entertainment": ["movies", "watch", "streaming", "entertainment", "videos"],
+                    "student": ["school", "college", "student", "education", "study"]
+                }
+                
+                detected_purpose = None
+                user_msg_lower = user_message.lower()
+                for purpose, keywords in purpose_keywords.items():
+                    if any(keyword in user_msg_lower for keyword in keywords):
+                        detected_purpose = purpose
+                        break
+                
+                if detected_purpose:
+                    chat_data["selected_purpose"] = detected_purpose
+                else:
+                    chat_data["selected_purpose"] = user_message  # Store the whole message as purpose
+            else:
+                chat_data["selected_purpose"] = user_message
+            
             chat_data["chat_stage"] = "ask_budget"
-            session[session_key] = chat_data  # Update session
+            session[session_key] = chat_data
             
             # Category-specific feature prompts
             if chat_data["selected_category"] == "phone":
@@ -358,16 +421,61 @@ def chat():
 
         # Step 3: Ask for Budget & Brand
         if chat_data["chat_stage"] == "ask_budget":
-            chat_data["selected_features"] = user_message.split(", ") if user_message.lower() != "none" else []
+            # Process features - handle "I don't know" cases
+            dont_know_phrases = ["don't know", "dont know", "not sure", "no idea", "none"]
+            
+            if any(phrase in user_message.lower() for phrase in dont_know_phrases):
+                chat_data["selected_features"] = []
+            else:
+                chat_data["selected_features"] = user_message.split(", ") if user_message.lower() != "none" else []
+            
             chat_data["chat_stage"] = "recommend_products"
-            session[session_key] = chat_data  # Update session
-            return jsonify({"reply": f"What's your budget range for this {chat_data['selected_category']}? Do you have a preferred brand?"})
+            session[session_key] = chat_data
+            
+            # Category-specific budget prompts
+            if chat_data["selected_category"] == "phone":
+                budget_prompt = "What's your budget range for this phone? Do you have a preferred brand?"
+            elif chat_data["selected_category"] == "laptop":
+                budget_prompt = "What's your budget range for this laptop? Do you have a preferred brand?"
+            elif chat_data["selected_category"] == "tv":
+                budget_prompt = "What's your budget range for this TV? Do you have a preferred brand?"
+            else:
+                budget_prompt = f"What's your budget range for this {chat_data['selected_category']}? Do you have a preferred brand?"
+            
+            return jsonify({"reply": budget_prompt})
 
         # Step 4: Send Finalized Query to Gemini
         if chat_data["chat_stage"] == "recommend_products":
-            # Store the raw user response from the budget/brand question
+            # Handle "I don't know" responses for budget
+            dont_know_phrases = ["don't know", "dont know", "not sure", "no idea", "none"]
+            student_phrases = ["student", "university", "college", "school", "tight budget", "limited budget"]
+            
+            # Extract budget and brand information
             budget_brand_response = user_message
-            chat_data["budget_brand_response"] = budget_brand_response  # Store for later context
+            chat_data["budget_brand_response"] = budget_brand_response
+            
+            # Try to extract brand preference
+            common_brands = ["apple", "samsung", "sony", "lg", "dell", "hp", "asus", 
+                           "acer", "lenovo", "microsoft", "google", "oneplus", "xiaomi"]
+            
+            detected_brand = None
+            for brand in common_brands:
+                if brand in budget_brand_response.lower() and f"not {brand}" not in budget_brand_response.lower():
+                    detected_brand = brand
+                    break
+                    
+            # Product lines that imply brands
+            brand_indicators = {
+                "iphone": "apple", "macbook": "apple", "galaxy": "samsung", 
+                "pixel": "google", "surface": "microsoft"
+            }
+            
+            for indicator, brand in brand_indicators.items():
+                if indicator in budget_brand_response.lower():
+                    detected_brand = brand
+                    break
+            
+            chat_data["selected_brand"] = detected_brand if detected_brand else ""
             
             # Prepare structured data - pass the raw response as additional context
             structured_query = {
@@ -375,6 +483,7 @@ def chat():
                 "purpose": chat_data["selected_purpose"],
                 "features": chat_data["selected_features"],
                 "budget_brand_response": budget_brand_response,
+                "brand": chat_data["selected_brand"],
                 "raw_response": True  # Flag to indicate we're passing the raw response
             }
 
@@ -444,7 +553,7 @@ def chat():
             # If no products were found or there was an error
             return jsonify({"reply": gemini_response.get("message", "I couldn't find suitable products.")})
             
-        # NEW SECTION: Handle follow-up questions after recommendations
+        # Handle follow-up questions after recommendations
         if chat_data["chat_stage"] == "followup_questions":
             # Check for conversation closing signals
             if any(keyword in user_message.lower() for keyword in ["thank you", "thanks", "great", "perfect", "buy", "purchase", "add to cart"]):
@@ -472,7 +581,85 @@ def chat():
                 session[session_key] = chat_data
                 return jsonify({"reply": "I'm sorry, I've lost track of our product recommendations. Let's start over. What kind of product are you looking for today?"})
             
-            # Prepare the follow-up query with context
+            # Handle "I don't like any of these" scenarios
+            dislike_phrases = ["don't like", "dont like", "not interested", "none of these", 
+                               "something else", "other options", "other products"]
+            
+            if any(phrase in user_message.lower() for phrase in dislike_phrases):
+                # User doesn't like the recommendations, ask for more specific preferences
+                followup_query = {
+                    "category": chat_data["selected_category"],
+                    "purpose": chat_data["selected_purpose"],
+                    "features": chat_data["selected_features"],
+                    "budget_brand_response": chat_data.get("budget_brand_response", ""),
+                    "user_question": user_message,
+                    "is_followup": True,
+                    "recommended_products": chat_data["recommended_products"],
+                    "request_alternatives": True  # Flag to request alternative products
+                }
+                
+                # Get access to the full product database
+                structured_products = fetch_products_from_database()
+                
+                # Create enhanced followup query with all products
+                followup_query["all_products"] = structured_products.get(chat_data["selected_category"], [])
+                
+                # Send to Gemini for follow-up response with alternative suggestions
+                followup_response = send_followup_to_gemini(followup_query)
+                
+                # If we have alternative products, update the recommended products
+                if "alternative_products" in followup_response and followup_response["alternative_products"]:
+                    chat_data["recommended_products"] = followup_response["alternative_products"]
+                    session[session_key] = chat_data
+                
+                # Return the response with HTML formatting if available
+                if "isHtml" in followup_response and followup_response["isHtml"]:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Here are some alternatives you might prefer:"),
+                        "isHtml": True
+                    })
+                else:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Here are some alternatives you might prefer:")
+                    })
+            
+            # Handle "which one is best for me" scenarios
+            best_choice_phrases = ["which one", "which is best", "best for me", "recommend one", 
+                                  "suggest one", "best option", "best choice"]
+            
+            if any(phrase in user_message.lower() for phrase in best_choice_phrases):
+                # User wants a specific recommendation
+                followup_query = {
+                    "category": chat_data["selected_category"],
+                    "purpose": chat_data["selected_purpose"],
+                    "features": chat_data["selected_features"],
+                    "budget_brand_response": chat_data.get("budget_brand_response", ""),
+                    "user_question": user_message,
+                    "is_followup": True,
+                    "recommended_products": chat_data["recommended_products"],
+                    "make_recommendation": True  # Flag to make a final recommendation
+                }
+                
+                # Send to Gemini for follow-up response
+                followup_response = send_followup_to_gemini(followup_query)
+                
+                # If we have a final choice, save it
+                if "final_choice" in followup_response and followup_response["final_choice"]:
+                    chat_data["chosen_product"] = followup_response["final_choice"]
+                    session[session_key] = chat_data
+                
+                # Return the response with HTML formatting if available
+                if "isHtml" in followup_response and followup_response["isHtml"]:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Based on your requirements, I recommend this product:"),
+                        "isHtml": True
+                    })
+                else:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Based on your requirements, I recommend this product:")
+                    })
+            
+            # For other types of follow-up questions
             followup_query = {
                 "category": chat_data["selected_category"],
                 "purpose": chat_data["selected_purpose"],
@@ -483,30 +670,24 @@ def chat():
                 "recommended_products": chat_data["recommended_products"]
             }
             
+            # Get products from database for full context
+            structured_products = fetch_products_from_database()
+            all_category_products = structured_products.get(chat_data["selected_category"], [])
+            followup_query["all_products"] = all_category_products
+            
             # Send to Gemini for follow-up response
             followup_response = send_followup_to_gemini(followup_query)
             
-            # Check if the response indicates a final choice
-            if followup_response.get("final_choice"):
-                chat_data["chosen_product"] = followup_response["final_choice"]
-                
-                # Format the final choice message
-                final_product = followup_response["final_choice"]
-                final_message = followup_response.get("message", "Based on our conversation, I think this is the best choice for you:")
-                
-                # Create a formatted product string for the final choice
-                name = final_product.get("name", "Unknown Product")
-                price = final_product.get("price", "Price unavailable")
-                features = final_product.get("features", [])
-                feature_text = ", ".join(features[:3]) if features else "No features listed"
-                
-                final_response = f"{final_message}\n\n✅ {name} - {price}\n  Key features: {feature_text}\n\nWould you like to proceed with this product, or do you have more questions?"
-                
-                session[session_key] = chat_data
-                return jsonify({"reply": final_response})
-            
-            # For regular follow-up responses (not final choice)
-            return jsonify({"reply": followup_response.get("message", "I'm not sure about that. Could you clarify your question?")})
+            # Return the response with HTML formatting if available
+            if "isHtml" in followup_response and followup_response["isHtml"]:
+                return jsonify({
+                    "reply": followup_response.get("message", "Let me help you with that:"),
+                    "isHtml": True
+                })
+            else:
+                return jsonify({
+                    "reply": followup_response.get("message", "Let me help you with that:")
+                })
 
     except Exception as e:
         print(f"❌ ERROR in /chat: {e}")
@@ -610,30 +791,62 @@ def debug_db():
 
 def detect_product_category(user_message):
     """
-    Detects the product category (phone, laptop, or TV) based on user input.
-    If no category is detected, returns an empty string.
+    Enhanced function to detect product category with better typo tolerance
+    and more synonyms/variations.
     """
+    # Convert user message to lowercase and clean whitespace
+    user_message_lower = user_message.lower().strip()
+    
+    # Expanded keywords for better matching
     category_keywords = {
-        "phone": ["phone", "mobile", "smartphone", "iphone", "samsung", "android"],
-        "laptop": ["laptop", "macbook", "notebook", "ultrabook", "gaming laptop"],
-        "tv": ["tv", "television", "oled", "4k", "smart tv"]
+        "phone": ["phone", "mobile", "smartphone", "iphone", "samsung", "android", 
+                  "cell", "cellular", "fone", "celfone", "handset"],
+        "laptop": ["laptop", "macbook", "notebook", "ultrabook", "gaming laptop", 
+                   "computer", "pc", "portable computer", "lapto", "latop", "laptp", "labtop"],
+        "tv": ["tv", "television", "oled", "4k", "smart tv", "qled", "lcd", 
+               "tele", "screen", "display", "monitor"]
     }
 
-    # Convert user message to lowercase for case-insensitive matching
-    user_message_lower = user_message.lower()
-
-    # Check if any category keyword appears in the user message
+    # First check for explicit mentions with exact matching
     for category, keywords in category_keywords.items():
-        if any(keyword in user_message_lower for keyword in keywords):
-            return category  # ✅ Return the detected category
+        if any(keyword in user_message_lower.split() for keyword in keywords):
+            return category
+    
+    # Try partial matching for typo tolerance
+    for category, keywords in category_keywords.items():
+        for keyword in keywords:
+            # Check if any keyword is similar to any word in the user message
+            if any(levenshtein_distance(word, keyword) <= 2 for word in user_message_lower.split()):
+                return category
+    
+    return ""  # No category detected
 
-    return ""  # ❌ No category detected
-
+def levenshtein_distance(s1, s2):
+    """
+    Calculate the Levenshtein distance between two strings.
+    This helps with typo tolerance.
+    """
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+    
+    if len(s2) == 0:
+        return len(s1)
+    
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    
+    return previous_row[-1]
 
 def send_to_gemini(user_data, structured_products):
     """
-    Sends user requirements and filtered products to Gemini for intelligent matching.
-    This enhanced version handles raw natural language input for budget and brand.
+    Enhanced function to improve product filtering and respect brand preferences.
     """
     # Get products from the selected category
     category = user_data["category"].lower()
@@ -645,16 +858,46 @@ def send_to_gemini(user_data, structured_products):
     
     print(f"🔍 Sending {len(all_products)} {category} products to Gemini")
     
+    # Extract brand preference more accurately
+    brand_preference = None
+    if "budget_brand_response" in user_data:
+        brand_response = user_data["budget_brand_response"].lower()
+        
+        # List of common brands to check for
+        common_brands = ["apple", "samsung", "sony", "lg", "dell", "hp", "asus", 
+                        "acer", "lenovo", "microsoft", "google", "oneplus", "xiaomi"]
+        
+        # Check if any brand is mentioned
+        for brand in common_brands:
+            if brand in brand_response and "not " + brand not in brand_response:
+                brand_preference = brand
+                break
+                
+        # Check for specific product lines that imply brands
+        brand_indicators = {
+            "iphone": "apple", "macbook": "apple", "galaxy": "samsung", 
+            "pixel": "google", "surface": "microsoft"
+        }
+        
+        for indicator, brand in brand_indicators.items():
+            if indicator in brand_response:
+                brand_preference = brand
+                break
+    
     # Convert products to JSON for Gemini
     products_json = json.dumps(all_products, indent=2)
 
-    # Prepare a natural language prompt with user requirements
+    # Prepare the requirements
     requirements = []
     if user_data["purpose"]:
         requirements.append(f"Will be used for: {user_data['purpose']}")
     if user_data["features"]:
         features_text = ", ".join(user_data["features"]) if isinstance(user_data["features"], list) else user_data["features"]
         requirements.append(f"Desired features: {features_text}")
+    
+    # Add brand preference if detected
+    if brand_preference:
+        requirements.append(f"Preferred brand: {brand_preference}")
     
     # If we're using raw response mode, pass the budget and brand question response directly
     if user_data.get("raw_response", False) and "budget_brand_response" in user_data:
@@ -693,6 +936,7 @@ def send_to_gemini(user_data, structured_products):
         8. If no products match ALL criteria, prioritize brand preference first, then budget constraints
         9. If a preferred brand is mentioned, try to recommend only that brand's products
         10. IMPORTANT: Always include the product's image field in your recommendations
+        11. If a specific brand is mentioned, ONLY recommend products from that brand unless none are available
 
         ### **AVAILABLE PRODUCTS (ONLY recommend from this list):**
         ```json
@@ -742,6 +986,20 @@ def send_to_gemini(user_data, structured_products):
 
         parsed_json = json.loads(json_match.group(1).strip())
         
+        # Handle brand preference in post-processing if needed
+        if brand_preference and "recommended_products" in parsed_json:
+            brand_products = [p for p in parsed_json["recommended_products"] 
+                            if brand_preference.lower() in p.get("name", "").lower() or 
+                               brand_preference.lower() in p.get("brand", "").lower()]
+            
+            # If we have brand matches, prioritize them
+            if brand_products:
+                parsed_json["recommended_products"] = brand_products
+                parsed_json["message"] = f"Here are the best {brand_preference.capitalize()} products based on your requirements:"
+            elif len(parsed_json["recommended_products"]) > 0:
+                # If no brand matches but we have other recommendations
+                parsed_json["message"] = f"I couldn't find any {brand_preference.capitalize()} products matching your criteria. Here are some alternatives:"
+        
         # Verify that recommended products actually match those in our database
         if "recommended_products" in parsed_json:
             valid_products = []
@@ -754,6 +1012,12 @@ def send_to_gemini(user_data, structured_products):
                     if matching_product:
                         # Make sure we have the image from our database
                         product["image"] = matching_product.get("image", product.get("image", "default-product.jpg"))
+                        # Add brand info if available
+                        if "brand" in matching_product and "brand" not in product:
+                            product["brand"] = matching_product["brand"]
+                        # Add category info if available
+                        if "category" in matching_product and "category" not in product:
+                            product["category"] = matching_product["category"]
 
                     valid_products.append(product)
                 else:
@@ -776,7 +1040,7 @@ def send_to_gemini(user_data, structured_products):
 
 def send_followup_to_gemini(query_data):
     """
-    Handles follow-up questions about previously recommended products.
+    Enhanced follow-up handler with access to the full product database.
     """
     recommended_products = query_data.get("recommended_products", [])
     user_question = query_data.get("user_question", "")
@@ -785,8 +1049,17 @@ def send_followup_to_gemini(query_data):
     if not recommended_products:
         return {"message": "I don't have any recommendations to discuss. Let's start over with your product search."}
     
-    # Convert products to JSON for Gemini
-    products_json = json.dumps(recommended_products, indent=2)
+    # Get access to the full product database for the category
+    all_products = fetch_products_from_database().get(category, [])
+    
+    # Combine previously recommended products with all products for context
+    context_products = {
+        "recommended": recommended_products,
+        "all_available": all_products
+    }
+    
+    # Convert context to JSON for Gemini
+    context_json = json.dumps(context_products, indent=2)
     
     # Context from previous conversation
     context = []
@@ -807,14 +1080,14 @@ def send_followup_to_gemini(query_data):
                 "parts": [
                     {
                         "text": f"""
-        You are a digital shopping assistant helping a customer choose between previously recommended products.
+        You are a digital shopping assistant helping a customer choose between products.
 
         ### **CONVERSATION CONTEXT:**
         {context_text}
 
-        ### **PREVIOUSLY RECOMMENDED PRODUCTS:**
+        ### **PRODUCT CONTEXT:**
         ```json
-        {products_json}
+        {context_json}
         ```
 
         ### **USER'S FOLLOW-UP QUESTION:**
@@ -824,15 +1097,19 @@ def send_followup_to_gemini(query_data):
         1. If the user is asking for more details about a specific product, provide those details from the product data.
         2. If the user is asking to compare products, highlight the key differences.
         3. If the user is expressing preference for a specific feature, explain which product best satisfies that preference.
-        4. If the user seems ready to make a final decision or asks "which is best", recommend a single product that best matches their overall requirements.
-        5. If you recommend a final choice, include it in the special "final_choice" field in your response.
-        6. Only mention the products in the provided list - do not invent or reference other products.
+        4. If the user does not like the recommended products, suggest alternatives from the full product list that might better match their needs.
+        5. If the user seems ready to make a final decision or asks "which is best", recommend a single product that best matches their overall requirements.
+        6. If you recommend a final choice, include it in the special "final_choice" field in your response.
+        7. Format the response to include relevant product details including View Details and Add to Cart options.
+        8. If suggesting new products not in the original recommendations, include them in the "alternative_products" field.
+        9. IMPORTANT: NEVER format your response as Markdown. ALWAYS use the JSON format with alternative_products as an array of product objects.
 
         ### **RESPONSE FORMAT:**
         ```json
         {{
           "message": "Your detailed response to the user's question",
-          "final_choice": null  // If making a final recommendation, include the full product object here
+          "final_choice": null,  // If making a final recommendation, include the full product object here
+          "alternative_products": []  // If suggesting alternatives, include them here
         }}
         ```
         """
@@ -859,6 +1136,154 @@ def send_followup_to_gemini(query_data):
             return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
 
         parsed_json = json.loads(json_match.group(1).strip())
+        
+        # Process alternative products recommendations
+        if "alternative_products" in parsed_json and parsed_json["alternative_products"]:
+            # Format the response message to include the alternatives
+            alternatives = parsed_json["alternative_products"]
+            
+            # Generate HTML content for alternative products - FIXED VERSION
+            alternative_html = ""
+            for product in alternatives:
+                name = product.get("name", "Unknown Product")
+                price = product.get("price", "Price unavailable")
+                features = product.get("features", [])
+                image = product.get("image", "default-product.jpg")
+                
+                # If image is missing, try to find it
+                if "image" not in product or not product["image"]:
+                    # Try to find matching product in all_products
+                    matching_product = next((p for p in all_products if p["name"] == name), None)
+                    if matching_product and "image" in matching_product:
+                        image = matching_product["image"]
+                    else:
+                        image = f"http://localhost:5001/images/default-product.jpg"
+                
+                # Create product ID for linking
+                product_id = name.lower().replace(" ", "-").replace("/", "-")
+                
+                # Format features as a comma-separated list
+                feature_text = ", ".join(features[:3]) if features else "No features listed"
+                
+                # Add to HTML content with consistent styling
+                alternative_html += f"""
+                <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
+                <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
+                    <img 
+                    src="{image}" 
+                    alt="{name}" 
+                    style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+                    onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                    />
+                    <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
+                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">{price}</div>
+                    <div style="font-size: 14px; color: #666; line-height: 1.4;">{feature_text}</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <a 
+                    href="/product/1-{product_id}" 
+                    target="_self"
+                    rel="noopener noreferrer" 
+                    style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+                    data-product-id="1-{product_id}"
+                    data-product-name="{name.replace('"', '&quot;')}"
+                    >
+                    View Details
+                    </a>
+                    <button 
+                    class="add-to-cart-btn" 
+                    data-id="1-{product_id}" 
+                    data-name="{name.replace("'", "\\'")}" 
+                    data-price="{price.replace('$', '') if isinstance(price, str) else price}" 
+                    data-image="{image}"
+                    style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    Add to Cart
+                    </button>
+                </div>
+                </div>
+                """
+            
+            # Combine original message with HTML product displays
+            original_message = parsed_json.get("message", "Here are some alternative products that might better match your needs:")
+            parsed_json["message"] = f"{original_message}\n\n{alternative_html}"
+            parsed_json["isHtml"] = True
+        
+        # Format final choice with product details if present
+        if "final_choice" in parsed_json and parsed_json["final_choice"]:
+            product = parsed_json["final_choice"]
+            name = product.get("name", "Unknown Product")
+            price = product.get("price", "Price unavailable")
+            features = product.get("features", [])
+            image = product.get("image", "default-product.jpg")
+            
+            # If image is missing, try to find it
+            if "image" not in product or not product["image"]:
+                matching_product = next((p for p in all_products if p["name"] == name), None)
+                if matching_product and "image" in matching_product:
+                    image = matching_product["image"]
+                else:
+                    image = f"http://localhost:5001/images/default-product.jpg"
+            
+            # Create product ID for linking
+            product_id = name.lower().replace(" ", "-").replace("/", "-")
+            
+            # Format features
+            feature_text = ", ".join(features[:3]) if features else "No features listed"
+            
+            # Create HTML for final choice
+            final_choice_html = f"""
+            <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #e7f7ee; border: 1px solid #28a745;">
+              <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <img 
+                  src="{image}" 
+                  alt="{name}" 
+                  style="width: 80px; height: 80px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+                  onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                />
+                <div>
+                  <strong style="font-size: 18px;">{name}</strong> - {price}
+                  <div>{feature_text}</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <a 
+                  href="/product/1-{product_id}" 
+                  target="_self"
+                  rel="noopener noreferrer" 
+                  style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+                  data-product-id="1-{product_id}"
+                  data-product-name="{name.replace('"', '&quot;')}"
+                >
+                  View Details
+                </a>
+                <button 
+                  class="add-to-cart-btn" 
+                  data-id="1-{product_id}" 
+                  data-name="{name.replace("'", "\\'")}" 
+                  data-price="{price.replace('$', '') if isinstance(price, str) else price}" 
+                  data-image="{image}"
+                  style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                  </svg>
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+            """
+            
+            # Combine original message with HTML product display
+            original_message = parsed_json.get("message", "Based on your requirements, I think this is the best choice for you:")
+            parsed_json["message"] = f"{original_message}\n\n{final_choice_html}"
+            parsed_json["isHtml"] = True
+        
         return parsed_json
 
     except Exception as e:

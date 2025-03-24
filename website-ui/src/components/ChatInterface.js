@@ -130,11 +130,24 @@ const Message = styled.div`
 
 // Add this new component to render messages with possible HTML content
 const MessageContent = ({ text, isHtml }) => {
-  return isHtml ? (
-    <div dangerouslySetInnerHTML={{ __html: text }} />
-  ) : (
-    <>{text}</>
-  );
+  if (isHtml) {
+    return (
+      <div 
+        className="html-content-wrapper"
+        dangerouslySetInnerHTML={{ __html: text }} 
+        onClick={(e) => {
+          // Delegate clicks on "View Details" links to prevent navigation issues
+          const link = e.target.closest('a[href^="/product/"]');
+          if (link) {
+            e.preventDefault();
+            window.location.href = link.getAttribute('href');
+          }
+        }}
+      />
+    );
+  }
+  
+  return <>{text}</>;
 };
 
 // Generate a unique instance ID
@@ -251,8 +264,13 @@ const UnreadBadge = styled.span`
 `;
 
 const findProductImage = (productName) => {
-  // Directly query backend for image based on product name
-  return `${BACKEND_URL}/api/product-image/${encodeURIComponent(productName)}`;
+  if (!productName) return `${BACKEND_URL}/images/default-product.jpg`;
+  
+  // Sanitize product name for URL
+  const sanitizedName = encodeURIComponent(productName.trim());
+  
+  // Request image from backend with error handling
+  return `${BACKEND_URL}/api/product-image/${sanitizedName}`;
 };
 
 // Create a consistent product ID for links
@@ -280,18 +298,19 @@ const generateProductId = (name, category = '') => {
 };
 
 const generateChatProductId = (productName, category) => {
+  if (!productName) return '1-unknown-product';
+  
   // Clean up the name for URL usage
   const nameSlug = productName.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
   
-  // Create mock product for ID generation
-  const mockProduct = { 
-    name: productName,
-    category: category || detectCategory(productName)
-  };
+  // Detect category from name if not provided
+  const detectedCategory = category || detectCategory(productName);
   
-  return generateConsistentProductId(mockProduct);
+  // Create formatted product ID
+  return `1-${nameSlug}${detectedCategory ? `-${detectedCategory}` : ''}`;
 };
 
 // Helper to detect category from name
@@ -304,6 +323,11 @@ const detectCategory = (name) => {
 };
 
 const formatProductLinks = (text) => {
+  // If the message already contains HTML product displays, return it as is
+  if (text.includes('<div style="margin: 15px 0; padding: 15px;')) {
+    return text;
+  }
+  
   // Split the text on product bullet points
   const parts = text.split("• ");
   
@@ -323,7 +347,7 @@ const formatProductLinks = (text) => {
       
       // Extract price if available
       const priceMatch = productPart.match(/\$(\d+(\.\d{1,2})?)/);
-      const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
+      const price = priceMatch ? priceMatch[0] : "Price unavailable"; // Keep $ symbol
       
       // Generate a product ID for routing that's more compatible
       const productId = generateChatProductId(productName);
@@ -331,27 +355,36 @@ const formatProductLinks = (text) => {
       // Find a product image
       const productImage = findProductImage(productName);
       
+      // Extract features if available
+      let features = [];
+      const featuresMatch = productPart.match(/Key features: (.*?)(\n|$)/);
+      if (featuresMatch && featuresMatch[1]) {
+        features = featuresMatch[1].split(', ').filter(f => f.trim().length > 0);
+      }
+      
       // Format with image and link that opens in new tab
-      // Use proper error handling for image loading
+      // Use consistent styling that matches Image 1 (the first recommendation style)
       formattedText += `
-      <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #e9ecef;">
-        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+      <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
+        <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
           <img 
             src="${productImage}" 
             alt="${productName}" 
             style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
             onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
           />
-          <div>
-            <strong>${productName}</strong>${productPart.substring(dashIndex)}
+          <div style="flex: 1;">
+            <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">${productName}</div>
+            <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">${price}</div>
+            <div style="font-size: 14px; color: #666; line-height: 1.4;">${features.join(', ')}</div>
           </div>
         </div>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
           <a 
             href="/product/${productId}" 
             target="_self"
             rel="noopener noreferrer" 
-            style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+            style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
             data-product-id="${productId}"
             data-product-name="${productName.replace(/"/g, '&quot;')}"
           >
@@ -361,7 +394,7 @@ const formatProductLinks = (text) => {
             class="add-to-cart-btn" 
             data-id="${productId}" 
             data-name="${productName.replace(/'/g, "\\'")}" 
-            data-price="${price}" 
+            data-price="${price.replace(/[^\d.]/g, '')}" 
             data-image="${productImage}"
             style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
           >
@@ -543,7 +576,7 @@ const ChatInterface = () => {
     e.preventDefault();
     
     if (!inputText.trim()) return;
-
+  
     console.log("🔵 Sending message:", inputText);
     setIsLoading(true);
     
@@ -555,7 +588,7 @@ const ChatInterface = () => {
     
     // Clear input field
     setInputText('');
-
+  
     try {
       // Determine if this is the first message (empty message list)
       const isFirstMessage = messages.length === 0;
@@ -563,13 +596,13 @@ const ChatInterface = () => {
       // Send the message with the instance ID to maintain session
       const parsedResponse = await sendMessageToChatbot(messageToSend, isFirstMessage, chatInstanceId);
       console.log("🟢 Chatbot Response:", parsedResponse);
-
+  
       // Add bot response to chat
       let botText = parsedResponse.reply || "Sorry, something went wrong.";
-      let isHtml = false;
+      let isHtml = parsedResponse.isHtml || false;
       
-      // Check if the response contains product recommendations
-      if (botText.includes("• ") && (botText.includes("Here are") || botText.includes("best matching"))) {
+      // Check if the response contains product recommendations (bullet points)
+      if (!isHtml && botText.includes("• ") && (botText.includes("Here are") || botText.includes("best matching"))) {
         // Format product links
         isHtml = true;
         botText = formatProductLinks(botText);
