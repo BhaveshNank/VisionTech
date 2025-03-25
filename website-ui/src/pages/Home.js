@@ -517,7 +517,7 @@ const Home = () => {
             AI-Powered Shopping
           </AIBadge>
           
-          <Title>Welcome to D.Jatin Enterprise</Title>
+          <Title>Welcome to SmartShop</Title>
           <Subtitle>
             Your intelligent shopping companion that helps you find the perfect tech products
           </Subtitle>

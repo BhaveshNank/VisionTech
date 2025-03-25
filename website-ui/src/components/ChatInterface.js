@@ -136,11 +136,11 @@ const MessageContent = ({ text, isHtml }) => {
         className="html-content-wrapper"
         dangerouslySetInnerHTML={{ __html: text }} 
         onClick={(e) => {
-          // Delegate clicks on "View Details" links to prevent navigation issues
+          // Only handle links that don't have target="_blank"
           const link = e.target.closest('a[href^="/product/"]');
-          if (link) {
+          if (link && link.getAttribute('target') !== '_blank') {
             e.preventDefault();
-            window.location.href = link.getAttribute('href');
+            window.open(link.getAttribute('href'), '_blank');
           }
         }}
       />
@@ -365,46 +365,46 @@ const formatProductLinks = (text) => {
       // Format with image and link that opens in new tab
       // Use consistent styling that matches Image 1 (the first recommendation style)
       formattedText += `
-      <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
-        <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
-          <img 
-            src="${productImage}" 
-            alt="${productName}" 
-            style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-            onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
-          />
-          <div style="flex: 1;">
-            <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">${productName}</div>
-            <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">${price}</div>
-            <div style="font-size: 14px; color: #666; line-height: 1.4;">${features.join(', ')}</div>
-          </div>
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <a 
-            href="/product/${productId}" 
-            target="_self"
-            rel="noopener noreferrer" 
-            style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
-            data-product-id="${productId}"
-            data-product-name="${productName.replace(/"/g, '&quot;')}"
-          >
-            View Details
-          </a>
-          <button 
-            class="add-to-cart-btn" 
-            data-id="${productId}" 
-            data-name="${productName.replace(/'/g, "\\'")}" 
-            data-price="${price.replace(/[^\d.]/g, '')}" 
-            data-image="${productImage}"
-            style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-            </svg>
-            Add to Cart
-          </button>
-        </div>
-      </div>`;
+<div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
+  <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
+    <img 
+      src="${productImage}" 
+      alt="${productName}" 
+      style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+      onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
+    />
+    <div style="flex: 1;">
+      <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">${productName}</div>
+      <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">${price}</div>
+      <div style="font-size: 14px; color: #666; line-height: 1.4;">${features.join(', ')}</div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 10px; margin-top: 10px;">
+    <a 
+      href="/product/${productId}" 
+      target="_blank"
+      rel="noopener noreferrer" 
+      style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+      data-product-id="${productId}"
+      data-product-name="${productName.replace(/"/g, '&quot;')}"
+    >
+      View Details
+    </a>
+    <button 
+      class="add-to-cart-btn" 
+      data-id="${productId}" 
+      data-name="${productName.replace(/'/g, "\\'")}" 
+      data-price="${price.replace(/[^\d.]/g, '')}" 
+      data-image="${productImage}"
+      style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+      </svg>
+      Add to Cart
+    </button>
+  </div>
+</div>`;
     } else {
       // If format doesn't match, keep original
       formattedText += `• ${productPart}`;

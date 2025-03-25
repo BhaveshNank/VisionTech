@@ -40,7 +40,7 @@ collection = db["products"]  # The collection in that database
 
 
 # Google Gemini API Setup
-api_key = "GEMINI_KEY_HERE"
+api_key = "AIzaSyCw2spSKyxnSg9KNLpg1n3f7nRqZe-KfU4"
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
 
 headers = {
@@ -403,21 +403,13 @@ def chat():
             else:
                 chat_data["selected_purpose"] = user_message
             
+            # FIXED: Remove duplicate feature prompt here - proceed directly to asking for budget
             chat_data["chat_stage"] = "ask_budget"
             session[session_key] = chat_data
             
-            # Category-specific feature prompts
-            if chat_data["selected_category"] == "phone":
-                feature_prompt = "Do you have any specific features in mind for this phone? (e.g., Camera quality, Battery life, Storage capacity, Processing power)"
-            elif chat_data["selected_category"] == "laptop":
-                feature_prompt = "Do you have any specific features in mind for this laptop? (e.g., RAM, Processor type, Storage capacity, Screen size, Weight)"
-            elif chat_data["selected_category"] == "tv":
-                feature_prompt = "Do you have any specific features in mind for this TV? (e.g., Screen size, Resolution, Panel type, Smart features, HDMI ports)"
-            else:
-                # Generic fallback
-                feature_prompt = f"Do you have any specific features in mind for this {chat_data['selected_category']}?"
-            
-            return jsonify({"reply": feature_prompt})
+            # Ask about features directly instead of repeating the question
+            budget_prompt = "Do you have any specific features in mind for this product? (e.g., display quality, performance, storage)"
+            return jsonify({"reply": budget_prompt})
 
         # Step 3: Ask for Budget & Brand
         if chat_data["chat_stage"] == "ask_budget":
@@ -573,6 +565,49 @@ def chat():
                 session[session_key] = chat_data
                 
                 return jsonify({"reply": closing_message})
+            
+            # Check if the user is asking about specific products
+            recommended_products = chat_data.get("recommended_products", [])
+            product_names = [p.get("name", "").lower() for p in recommended_products]
+            
+            # Check if the user is asking about specific recommended products
+            mentioned_products = []
+            for product_name in product_names:
+                if product_name and product_name in user_message.lower():
+                    mentioned_products.append(product_name)
+            
+            # If user asks about specific products
+            if mentioned_products:
+                followup_query = {
+                    "category": chat_data["selected_category"],
+                    "purpose": chat_data["selected_purpose"],
+                    "features": chat_data["selected_features"],
+                    "budget_brand_response": chat_data.get("budget_brand_response", ""),
+                    "user_question": user_message,
+                    "is_followup": True,
+                    "recommended_products": chat_data["recommended_products"],
+                    "specifically_mentioned_products": mentioned_products,  # Pass the specifically mentioned products
+                    "task_suitability_check": True  # Flag to check if products are suitable for the task
+                }
+                
+                # Get products from database for full context
+                structured_products = fetch_products_from_database()
+                all_category_products = structured_products.get(chat_data["selected_category"], [])
+                followup_query["all_products"] = all_category_products
+                
+                # Send to Gemini for follow-up response with suitability check
+                followup_response = send_followup_to_gemini(followup_query)
+                
+                # Return the response with HTML formatting if available
+                if "isHtml" in followup_response and followup_response["isHtml"]:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Let me help you with that:"),
+                        "isHtml": True
+                    })
+                else:
+                    return jsonify({
+                        "reply": followup_response.get("message", "Let me help you with that:")
+                    })
                 
             # Check if we have recommended products to discuss
             if not chat_data["recommended_products"]:
@@ -1040,28 +1075,21 @@ def send_to_gemini(user_data, structured_products):
 
 def send_followup_to_gemini(query_data):
     """
-    Enhanced follow-up handler with access to the full product database.
+    Enhanced follow-up handler with better product suitability checking.
     """
     recommended_products = query_data.get("recommended_products", [])
     user_question = query_data.get("user_question", "")
     category = query_data.get("category", "")
+    specifically_mentioned_products = query_data.get("specifically_mentioned_products", [])
+    task_suitability_check = query_data.get("task_suitability_check", False)
     
     if not recommended_products:
         return {"message": "I don't have any recommendations to discuss. Let's start over with your product search."}
     
     # Get access to the full product database for the category
-    all_products = fetch_products_from_database().get(category, [])
+    all_products = query_data.get("all_products", [])
     
-    # Combine previously recommended products with all products for context
-    context_products = {
-        "recommended": recommended_products,
-        "all_available": all_products
-    }
-    
-    # Convert context to JSON for Gemini
-    context_json = json.dumps(context_products, indent=2)
-    
-    # Context from previous conversation
+    # Extract context from previous conversation
     context = []
     if query_data.get("purpose"):
         context.append(f"User needs a {category} for: {query_data['purpose']}")
@@ -1072,6 +1100,28 @@ def send_followup_to_gemini(query_data):
         context.append(f"Budget and brand preferences: {query_data['budget_brand_response']}")
     
     context_text = "\n".join([f"- {ctx}" for ctx in context])
+    
+    # Additional instructions for product suitability check
+    suitability_check_instructions = ""
+    if task_suitability_check and specifically_mentioned_products:
+        suitability_check_instructions = f"""
+        IMPORTANT: The user has specifically asked about the following products: {', '.join(specifically_mentioned_products)}
+        You MUST assess if these specific products are suitable for the user's needs based on the context.
+        If they are NOT suitable, you MUST:
+        1. Clearly explain WHY they are not suitable for the specific needs/purpose mentioned.
+        2. ONLY THEN recommend alternatives that would better meet their needs.
+        If they ARE suitable, provide detailed information on those specific products.
+        """
+    
+    # Prepare the products context
+    context_products = {
+        "recommended": recommended_products,
+        "all_available": all_products,
+        "specifically_mentioned": specifically_mentioned_products
+    }
+    
+    # Convert context to JSON for Gemini
+    context_json = json.dumps(context_products, indent=2)
     
     gpt_payload = {
         "contents": [
@@ -1093,16 +1143,19 @@ def send_followup_to_gemini(query_data):
         ### **USER'S FOLLOW-UP QUESTION:**
         "{user_question}"
 
+        {suitability_check_instructions}
+
         ### **INSTRUCTIONS:**
-        1. If the user is asking for more details about a specific product, provide those details from the product data.
-        2. If the user is asking to compare products, highlight the key differences.
-        3. If the user is expressing preference for a specific feature, explain which product best satisfies that preference.
-        4. If the user does not like the recommended products, suggest alternatives from the full product list that might better match their needs.
-        5. If the user seems ready to make a final decision or asks "which is best", recommend a single product that best matches their overall requirements.
-        6. If you recommend a final choice, include it in the special "final_choice" field in your response.
-        7. Format the response to include relevant product details including View Details and Add to Cart options.
-        8. If suggesting new products not in the original recommendations, include them in the "alternative_products" field.
-        9. IMPORTANT: NEVER format your response as Markdown. ALWAYS use the JSON format with alternative_products as an array of product objects.
+        1. If the user is asking about specific products that were previously recommended, focus ONLY on those specific products.
+        2. If those specific products are not suitable for the user's needs, CLEARLY EXPLAIN WHY before suggesting alternatives.
+        3. If the user is asking to compare products, highlight the key differences.
+        4. If the user is expressing preference for a specific feature, explain which product best satisfies that preference.
+        5. If the user does not like the recommended products, suggest alternatives from the full product list that might better match their needs.
+        6. If the user seems ready to make a final decision or asks "which is best", recommend a single product that best matches their overall requirements.
+        7. If you recommend a final choice, include it in the special "final_choice" field in your response.
+        8. Format the response to include relevant product details including View Details and Add to Cart options.
+        9. If suggesting new products not in the original recommendations, include them in the "alternative_products" field.
+        10. IMPORTANT: NEVER format your response as Markdown. ALWAYS use the JSON format with alternative_products as an array of product objects.
 
         ### **RESPONSE FORMAT:**
         ```json
@@ -1129,10 +1182,12 @@ def send_followup_to_gemini(query_data):
         response_data = response.json()
         generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
         
-        # Extract JSON from Gemini response
+        # Fix the regex pattern for extracting JSON
         json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
+        
         if not json_match:
             print("❌ Failed to extract JSON from follow-up Gemini response")
+            print(f"Response text: {generated_text[:200]}...")  # Print first 200 chars for debugging
             return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
 
         parsed_json = json.loads(json_match.group(1).strip())
@@ -1184,7 +1239,7 @@ def send_followup_to_gemini(query_data):
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <a 
                     href="/product/1-{product_id}" 
-                    target="_self"
+                    target="_blank"
                     rel="noopener noreferrer" 
                     style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
                     data-product-id="1-{product_id}"
@@ -1201,7 +1256,7 @@ def send_followup_to_gemini(query_data):
                     style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
                     >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                     </svg>
                     Add to Cart
                     </button>
@@ -1254,7 +1309,7 @@ def send_followup_to_gemini(query_data):
               <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <a 
                   href="/product/1-{product_id}" 
-                  target="_self"
+                  target="_blank"
                   rel="noopener noreferrer" 
                   style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
                   data-product-id="1-{product_id}"
@@ -1271,7 +1326,7 @@ def send_followup_to_gemini(query_data):
                   style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                   </svg>
                   Add to Cart
                 </button>

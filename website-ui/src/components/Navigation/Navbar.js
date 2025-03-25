@@ -118,7 +118,7 @@ const Navbar = () => {
   return (
     <NavContainer>
       <Logo>
-        <Link to="/">D.Jatin Enterprise</Link>
+        <Link to="/">SmartShop</Link>
       </Logo>
       
       <NavLinks>
