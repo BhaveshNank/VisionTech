@@ -305,6 +305,8 @@ def chat():
                 "selected_budget": "",
                 "selected_brand": "",
                 "recommended_products": [],
+                "previously_shown_products": [],  # NEW: Track products shown to the user
+                "rejected_products": [],  # NEW: Track products the user has rejected
                 "chosen_product": None
             }
             print(f"✅ Initialized new session for instance: {instance_id}")
@@ -495,6 +497,12 @@ def chat():
                 # Store the recommended products in the session
                 chat_data["recommended_products"] = products
                 
+                # Track that these products have been shown
+                for product in products:
+                    product_name = product.get("name")
+                    if product_name and product_name not in chat_data["previously_shown_products"]:
+                        chat_data["previously_shown_products"].append(product_name)
+                
                 # Format each product into a string with bullet points
                 product_strings = []
                 for product in products:
@@ -552,19 +560,7 @@ def chat():
                 # User seems satisfied, provide a closing message and reset
                 closing_message = "I'm glad I could help you find the right product! Is there anything else you'd like to know about our products?"
                 
-                # Reset the conversation but keep the category for potential follow-up
-                original_category = chat_data["selected_category"]
-                chat_data["chat_stage"] = "ask_purpose"
-                chat_data["selected_category"] = ""
-                chat_data["selected_purpose"] = ""
-                chat_data["selected_features"] = []
-                chat_data["selected_budget"] = ""
-                chat_data["selected_brand"] = ""
-                chat_data["recommended_products"] = []
-                chat_data["chosen_product"] = None
-                session[session_key] = chat_data
-                
-                return jsonify({"reply": closing_message})
+            
             
             # Check if the user is asking about specific products
             recommended_products = chat_data.get("recommended_products", [])
@@ -577,7 +573,20 @@ def chat():
                     mentioned_products.append(product_name)
             
             # If user asks about specific products
+            # This code block goes within the 'followup_questions' section of the chat function
+# Replace the existing if mentioned_products block with this:
+
             if mentioned_products:
+                # Check if user is asking for more info about a specific product
+                info_request = any(phrase in user_message.lower() for phrase in 
+                                ["tell me more", "more about", "why", "details", "good option", "great choice"])
+                
+                if info_request:
+                    # Set a flag to ensure detailed product information
+                    followup_query["provide_detailed_info"] = True
+                    followup_query["focus_product"] = mentioned_products[0]  # Focus on first mentioned product
+                
+                # Prepare followup query with mentioned products
                 followup_query = {
                     "category": chat_data["selected_category"],
                     "purpose": chat_data["selected_purpose"],
@@ -587,7 +596,10 @@ def chat():
                     "is_followup": True,
                     "recommended_products": chat_data["recommended_products"],
                     "specifically_mentioned_products": mentioned_products,  # Pass the specifically mentioned products
-                    "task_suitability_check": True  # Flag to check if products are suitable for the task
+                    "task_suitability_check": True,  # Flag to check if products are suitable for the task
+                    "rejected_products": chat_data.get("rejected_products", []),  # Pass rejected products
+                    "provide_detailed_info": info_request,  # Flag to provide detailed product info
+                    "focus_product": mentioned_products[0] if info_request else ""
                 }
                 
                 # Get products from database for full context
@@ -597,6 +609,21 @@ def chat():
                 
                 # Send to Gemini for follow-up response with suitability check
                 followup_response = send_followup_to_gemini(followup_query)
+                
+                # Check if Gemini indicates conversation is complete
+                if "conversation_complete" in followup_response and followup_response["conversation_complete"]:
+                    # Reset the conversation since Gemini indicates conversation is complete
+                    chat_data["chat_stage"] = "ask_purpose"
+                    chat_data["selected_category"] = ""
+                    chat_data["selected_purpose"] = ""
+                    chat_data["selected_features"] = []
+                    chat_data["selected_budget"] = ""
+                    chat_data["selected_brand"] = ""
+                    chat_data["recommended_products"] = []
+                    chat_data["previously_shown_products"] = []
+                    chat_data["rejected_products"] = []
+                    chat_data["chosen_product"] = None
+                    session[session_key] = chat_data
                 
                 # Return the response with HTML formatting if available
                 if "isHtml" in followup_response and followup_response["isHtml"]:
@@ -618,9 +645,19 @@ def chat():
             
             # Handle "I don't like any of these" scenarios
             dislike_phrases = ["don't like", "dont like", "not interested", "none of these", 
-                               "something else", "other options", "other products"]
-            
+                   "something else", "other options", "other products", "too expensive",
+                   "cheaper", "more affordable", "lower price"]
+
             if any(phrase in user_message.lower() for phrase in dislike_phrases):
+                # Track rejected products
+                currently_recommended = chat_data.get("recommended_products", [])
+                
+                # Add all current recommendations to the rejected list
+                for product in currently_recommended:
+                    product_name = product.get("name")
+                    if product_name and product_name not in chat_data["rejected_products"]:
+                        chat_data["rejected_products"].append(product_name)
+                
                 # User doesn't like the recommendations, ask for more specific preferences
                 followup_query = {
                     "category": chat_data["selected_category"],
@@ -630,14 +667,27 @@ def chat():
                     "user_question": user_message,
                     "is_followup": True,
                     "recommended_products": chat_data["recommended_products"],
+                    "rejected_products": chat_data["rejected_products"],  # Pass rejected products
                     "request_alternatives": True  # Flag to request alternative products
                 }
                 
                 # Get access to the full product database
                 structured_products = fetch_products_from_database()
                 
-                # Create enhanced followup query with all products
-                followup_query["all_products"] = structured_products.get(chat_data["selected_category"], [])
+                # Filter out previously rejected products
+                category_products = structured_products.get(chat_data["selected_category"], [])
+                
+                # Filter out rejected products
+                filtered_products = []
+                rejected_lower = [name.lower() for name in chat_data["rejected_products"] if name]
+                
+                for product in category_products:
+                    product_name = product.get("name", "").lower()
+                    if product_name and product_name not in rejected_lower:
+                        filtered_products.append(product)
+                
+                # Create enhanced followup query with filtered products
+                followup_query["all_products"] = filtered_products
                 
                 # Send to Gemini for follow-up response with alternative suggestions
                 followup_response = send_followup_to_gemini(followup_query)
@@ -645,6 +695,28 @@ def chat():
                 # If we have alternative products, update the recommended products
                 if "alternative_products" in followup_response and followup_response["alternative_products"]:
                     chat_data["recommended_products"] = followup_response["alternative_products"]
+                    
+                    # Track that these products have been shown
+                    new_product_names = [p.get("name") for p in followup_response["alternative_products"] if p.get("name")]
+                    for name in new_product_names:
+                        if name and name not in chat_data["previously_shown_products"]:
+                            chat_data["previously_shown_products"].append(name)
+                    
+                    session[session_key] = chat_data
+                
+                # Check if Gemini indicates conversation is complete
+                if "conversation_complete" in followup_response and followup_response["conversation_complete"]:
+                    # Reset the conversation since Gemini indicates conversation is complete
+                    chat_data["chat_stage"] = "ask_purpose"
+                    chat_data["selected_category"] = ""
+                    chat_data["selected_purpose"] = ""
+                    chat_data["selected_features"] = []
+                    chat_data["selected_budget"] = ""
+                    chat_data["selected_brand"] = ""
+                    chat_data["recommended_products"] = []
+                    chat_data["previously_shown_products"] = []
+                    chat_data["rejected_products"] = []
+                    chat_data["chosen_product"] = None
                     session[session_key] = chat_data
                 
                 # Return the response with HTML formatting if available
@@ -672,7 +744,8 @@ def chat():
                     "user_question": user_message,
                     "is_followup": True,
                     "recommended_products": chat_data["recommended_products"],
-                    "make_recommendation": True  # Flag to make a final recommendation
+                    "make_recommendation": True,  # Flag to make a final recommendation
+                    "rejected_products": chat_data.get("rejected_products", [])  # NEW: Pass rejected products
                 }
                 
                 # Send to Gemini for follow-up response
@@ -702,7 +775,8 @@ def chat():
                 "budget_brand_response": chat_data.get("budget_brand_response", ""),
                 "user_question": user_message,
                 "is_followup": True,
-                "recommended_products": chat_data["recommended_products"]
+                "recommended_products": chat_data["recommended_products"],
+                "rejected_products": chat_data.get("rejected_products", [])  # NEW: Pass rejected products
             }
             
             # Get products from database for full context
@@ -729,7 +803,7 @@ def chat():
         import traceback
         traceback.print_exc()  # Print full stack trace for debugging
         return jsonify({"error": "An internal server error occurred while processing your request."}), 500
-
+    
 @app.route('/api/products', methods=['GET'])
 def api_products():
     try:
@@ -1075,13 +1149,18 @@ def send_to_gemini(user_data, structured_products):
 
 def send_followup_to_gemini(query_data):
     """
-    Enhanced follow-up handler with better product suitability checking.
+    Enhanced follow-up handler with better product memory to avoid contradictions.
     """
     recommended_products = query_data.get("recommended_products", [])
     user_question = query_data.get("user_question", "")
     category = query_data.get("category", "")
     specifically_mentioned_products = query_data.get("specifically_mentioned_products", [])
     task_suitability_check = query_data.get("task_suitability_check", False)
+    provide_detailed_info = query_data.get("provide_detailed_info", False)
+    focus_product = query_data.get("focus_product", "")
+    
+    # Get rejected products
+    rejected_products = query_data.get("rejected_products", [])
     
     if not recommended_products:
         return {"message": "I don't have any recommendations to discuss. Let's start over with your product search."}
@@ -1099,6 +1178,10 @@ def send_followup_to_gemini(query_data):
     if query_data.get("budget_brand_response"):
         context.append(f"Budget and brand preferences: {query_data['budget_brand_response']}")
     
+    # Add rejected products to context
+    if rejected_products:
+        context.append(f"User has EXPLICITLY REJECTED these products: {', '.join(rejected_products)}")
+    
     context_text = "\n".join([f"- {ctx}" for ctx in context])
     
     # Additional instructions for product suitability check
@@ -1113,11 +1196,22 @@ def send_followup_to_gemini(query_data):
         If they ARE suitable, provide detailed information on those specific products.
         """
     
+    # Special instructions for detailed product information
+    if provide_detailed_info and focus_product:
+        suitability_check_instructions = f"""
+        IMPORTANT: The user wants more information about {focus_product}.
+        Focus ONLY on providing detailed information about this product.
+        Highlight its features and benefits for the user's specific needs.
+        Do NOT contradict your recommendation or suggest it might not be suitable.
+        NEVER suggest that a product you recommended is not a good choice.
+        """
+    
     # Prepare the products context
     context_products = {
         "recommended": recommended_products,
         "all_available": all_products,
-        "specifically_mentioned": specifically_mentioned_products
+        "specifically_mentioned": specifically_mentioned_products,
+        "rejected_products": rejected_products  # Include rejected products
     }
     
     # Convert context to JSON for Gemini
@@ -1145,6 +1239,25 @@ def send_followup_to_gemini(query_data):
 
         {suitability_check_instructions}
 
+        ### **CRITICAL CONSISTENCY RULES:**
+        1. NEVER recommend products that appear in the rejected_products list.
+        2. If a user has expressed interest in a product YOU previously recommended, NEVER suggest it might be unsuitable.
+        3. If a user is asking for cheaper alternatives, ONLY recommend products that are AT LEAST 15% less expensive than what you previously showed.
+        4. Maintain consistency in your recommendations - don't contradict your previous statements about product suitability.
+        5. If user is asking about a specific product from your recommendations, provide DETAILED information without criticizing your own recommendation.
+        6. ALWAYS respond to the user's specific query - don't change the subject unless you've fully addressed their question.
+        7. If the user asks "tell me more about X", focus ONLY on providing detailed information about X.
+        8. When the user asks about a product you recommended, enthusiastically explain why it's suitable for their needs based on their requirements.
+        9. ALWAYS end your response with a relevant follow-up question UNLESS the user has clearly stated they're satisfied (e.g., "thank you" or "I'll add to cart").
+        10. If a user asks for cheaper options, ensure you ONLY recommend products that are substantially cheaper.
+
+        ### **CONVERSATION MANAGEMENT:**
+        1. Only end a conversation if the user explicitly indicates they are done (saying "thank you", "that's all", etc.).
+        2. Otherwise, keep the conversation going by answering their questions completely and asking a relevant follow-up.
+        3. If a user shows interest in a specific product, provide detailed information about that product.
+        4. A typical informational response should include: performance details, display quality, value proposition for their needs.
+        5. NEVER end with "I'm glad I could help you find the right product" UNLESS the user has clearly indicated they've made a decision.
+
         ### **INSTRUCTIONS:**
         1. If the user is asking about specific products that were previously recommended, focus ONLY on those specific products.
         2. If those specific products are not suitable for the user's needs, CLEARLY EXPLAIN WHY before suggesting alternatives.
@@ -1160,9 +1273,10 @@ def send_followup_to_gemini(query_data):
         ### **RESPONSE FORMAT:**
         ```json
         {{
-          "message": "Your detailed response to the user's question",
+          "message": "Your detailed response to the user's question, ending with a follow-up question unless they're clearly done",
           "final_choice": null,  // If making a final recommendation, include the full product object here
-          "alternative_products": []  // If suggesting alternatives, include them here
+          "alternative_products": [],  // If suggesting alternatives, include them here
+          "conversation_complete": false  // Set to true ONLY if user has clearly indicated they're done with the conversation
         }}
         ```
         """
@@ -1188,14 +1302,49 @@ def send_followup_to_gemini(query_data):
         if not json_match:
             print("❌ Failed to extract JSON from follow-up Gemini response")
             print(f"Response text: {generated_text[:200]}...")  # Print first 200 chars for debugging
-            return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
+            
+            # Try a more lenient pattern without language identifier
+            json_match = re.search(r'```\s*({.*?})\s*```', generated_text, re.DOTALL)
+            
+            if not json_match:
+                # Try a last resort pattern to find any JSON object
+                json_match = re.search(r'({[\s\S]*"message"[\s\S]*})', generated_text)
+                
+            if not json_match:
+                return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
 
         parsed_json = json.loads(json_match.group(1).strip())
         
         # Process alternative products recommendations
         if "alternative_products" in parsed_json and parsed_json["alternative_products"]:
-            # Format the response message to include the alternatives
             alternatives = parsed_json["alternative_products"]
+            
+            # Filter out any rejected products from alternatives
+            if rejected_products:
+                rejected_lower = [name.lower() for name in rejected_products if name]
+                alternatives = [product for product in alternatives 
+                            if product.get("name", "").lower() not in rejected_lower]
+            
+            # Filter by price if user mentioned products being too expensive
+            if "too expensive" in user_question.lower() or "cheaper" in user_question.lower():
+                # Get max price of recommended products to compare against
+                recommended_prices = [get_price_number(p.get("price", "")) for p in recommended_products]
+                max_recommended_price = max(recommended_prices) if recommended_prices else float('inf')
+                
+                # Only keep alternatives that are cheaper than the most expensive recommended product
+                cheaper_alternatives = []
+                for product in alternatives:
+                    product_price = get_price_number(product.get("price", ""))
+                    # Only keep products at least 15% cheaper
+                    if product_price < max_recommended_price * 0.85:
+                        cheaper_alternatives.append(product)
+                
+                # Replace alternatives with cheaper ones only
+                if cheaper_alternatives:
+                    alternatives = cheaper_alternatives
+            
+            # Update parsed_json with filtered alternatives
+            parsed_json["alternative_products"] = alternatives
             
             # Generate HTML content for alternative products - FIXED VERSION
             alternative_html = ""
@@ -1273,6 +1422,16 @@ def send_followup_to_gemini(query_data):
         if "final_choice" in parsed_json and parsed_json["final_choice"]:
             product = parsed_json["final_choice"]
             name = product.get("name", "Unknown Product")
+            
+            # Check if the final choice is not in rejected products
+            if rejected_products and name in rejected_products:
+                # Find an alternative if the chosen product was rejected
+                alternative_product = next((p for p in all_products 
+                                           if p.get("name") not in rejected_products), None)
+                if alternative_product:
+                    product = alternative_product
+                    name = product.get("name", "Unknown Product")
+            
             price = product.get("price", "Price unavailable")
             features = product.get("features", [])
             image = product.get("image", "default-product.jpg")
@@ -1346,7 +1505,7 @@ def send_followup_to_gemini(query_data):
         import traceback
         traceback.print_exc()
         return {"message": "I encountered an error while processing your question. Could we try again?"}
-    
+            
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.
@@ -1633,6 +1792,23 @@ def filter_products_for_gemini(user_data, structured_products):
     # 4. If still no matches, return all products in the category as fallback
     print(f"ℹ️ No specific matches, returning all {len(all_products)} products in category")
     return all_products
+
+def get_price_number(price_string):
+    """Extract the numeric value from a price string."""
+    if not price_string or not isinstance(price_string, str):
+        return float('inf')  # Return infinity for missing prices
+    
+    print(f"💲 Extracting price from: {price_string}")
+    
+    # Remove currency symbols and any non-numeric characters except decimal point
+    numeric_part = re.sub(r'[^\d.]', '', price_string)
+    try:
+        price = float(numeric_part)
+        print(f"💲 Extracted price: {price}")
+        return price
+    except ValueError:
+        print(f"❌ Failed to extract price from: {price_string}")
+        return float('inf')  # Return infinity for invalid formats
 
 def get_category_specific_follow_up(user_message, product_category=None):
     """Generate category-specific follow-up questions"""
