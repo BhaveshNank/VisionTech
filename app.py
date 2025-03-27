@@ -362,13 +362,13 @@ def chat():
             
             # Get category-specific purpose question
             if detected_category == 'tv':
-                purpose_question = "Great! What kind of content do you usually watch on TV? (e.g., Sports, Movies, Gaming)"
+                purpose_question = "Great! Let's find the perfect TV for you. To start, what kind of content do you enjoy watching? Are you into sports, movies, gaming, or something else entirely?"
             elif detected_category == 'phone':
-                purpose_question = "Great! What will you primarily use this phone for? (e.g., Gaming, work or basic use)"
+                purpose_question = "Great! Let's find the perfect phone for you. How do you plan to use it most often? Will it be for gaming, work, basic tasks, or something else?"
             elif detected_category == 'laptop':
-                purpose_question = "Great! What will you primarily use this laptop for? (e.g., Gaming, Work, Entertainment)?"
+                purpose_question = "Great! Let's find the ideal laptop for you. How do you plan to use it most often? Will it be for gaming, work, entertainment, or something different?"
             else:
-                purpose_question = f"Great! What will you primarily use this {detected_category} for?"
+                purpose_question = f"Great! Let's find the perfect {detected_category} for you. How do you plan to use it most often? Please provide some more details so I can recommend the perfect product for you."
             
             return jsonify({"reply": purpose_question})
 

@@ -128,26 +128,111 @@ const Message = styled.div`
   `}
 `;
 
-// Add this new component to render messages with possible HTML content
-const MessageContent = ({ text, isHtml }) => {
+// Add this new component for the category selection buttons
+const CategoryButtons = ({ onCategorySelect }) => {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      flexWrap: 'wrap', 
+      gap: '10px', 
+      marginTop: '15px',
+      marginBottom: '5px'
+    }}>
+      <button
+        onClick={() => onCategorySelect('phone')}
+        style={{
+          padding: '10px 18px',
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+      >
+        <span role="img" aria-label="Phone">📱</span> Phone
+      </button>
+      <button
+        onClick={() => onCategorySelect('laptop')}
+        style={{
+          padding: '10px 18px',
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+      >
+        <span role="img" aria-label="Laptop">💻</span> Laptop
+      </button>
+      <button
+        onClick={() => onCategorySelect('tv')}
+        style={{
+          padding: '10px 18px',
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+      >
+        <span role="img" aria-label="TV">📺</span> TV
+      </button>
+    </div>
+  );
+};
+
+// Update the MessageContent component to include category buttons
+const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect }) => {
   if (isHtml) {
     return (
-      <div 
-        className="html-content-wrapper"
-        dangerouslySetInnerHTML={{ __html: text }} 
-        onClick={(e) => {
-          // Only handle links that don't have target="_blank"
-          const link = e.target.closest('a[href^="/product/"]');
-          if (link && link.getAttribute('target') !== '_blank') {
-            e.preventDefault();
-            window.open(link.getAttribute('href'), '_blank');
-          }
-        }}
-      />
+      <div className="html-content-wrapper">
+        <div 
+          dangerouslySetInnerHTML={{ __html: text }} 
+          onClick={(e) => {
+            // Only handle links that don't have target="_blank"
+            const link = e.target.closest('a[href^="/product/"]');
+            if (link && link.getAttribute('target') !== '_blank') {
+              e.preventDefault();
+              window.open(link.getAttribute('href'), '_blank');
+            }
+          }}
+        />
+        {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
+      </div>
     );
   }
   
-  return <>{text}</>;
+  return (
+    <>
+      {text}
+      {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
+    </>
+  );
 };
 
 // Generate a unique instance ID
@@ -559,8 +644,10 @@ const ChatInterface = () => {
       // Add a slight delay for a more natural feel
       setTimeout(() => {
         setMessages([{ 
-          text: "Hi, I'm SmartShop's virtual assistant! How can I help you find the perfect product today?", 
-          isUser: false 
+          text: `Welcome to SmartShop's virtual assistant! We offer wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`, 
+          isUser: false,
+          isHtml: true,
+          hasButtons: true // New flag to indicate this message has buttons
         }]);
       }, 800);
     }
@@ -577,9 +664,6 @@ const ChatInterface = () => {
     
     if (!inputText.trim()) return;
   
-    console.log("🔵 Sending message:", inputText);
-    setIsLoading(true);
-    
     // Add user message to chat
     setMessages(prevMessages => [...prevMessages, { text: inputText, isUser: true }]);
     
@@ -589,12 +673,21 @@ const ChatInterface = () => {
     // Clear input field
     setInputText('');
   
+    // Process the message
+    await processUserMessage(messageToSend);
+  };
+
+  // Add this function to process user messages
+  const processUserMessage = async (messageText) => {
+    console.log("🔵 Processing message:", messageText);
+    setIsLoading(true);
+    
     try {
-      // Determine if this is the first message (empty message list)
-      const isFirstMessage = messages.length === 0;
+      // Determine if this is the first message
+      const isFirstMessage = messages.length <= 1;
       
       // Send the message with the instance ID to maintain session
-      const parsedResponse = await sendMessageToChatbot(messageToSend, isFirstMessage, chatInstanceId);
+      const parsedResponse = await sendMessageToChatbot(messageText, isFirstMessage, chatInstanceId);
       console.log("🟢 Chatbot Response:", parsedResponse);
   
       // Add bot response to chat
@@ -622,6 +715,24 @@ const ChatInterface = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Add this function to handle category selection
+  const handleCategorySelect = (category) => {
+    // Add the user's selection as a message
+    const categoryMessages = {
+      'phone': 'I need help finding a phone',
+      'laptop': 'I need help finding a laptop',
+      'tv': 'I need help finding a TV'
+    };
+    
+    const userMessage = categoryMessages[category];
+    
+    // Add user message to chat
+    setMessages(prevMessages => [...prevMessages, { text: userMessage, isUser: true }]);
+    
+    // Process the selection like a user message
+    processUserMessage(userMessage);
   };
 
   useEffect(() => {
@@ -730,7 +841,12 @@ const ChatInterface = () => {
           <MessageList isExpanded={isExpanded}>
             {messages.map((msg, idx) => (
               <Message key={idx} isUser={msg.isUser}>
-                <MessageContent text={msg.text} isHtml={msg.isHtml || false} />
+                <MessageContent 
+                  text={msg.text} 
+                  isHtml={msg.isHtml || false} 
+                  hasButtons={msg.hasButtons || false} 
+                  onCategorySelect={handleCategorySelect} 
+                />
               </Message>
             ))}
             {isLoading && <Message>Thinking...</Message>}
