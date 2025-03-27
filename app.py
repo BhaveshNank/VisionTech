@@ -1501,6 +1501,71 @@ def send_followup_to_gemini(query_data):
             parsed_json["message"] = f"{original_message}\n\n{final_choice_html}"
             parsed_json["isHtml"] = True
         
+        # Process regular messages (without product cards but potentially with tables)
+        original_message = parsed_json.get("message", "")
+        
+        # Improved table detection - look for simple pipe-based formats
+        if "|" in original_message and (
+            "Feature" in original_message or 
+            "Price" in original_message or 
+            "Comparison" in original_message
+        ):
+            # Try to parse text-based table - simpler approach
+            table_rows = []
+            rows = original_message.split('\n')
+            
+            # Find lines that look like table rows (contain multiple |)
+            for row in rows:
+                if row.count('|') >= 3:  # At least 3 pipe chars means at least 2 columns
+                    table_rows.append(row)
+            
+            # If we found table rows, convert to HTML
+            if len(table_rows) >= 2:  # Need at least a header and one data row
+                # Extract all cells from all rows
+                all_cells = []
+                for row in table_rows:
+                    # Split by | and remove empty items
+                    cells = [cell.strip() for cell in row.split('|') if cell.strip()]
+                    if cells:  # Only add if we have cells
+                        all_cells.append(cells)
+                
+                # Create HTML table if we have cells
+                if all_cells:
+                    # Generate HTML table
+                    html_table = '<div style="margin: 15px 0; overflow-x: auto;">\n'
+                    html_table += '<table style="width: 100%; border-collapse: collapse; text-align: left;">\n'
+                    
+                    # First row as header
+                    html_table += '<thead>\n<tr style="background-color: #f2f7ff;">\n'
+                    for header in all_cells[0]:
+                        html_table += f'<th style="padding: 8px; border: 1px solid #ddd;">{header}</th>\n'
+                    html_table += '</tr>\n</thead>\n'
+                    
+                    # Remaining rows as data
+                    html_table += '<tbody>\n'
+                    for data_row in all_cells[1:]:
+                        html_table += '<tr>\n'
+                        for i, cell in enumerate(data_row):
+                            # Apply bold formatting to the first column
+                            if i == 0:
+                                cell = f'<strong>{cell}</strong>'
+                            html_table += f'<td style="padding: 8px; border: 1px solid #ddd;">{cell}</td>\n'
+                        html_table += '</tr>\n'
+                    html_table += '</tbody>\n</table>\n</div>'
+                    
+                    # Replace all table rows in the original message with the HTML table
+                    table_text = "\n".join(table_rows)
+                    original_message = original_message.replace(table_text, html_table)
+                    parsed_json["isHtml"] = True
+        
+        # Replace markdown bold with HTML bold
+        if "**" in original_message:
+            original_message = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', original_message)
+            parsed_json["isHtml"] = True
+            
+        # Update the message with formatted content
+        parsed_json["message"] = original_message
+        
         return parsed_json
 
     except Exception as e:
@@ -1508,7 +1573,7 @@ def send_followup_to_gemini(query_data):
         import traceback
         traceback.print_exc()
         return {"message": "I encountered an error while processing your question. Could we try again?"}
-    
+       
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.
