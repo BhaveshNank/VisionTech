@@ -1180,7 +1180,9 @@ def send_followup_to_gemini(query_data):
     
     # Add rejected products to context
     if rejected_products:
-        context.append(f"User has EXPLICITLY REJECTED these products: {', '.join(rejected_products)}")
+        context.append(f"User has PREVIOUSLY REJECTED these products: {', '.join(rejected_products)}")
+        # Add the latest user query context (for Gemini to decide if they're asking for rejected items again)
+        context.append(f"User's LATEST QUERY: \"{user_question}\"")
     
     context_text = "\n".join([f"- {ctx}" for ctx in context])
     
@@ -1240,12 +1242,12 @@ def send_followup_to_gemini(query_data):
         {suitability_check_instructions}
 
         ### **CRITICAL CONSISTENCY RULES:**
-        1. NEVER recommend products that appear in the rejected_products list.
-        2. If a user has expressed interest in a product YOU previously recommended, NEVER suggest it might be unsuitable.
+        1. ONLY exclude rejected products if the user's latest query is asking for alternatives or cheaper options.
+        2. If the user's latest query is explicitly asking for products of a specific type (e.g., gaming laptops, camera phones), INCLUDE all suitable products matching that type, including previously rejected ones.
         3. If a user is asking for cheaper alternatives, ONLY recommend products that are AT LEAST 15% less expensive than what you previously showed.
-        4. Maintain consistency in your recommendations - don't contradict your previous statements about product suitability.
-        5. If user is asking about a specific product from your recommendations, provide DETAILED information without criticizing your own recommendation.
-        6. ALWAYS respond to the user's specific query - don't change the subject unless you've fully addressed their question.
+        4. Maintain consistency in your recommendations - don't contradict previous statements about product suitability.
+        5. When the user is explicitly asking for a specific category of products, like "purely designed for gaming" laptops, prioritize products specifically made for that purpose - even if they were previously rejected.
+        6. Use your judgment to determine if the user's latest query indicates they want to reconsider previously rejected products.
         7. If the user asks "tell me more about X", focus ONLY on providing detailed information about X.
         8. When the user asks about a product you recommended, enthusiastically explain why it's suitable for their needs based on their requirements.
         9. ALWAYS end your response with a relevant follow-up question UNLESS the user has clearly stated they're satisfied (e.g., "thank you" or "I'll add to cart").
@@ -1276,7 +1278,8 @@ def send_followup_to_gemini(query_data):
           "message": "Your detailed response to the user's question, ending with a follow-up question unless they're clearly done",
           "final_choice": null,  // If making a final recommendation, include the full product object here
           "alternative_products": [],  // If suggesting alternatives, include them here
-          "conversation_complete": false  // Set to true ONLY if user has clearly indicated they're done with the conversation
+          "conversation_complete": false,  // Set to true ONLY if user has clearly indicated they're done with the conversation
+          "include_rejected_products": false  // Set to true if user's query indicates they want to see previously rejected products
         }}
         ```
         """
@@ -1297,7 +1300,7 @@ def send_followup_to_gemini(query_data):
         generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
         
         # Fix the regex pattern for extracting JSON
-        json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
+        json_match = re.search(r"``[json\s*({.*?})\s*](http://_vscodecontentref_/1)``", generated_text, re.DOTALL)
         
         if not json_match:
             print("❌ Failed to extract JSON from follow-up Gemini response")
@@ -1319,11 +1322,11 @@ def send_followup_to_gemini(query_data):
         if "alternative_products" in parsed_json and parsed_json["alternative_products"]:
             alternatives = parsed_json["alternative_products"]
             
-            # Filter out any rejected products from alternatives
-            if rejected_products:
+            # Only filter rejected products if not explicitly asking for that category
+            if rejected_products and not parsed_json.get("include_rejected_products", False):
                 rejected_lower = [name.lower() for name in rejected_products if name]
                 alternatives = [product for product in alternatives 
-                            if product.get("name", "").lower() not in rejected_lower]
+                                if product.get("name", "").lower() not in rejected_lower]
             
             # Filter by price if user mentioned products being too expensive
             if "too expensive" in user_question.lower() or "cheaper" in user_question.lower():
@@ -1423,8 +1426,8 @@ def send_followup_to_gemini(query_data):
             product = parsed_json["final_choice"]
             name = product.get("name", "Unknown Product")
             
-            # Check if the final choice is not in rejected products
-            if rejected_products and name in rejected_products:
+            # Check if the final choice is not in rejected products, unless they want to see rejected products
+            if rejected_products and name in rejected_products and not parsed_json.get("include_rejected_products", False):
                 # Find an alternative if the chosen product was rejected
                 alternative_product = next((p for p in all_products 
                                            if p.get("name") not in rejected_products), None)
@@ -1505,7 +1508,7 @@ def send_followup_to_gemini(query_data):
         import traceback
         traceback.print_exc()
         return {"message": "I encountered an error while processing your question. Could we try again?"}
-            
+    
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.
