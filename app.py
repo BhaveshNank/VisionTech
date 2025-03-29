@@ -40,7 +40,7 @@ collection = db["products"]  # The collection in that database
 
 
 # Google Gemini API Setup
-api_key = "AIzaSyCw2spSKyxnSg9KNLpg1n3f7nRqZe-KfU4"
+api_key = "GEMINI_KEY_HERE"
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
 
 headers = {
@@ -447,6 +447,16 @@ def chat():
             # Extract budget and brand information
             budget_brand_response = user_message
             chat_data["budget_brand_response"] = budget_brand_response
+
+            min_budget, max_budget = parse_budget_range(budget_brand_response)
+            if min_budget and max_budget:
+                chat_data["extracted_budget"] = f"${min_budget}-${max_budget}"
+            elif max_budget:
+                chat_data["extracted_budget"] = f"under ${max_budget}"
+            elif min_budget:
+                chat_data["extracted_budget"] = f"over ${min_budget}"
+            else:
+                chat_data["extracted_budget"] = ""
             
             # Try to extract brand preference
             common_brands = ["apple", "samsung", "sony", "lg", "dell", "hp", "asus", 
@@ -594,6 +604,7 @@ def chat():
                     "budget_brand_response": chat_data.get("budget_brand_response", ""),
                     "user_question": user_message,
                     "is_followup": True,
+                    "budget_info": chat_data.get("extracted_budget", ""),
                     "recommended_products": chat_data["recommended_products"],
                     "specifically_mentioned_products": mentioned_products,  # Pass the specifically mentioned products
                     "task_suitability_check": True,  # Flag to check if products are suitable for the task
@@ -1175,8 +1186,24 @@ def send_followup_to_gemini(query_data):
     if query_data.get("features"):
         features_text = ", ".join(query_data['features']) if isinstance(query_data['features'], list) else query_data['features']
         context.append(f"Desired features: {features_text}")
+    
+    budget_info = ""
     if query_data.get("budget_brand_response"):
-        context.append(f"Budget and brand preferences: {query_data['budget_brand_response']}")
+        budget_response = query_data.get("budget_brand_response", "")
+        context.append(f"Budget and brand preferences: {budget_response}")
+        
+        # Try to extract budget range using existing function
+        min_budget, max_budget = parse_budget_range(budget_response)
+        if min_budget and max_budget:
+            budget_info = f"Budget range: ${min_budget}-${max_budget}"
+        elif max_budget:
+            budget_info = f"Budget: under ${max_budget}"
+        elif min_budget:
+            budget_info = f"Budget: over ${min_budget}"
+            
+        # Add extracted budget as a separate, clear context item
+        if budget_info:
+            context.append(f"IMPORTANT: {budget_info}")
     
     # Add rejected products to context
     if rejected_products:
@@ -1258,7 +1285,7 @@ def send_followup_to_gemini(query_data):
         2. Otherwise, keep the conversation going by answering their questions completely and asking a relevant follow-up.
         3. If a user shows interest in a specific product, provide detailed information about that product.
         4. A typical informational response should include: performance details, display quality, value proposition for their needs.
-        5. NEVER end with "I'm glad I could help you find the right product" UNLESS the user has clearly indicated they've made a decision.
+        5. End with "Let me know if you need help with anything else" instead of suggesting alternatives when a user has shown clear preference.
 
         ### **INSTRUCTIONS:**
         1. If the user is asking about specific products that were previously recommended, focus ONLY on those specific products.
