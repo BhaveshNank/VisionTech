@@ -221,6 +221,7 @@ const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect }) => {
               window.open(link.getAttribute('href'), '_blank');
             }
           }}
+          style={{ overflowX: 'auto' }} // Add horizontal scroll for wide tables
         />
         {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
       </div>
@@ -644,7 +645,7 @@ const ChatInterface = () => {
       // Add a slight delay for a more natural feel
       setTimeout(() => {
         setMessages([{ 
-          text: `Welcome to SmartShop's virtual assistant! We offer wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`, 
+          text: `Welcome to SmartShop, I am Mark, Smartshop's virtual assistant! We offer wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`, 
           isUser: false,
           isHtml: true,
           hasButtons: true // New flag to indicate this message has buttons

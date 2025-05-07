@@ -11,17 +11,17 @@ from flask_session import Session
 from flask import send_from_directory
 
 app = Flask(__name__, static_folder='static')
-# ✅ Configure Flask Session
+#  Configure Flask Session
 app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
 
-# ✅ Set session cookie policies
+#  Set session cookie policies
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevents strict blocking
 app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for local HTTP (set True for HTTPS)
 
-# ✅ Apply CORS with proper settings
+#  Apply CORS with proper settings
 CORS(app, 
      resources={r"/*": {"origins": "http://localhost:3000"}}, 
      supports_credentials=True,
@@ -30,7 +30,7 @@ CORS(app,
      methods=["GET", "POST", "OPTIONS"]
 )
 
-# ✅ Initialize Flask-Session
+# Initialize Flask-Session
 Session(app)
 
 # MongoDB Connection 
@@ -41,7 +41,8 @@ collection = db["products"]  # The collection in that database
 
 # Google Gemini API Setup
 api_key = "GEMINI_KEY_HERE"
-endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
+endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={api_key}"
+
 
 headers = {
     "Content-Type": "application/json"
@@ -62,7 +63,6 @@ def handle_server_error(error):
         "details": str(error)
     }), 500
 
-# Add this helper function near the top of your file, after impo
 
 # Test route to check if Flask is running
 @app.route('/test', methods=['GET'])
@@ -73,7 +73,7 @@ def test():
 @app.route('/images/<filename>')
 def serve_image(filename):
     """Serve images from the static/images directory"""
-    return send_from_directory('static/images', filename)  # ✅ Securely serve images
+    return send_from_directory('static/images', filename)  #  Securely serve images
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
@@ -168,7 +168,6 @@ def get_product_image(product_name):
         if product and "category" in product:
             product_category = product["category"].lower()
         else:
-            # No need to guess categories - we'll do direct image matching
             product_category = None
         
         # Look for images in static/images directory
@@ -216,20 +215,6 @@ def get_product_image(product_name):
         print(f"Error finding product image: {str(e)}")
         return send_from_directory('static/images', 'default-product.jpg')
 
-# @app.route('/debug-products', methods=['GET'])
-# def debug_products():
-#     try:
-#         # Fetch products from MongoDB
-#         structured_products = fetch_products_from_database()
-        
-#         # Print for debugging
-#         print(f"📢 Debugging Products: {json.dumps(structured_products, indent=2)}")
-
-#         # Return JSON response
-#         return jsonify(structured_products)
-
-#     except Exception as e:
-#         return jsonify({"error": str(e)})
 
 @app.route('/debug-gemini', methods=['GET'])
 def debug_gemini():
@@ -362,13 +347,13 @@ def chat():
             
             # Get category-specific purpose question
             if detected_category == 'tv':
-                purpose_question = "Great! Let's find the perfect TV for you. To start, what kind of content do you enjoy watching? Are you into sports, movies, gaming, or something else entirely?"
+                purpose_question = "Great! What kind of content do you usually watch on TV? (e.g., Sports, Movies, Gaming)"
             elif detected_category == 'phone':
-                purpose_question = "Great! Let's find the perfect phone for you. How do you plan to use it most often? Will it be for gaming, work, basic tasks, or something else?"
+                purpose_question = "Great! What will you primarily use this phone for? (e.g., Gaming, work or basic use)"
             elif detected_category == 'laptop':
-                purpose_question = "Great! Let's find the ideal laptop for you. How do you plan to use it most often? Will it be for gaming, work, entertainment, or something different?"
+                purpose_question = "Great! What will you primarily use this laptop for? (e.g., Gaming, Work, Entertainment)?"
             else:
-                purpose_question = f"Great! Let's find the perfect {detected_category} for you. How do you plan to use it most often? Please provide some more details so I can recommend the perfect product for you."
+                purpose_question = f"Great! What will you primarily use this {detected_category} for?"
             
             return jsonify({"reply": purpose_question})
 
@@ -447,16 +432,6 @@ def chat():
             # Extract budget and brand information
             budget_brand_response = user_message
             chat_data["budget_brand_response"] = budget_brand_response
-
-            min_budget, max_budget = parse_budget_range(budget_brand_response)
-            if min_budget and max_budget:
-                chat_data["extracted_budget"] = f"${min_budget}-${max_budget}"
-            elif max_budget:
-                chat_data["extracted_budget"] = f"under ${max_budget}"
-            elif min_budget:
-                chat_data["extracted_budget"] = f"over ${min_budget}"
-            else:
-                chat_data["extracted_budget"] = ""
             
             # Try to extract brand preference
             common_brands = ["apple", "samsung", "sony", "lg", "dell", "hp", "asus", 
@@ -582,19 +557,12 @@ def chat():
                 if product_name and product_name in user_message.lower():
                     mentioned_products.append(product_name)
             
-            # If user asks about specific products
-            # This code block goes within the 'followup_questions' section of the chat function
-# Replace the existing if mentioned_products block with this:
 
             if mentioned_products:
                 # Check if user is asking for more info about a specific product
                 info_request = any(phrase in user_message.lower() for phrase in 
                                 ["tell me more", "more about", "why", "details", "good option", "great choice"])
                 
-                if info_request:
-                    # Set a flag to ensure detailed product information
-                    followup_query["provide_detailed_info"] = True
-                    followup_query["focus_product"] = mentioned_products[0]  # Focus on first mentioned product
                 
                 # Prepare followup query with mentioned products
                 followup_query = {
@@ -604,7 +572,6 @@ def chat():
                     "budget_brand_response": chat_data.get("budget_brand_response", ""),
                     "user_question": user_message,
                     "is_followup": True,
-                    "budget_info": chat_data.get("extracted_budget", ""),
                     "recommended_products": chat_data["recommended_products"],
                     "specifically_mentioned_products": mentioned_products,  # Pass the specifically mentioned products
                     "task_suitability_check": True,  # Flag to check if products are suitable for the task
@@ -912,7 +879,7 @@ def debug_db():
 def detect_product_category(user_message):
     """
     Enhanced function to detect product category with better typo tolerance
-    and more synonyms/variations.
+    and more synonyms/variations, with improved handling of short inputs.
     """
     # Convert user message to lowercase and clean whitespace
     user_message_lower = user_message.lower().strip()
@@ -932,12 +899,24 @@ def detect_product_category(user_message):
         if any(keyword in user_message_lower.split() for keyword in keywords):
             return category
     
-    # Try partial matching for typo tolerance
+    # For very short inputs (3 chars or less), require higher similarity
+    is_short_input = any(len(word) <= 3 for word in user_message_lower.split())
+    
+    # Try partial matching for typo tolerance, with stricter rules for short inputs
     for category, keywords in category_keywords.items():
         for keyword in keywords:
-            # Check if any keyword is similar to any word in the user message
-            if any(levenshtein_distance(word, keyword) <= 2 for word in user_message_lower.split()):
-                return category
+            # For short inputs, only allow exact matches
+            if is_short_input:
+                # Only match short inputs if they exactly match a keyword
+                # (e.g., "tv" matches "tv" but "la" doesn't match "laptop")
+                if user_message_lower in keywords:
+                    return category
+            else:
+                # For longer inputs, use Levenshtein distance with adaptive threshold
+                # The longer the word, the more tolerance for typos
+                max_distance = min(2, max(1, len(keyword) // 4))
+                if any(levenshtein_distance(word, keyword) <= max_distance for word in user_message_lower.split()):
+                    return category
     
     return ""  # No category detected
 
@@ -1156,8 +1135,6 @@ def send_to_gemini(user_data, structured_products):
         traceback.print_exc()
         return {"response_type": "recommendation", "message": "An error occurred while processing your request."}
 
-# Update the fetch_products_from_database function
-
 def send_followup_to_gemini(query_data):
     """
     Enhanced follow-up handler with better product memory to avoid contradictions.
@@ -1186,24 +1163,8 @@ def send_followup_to_gemini(query_data):
     if query_data.get("features"):
         features_text = ", ".join(query_data['features']) if isinstance(query_data['features'], list) else query_data['features']
         context.append(f"Desired features: {features_text}")
-    
-    budget_info = ""
     if query_data.get("budget_brand_response"):
-        budget_response = query_data.get("budget_brand_response", "")
-        context.append(f"Budget and brand preferences: {budget_response}")
-        
-        # Try to extract budget range using existing function
-        min_budget, max_budget = parse_budget_range(budget_response)
-        if min_budget and max_budget:
-            budget_info = f"Budget range: ${min_budget}-${max_budget}"
-        elif max_budget:
-            budget_info = f"Budget: under ${max_budget}"
-        elif min_budget:
-            budget_info = f"Budget: over ${min_budget}"
-            
-        # Add extracted budget as a separate, clear context item
-        if budget_info:
-            context.append(f"IMPORTANT: {budget_info}")
+        context.append(f"Budget and brand preferences: {query_data['budget_brand_response']}")
     
     # Add rejected products to context
     if rejected_products:
@@ -1285,7 +1246,7 @@ def send_followup_to_gemini(query_data):
         2. Otherwise, keep the conversation going by answering their questions completely and asking a relevant follow-up.
         3. If a user shows interest in a specific product, provide detailed information about that product.
         4. A typical informational response should include: performance details, display quality, value proposition for their needs.
-        5. End with "Let me know if you need help with anything else" instead of suggesting alternatives when a user has shown clear preference.
+        5. NEVER end with "I'm glad I could help you find the right product" UNLESS the user has clearly indicated they've made a decision.
 
         ### **INSTRUCTIONS:**
         1. If the user is asking about specific products that were previously recommended, focus ONLY on those specific products.
@@ -1528,71 +1489,6 @@ def send_followup_to_gemini(query_data):
             parsed_json["message"] = f"{original_message}\n\n{final_choice_html}"
             parsed_json["isHtml"] = True
         
-        # Process regular messages (without product cards but potentially with tables)
-        original_message = parsed_json.get("message", "")
-        
-        # Improved table detection - look for simple pipe-based formats
-        if "|" in original_message and (
-            "Feature" in original_message or 
-            "Price" in original_message or 
-            "Comparison" in original_message
-        ):
-            # Try to parse text-based table - simpler approach
-            table_rows = []
-            rows = original_message.split('\n')
-            
-            # Find lines that look like table rows (contain multiple |)
-            for row in rows:
-                if row.count('|') >= 3:  # At least 3 pipe chars means at least 2 columns
-                    table_rows.append(row)
-            
-            # If we found table rows, convert to HTML
-            if len(table_rows) >= 2:  # Need at least a header and one data row
-                # Extract all cells from all rows
-                all_cells = []
-                for row in table_rows:
-                    # Split by | and remove empty items
-                    cells = [cell.strip() for cell in row.split('|') if cell.strip()]
-                    if cells:  # Only add if we have cells
-                        all_cells.append(cells)
-                
-                # Create HTML table if we have cells
-                if all_cells:
-                    # Generate HTML table
-                    html_table = '<div style="margin: 15px 0; overflow-x: auto;">\n'
-                    html_table += '<table style="width: 100%; border-collapse: collapse; text-align: left;">\n'
-                    
-                    # First row as header
-                    html_table += '<thead>\n<tr style="background-color: #f2f7ff;">\n'
-                    for header in all_cells[0]:
-                        html_table += f'<th style="padding: 8px; border: 1px solid #ddd;">{header}</th>\n'
-                    html_table += '</tr>\n</thead>\n'
-                    
-                    # Remaining rows as data
-                    html_table += '<tbody>\n'
-                    for data_row in all_cells[1:]:
-                        html_table += '<tr>\n'
-                        for i, cell in enumerate(data_row):
-                            # Apply bold formatting to the first column
-                            if i == 0:
-                                cell = f'<strong>{cell}</strong>'
-                            html_table += f'<td style="padding: 8px; border: 1px solid #ddd;">{cell}</td>\n'
-                        html_table += '</tr>\n'
-                    html_table += '</tbody>\n</table>\n</div>'
-                    
-                    # Replace all table rows in the original message with the HTML table
-                    table_text = "\n".join(table_rows)
-                    original_message = original_message.replace(table_text, html_table)
-                    parsed_json["isHtml"] = True
-        
-        # Replace markdown bold with HTML bold
-        if "**" in original_message:
-            original_message = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', original_message)
-            parsed_json["isHtml"] = True
-            
-        # Update the message with formatted content
-        parsed_json["message"] = original_message
-        
         return parsed_json
 
     except Exception as e:
@@ -1600,7 +1496,7 @@ def send_followup_to_gemini(query_data):
         import traceback
         traceback.print_exc()
         return {"message": "I encountered an error while processing your question. Could we try again?"}
-       
+    
 def fetch_products_from_database():
     """
     Fetches all products from MongoDB and structures them correctly.
@@ -1723,66 +1619,7 @@ def extract_numeric_price(price_string):
     price_match = re.search(r"\d+", str(price_string))  # ✅ Ensure input is a string
     return int(price_match.group()) if price_match else None
 
-# def extract_key_features(message, category):
-#     """
-#     Extract product features using regex patterns rather than hardcoded feature lists.
-#     """
-#     features = []
-    
-#     # Screen size pattern (works for TVs, phones, laptops)
-#     size_pattern = re.search(r'(\d+)(?:\s*-\s*(\d+))?\s*(?:inch|in|")(?:\s+screen|\s+display)?', message)
-#     if size_pattern:
-#         if size_pattern.group(2):  # Range like "50-60 inch"
-#             features.append(f"size_range:{size_pattern.group(1)}-{size_pattern.group(2)}")
-#         else:  # Single size like "55 inch"
-#             features.append(f"size:{size_pattern.group(1)}")
-    
-#     # Common product-specific patterns
-#     if category == "tv":
-#         # TV resolution
-#         if re.search(r'4k|uhd|ultra\s*hd', message):
-#             features.append("resolution:4K")
-#         elif re.search(r'8k', message):
-#             features.append("resolution:8K")
-        
-#         # TV panel type
-#         if re.search(r'oled', message):
-#             features.append("panel:OLED")
-#         elif re.search(r'qled', message):
-#             features.append("panel:QLED")
-    
-#     elif category == "phone":
-#         # Camera quality
-#         camera_pattern = re.search(r'camera|photo|pictures|photography', message)
-#         if camera_pattern:
-#             features.append("feature:camera")
-        
-#         # Battery life
-#         if re.search(r'battery|long\s*lasting|all\s*day', message):
-#             features.append("feature:battery")
-            
-#         # Gaming performance
-#         if re.search(r'gaming|games|play|performance', message):
-#             features.append("feature:performance")
-    
-#     elif category == "laptop":
-#         # RAM/memory
-#         ram_pattern = re.search(r'(\d+)\s*(?:gb|g)\s*(?:ram|memory)', message)
-#         if ram_pattern:
-#             features.append(f"ram:{ram_pattern.group(1)}")
-        
-#         # Storage
-#         storage_pattern = re.search(r'(\d+)\s*(?:gb|g|tb|t)\s*(?:storage|ssd|hard\s*drive)', message)
-#         if storage_pattern:
-#             features.append(f"storage:{storage_pattern.group(1)}")
-            
-#         # Performance category
-#         if re.search(r'gaming|powerful|fast|performance', message):
-#             features.append("performance:high")
-#         elif re.search(r'basic|simple|everyday|browsing', message):
-#             features.append("performance:basic")
-    
-#     return features
+
 
 
 def filter_products_for_gemini(user_data, structured_products):
