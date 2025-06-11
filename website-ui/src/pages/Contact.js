@@ -228,7 +228,7 @@ const Contact = () => {
             </InfoIcon>
             <InfoContent>
               <h3>Email</h3>
-              <p>support@smartshop.com</p>
+              <p>support@visionelectronics.com</p>
             </InfoContent>
           </InfoItem>
           

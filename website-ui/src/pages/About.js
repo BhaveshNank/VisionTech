@@ -126,7 +126,7 @@ const About = () => {
   return (
     <AboutContainer>
       <Header>
-        <Title>About SmartShop</Title>
+        <Title>About Vision Electronics</Title>
         <Subtitle>
           We are dedicated to providing the best shopping experience with cutting-edge AI technology 
           to help you find the perfect tech products that suit your needs.
@@ -136,7 +136,7 @@ const About = () => {
       <Section>
         <SectionTitle>Our Story</SectionTitle>
         <p>
-          Founded in 2023, SmartShop began with a simple mission: to make shopping for tech products easier 
+          Founded in 2023, Vision Electronics began with a simple mission: to make shopping for tech products easier 
           and more intuitive. We recognized that customers often struggle with the overwhelming number of choices 
           and technical specifications when shopping for electronics.
         </p>
@@ -146,7 +146,7 @@ const About = () => {
           recommendations that help customers make informed decisions.
         </p>
         <p>
-          Today, SmartShop has grown to become one of the most trusted online retailers for tech products, 
+          Today, Vision Electronics has grown to become one of the most trusted online retailers for tech products, 
           serving customers with an innovative shopping experience that combines cutting-edge technology 
           with excellent customer service.
         </p>

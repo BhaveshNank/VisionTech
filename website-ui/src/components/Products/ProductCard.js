@@ -1,5 +1,5 @@
 import React, { useState, forwardRef } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { FaShoppingCart } from 'react-icons/fa';
@@ -12,18 +12,38 @@ const Card = styled.div`
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s, box-shadow 0.3s;
-  display: flex;
-  flex-direction: column;
   height: 100%;
   
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  }
+  ${props => props.viewMode === 'list' ? css`
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    
+    &:hover {
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+  ` : css`
+    display: flex;
+    flex-direction: column;
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+  `}
 `;
 
 const ProductImage = styled.div`
-  height: 200px;
+  ${props => props.viewMode === 'list' ? css`
+    width: 200px;
+    height: 150px;
+    flex-shrink: 0;
+  ` : css`
+    height: 200px;
+    width: 100%;
+  `}
+  
   overflow: hidden;
   background-color: #f8f9fa;
   display: flex;
@@ -32,40 +52,75 @@ const ProductImage = styled.div`
   
   img {
     max-width: 100%;
-    max-height: 180px;
+    max-height: ${props => props.viewMode === 'list' ? '130px' : '180px'};
     object-fit: contain;
   }
 `;
 
 const ProductInfo = styled.div`
-  padding: 1.5rem;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
+  ${props => props.viewMode === 'list' ? css`
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  ` : css`
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  `}
+`;
+
+const ProductHeader = styled.div`
+  ${props => props.viewMode === 'list' && css`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  `}
 `;
 
 const ProductName = styled.h3`
-  font-size: 1.2rem;
+  font-size: ${props => props.viewMode === 'list' ? '1.3rem' : '1.2rem'};
   margin-bottom: 0.5rem;
   color: #2c3e50;
+  line-height: 1.3;
+  
+  ${props => props.viewMode === 'list' && css`
+    margin-bottom: 0;
+    flex: 1;
+    margin-right: 1rem;
+  `}
 `;
 
 const ProductPrice = styled.div`
-  font-size: 1.4rem;
+  font-size: ${props => props.viewMode === 'list' ? '1.5rem' : '1.4rem'};
   font-weight: bold;
   color: #2980b9;
-  margin-bottom: 1rem;
+  
+  ${props => props.viewMode === 'list' ? css`
+    margin-bottom: 0;
+    white-space: nowrap;
+  ` : css`
+    margin-bottom: 1rem;
+  `}
 `;
 
 const ProductBrand = styled.div`
   font-size: 0.9rem;
   color: #7f8c8d;
-  margin-bottom: 1rem;
+  margin-bottom: ${props => props.viewMode === 'list' ? '0.5rem' : '1rem'};
 `;
 
 const ProductFeatures = styled.div`
-  margin-bottom: 1rem;
-  flex-grow: 1;
+  ${props => props.viewMode === 'list' ? css`
+    margin-bottom: 1rem;
+    flex: 1;
+  ` : css`
+    margin-bottom: 1rem;
+    flex-grow: 1;
+  `}
 `;
 
 const Feature = styled.div`
@@ -82,12 +137,17 @@ const Feature = styled.div`
 const ButtonContainer = styled.div`
   display: flex;
   gap: 10px;
-  margin-top: 15px;
+  
+  ${props => props.viewMode === 'list' && css`
+    margin-top: 0;
+    align-self: flex-end;
+    width: fit-content;
+  `}
 `;
 
 const ViewButton = styled(Link)`
   display: inline-block;
-  padding: 0.6rem 1.2rem;
+  padding: ${props => props.viewMode === 'list' ? '0.7rem 1.5rem' : '0.6rem 1.2rem'};
   background-color: #3498db;
   color: white;
   text-decoration: none;
@@ -95,7 +155,13 @@ const ViewButton = styled(Link)`
   font-weight: 500;
   transition: background-color 0.2s;
   text-align: center;
-  flex: 1;
+  white-space: nowrap;
+  
+  ${props => props.viewMode === 'list' ? css`
+    flex-shrink: 0;
+  ` : css`
+    flex: 1;
+  `}
   
   &:hover {
     background-color: #2980b9;
@@ -107,7 +173,7 @@ const CartButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0.6rem 1rem;
+  padding: ${props => props.viewMode === 'list' ? '0.7rem 1.5rem' : '0.6rem 1rem'};
   background-color: #28a745;
   color: white;
   border: none;
@@ -115,16 +181,35 @@ const CartButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
-  flex: 1;
+  white-space: nowrap;
+  
+  ${props => props.viewMode === 'list' ? css`
+    flex-shrink: 0;
+  ` : css`
+    flex: 1;
+  `}
   
   &:hover {
     background-color: #218838;
   }
 `;
 
-const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
+const ListContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+`;
+
+const ListBottom = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+`;
+
+const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...props }, ref) => {
   const { dispatch } = useCart();
-  // Add state for success message
   const [showSuccess, setShowSuccess] = useState(false);
   
   // Generate placeholder image based on product name if no image is provided
@@ -132,7 +217,7 @@ const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
   
   // Extract the first 3 features for display
   const displayFeatures = product.features && Array.isArray(product.features) 
-    ? product.features.slice(0, 3) 
+    ? product.features.slice(0, viewMode === 'list' ? 2 : 3) 
     : [];
     
   // Use the consistent product ID generator
@@ -149,13 +234,13 @@ const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
       ? parseFloat(product.price.replace(/[^0-9.-]+/g, '')) 
       : parseFloat(product.price) || 0;
     
-      const cartItem = {
-        id: product.id || productId, // Use the productId you generated earlier
-        name: product.name,
-        price: parsedPrice,
-        image: productImage,
-        quantity: 1
-      };
+    const cartItem = {
+      id: product.id || productId,
+      name: product.name,
+      price: parsedPrice,
+      image: productImage,
+      quantity: 1
+    };
     
     dispatch({
       type: "ADD_TO_CART",
@@ -171,33 +256,84 @@ const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
     }, 3000);
   };
 
+  if (viewMode === 'list') {
+    return (
+      <div ref={ref} className={`product-card ${className || ''}`}>
+        <Card viewMode={viewMode}>
+          <ProductImage viewMode={viewMode}>
+            <img 
+              src={product.image || placeholderImage} 
+              alt={product.name} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = placeholderImage;
+              }}
+            />
+          </ProductImage>
+          <ProductInfo viewMode={viewMode}>
+            <ListContent>
+              <div>
+                <ProductHeader viewMode={viewMode}>
+                  <ProductName viewMode={viewMode}>{product.name}</ProductName>
+                  <ProductPrice viewMode={viewMode}>{product.price || '$N/A'}</ProductPrice>
+                </ProductHeader>
+                <ProductBrand viewMode={viewMode}>{product.brand || 'Generic Brand'}</ProductBrand>
+                <ProductFeatures viewMode={viewMode}>
+                  {displayFeatures.map((feature, index) => (
+                    <Feature key={index}>{feature}</Feature>
+                  ))}
+                </ProductFeatures>
+              </div>
+              <ButtonContainer viewMode={viewMode}>
+                <ViewButton to={`/product/${productId}`} viewMode={viewMode}>
+                  View Details
+                </ViewButton>
+                <CartButton onClick={handleAddToCart} viewMode={viewMode}>
+                  <FaShoppingCart size={14} />
+                  Add to Cart
+                </CartButton>
+              </ButtonContainer>
+            </ListContent>
+          </ProductInfo>
+        </Card>
+        
+        {showSuccess && (
+          <SuccessToast message={`Added ${product.name} to cart!`} />
+        )}
+      </div>
+    );
+  }
+
+  // Grid view (default)
   return (
     <div ref={ref} className={`product-card ${className || ''}`}>
-      <Card>
-        <ProductImage>
+      <Card viewMode={viewMode}>
+        <ProductImage viewMode={viewMode}>
           <img 
             src={product.image || placeholderImage} 
             alt={product.name} 
             onError={(e) => {
-              e.target.onerror = null; // Prevent infinite loop
+              e.target.onerror = null;
               e.target.src = placeholderImage;
             }}
           />
         </ProductImage>
-        <ProductInfo>
-          <ProductName>{product.name}</ProductName>
-          <ProductBrand>{product.brand || 'Generic Brand'}</ProductBrand>
-          <ProductPrice>{product.price || '$N/A'}</ProductPrice>
+        <ProductInfo viewMode={viewMode}>
+          <ProductName viewMode={viewMode}>{product.name}</ProductName>
+          <ProductBrand viewMode={viewMode}>{product.brand || 'Generic Brand'}</ProductBrand>
+          <ProductPrice viewMode={viewMode}>{product.price || '$N/A'}</ProductPrice>
           
-          <ProductFeatures>
+          <ProductFeatures viewMode={viewMode}>
             {displayFeatures.map((feature, index) => (
               <Feature key={index}>{feature}</Feature>
             ))}
           </ProductFeatures>
           
-          <ButtonContainer>
-            <ViewButton to={`/product/${productId}`}>View Details</ViewButton>
-            <CartButton onClick={handleAddToCart}>
+          <ButtonContainer viewMode={viewMode}>
+            <ViewButton to={`/product/${productId}`} viewMode={viewMode}>
+              View Details
+            </ViewButton>
+            <CartButton onClick={handleAddToCart} viewMode={viewMode}>
               <FaShoppingCart size={14} />
               Add to Cart
             </CartButton>
@@ -205,13 +341,11 @@ const ProductCard = forwardRef(({ product, className, ...props }, ref) => {
         </ProductInfo>
       </Card>
       
-      {/* Add the success toast */}
       {showSuccess && (
         <SuccessToast message={`Added ${product.name} to cart!`} />
       )}
     </div>
   );
 });
-  
 
 export default ProductCard;

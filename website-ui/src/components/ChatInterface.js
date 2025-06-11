@@ -3,7 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { sendMessageToChatbot, generateConsistentProductId } from '../utils/api';
 import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart } from 'react-icons/fa';
 import eventSystem from '../utils/events';
-import { useCart } from '../context/CartContext'; // Import the cart context hook
+import { useCart } from '../context/CartContext';
 
 // Define backend URL at the top of your file for consistency
 const BACKEND_URL = "http://localhost:5001";
@@ -23,40 +23,54 @@ const ChatButton = styled.button`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #007bff;
+  background: #1a73e8;  // Keep this blue color
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   z-index: 1000;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #1557b0;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+  }
 `;
 
 const ChatPopup = styled.div`
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: ${props => props.isExpanded ? '800px' : '350px'};  /* Increased from 650px to 800px */
-  height: ${props => props.isExpanded ? '700px' : '500px'}; /* Increased from 600px to 700px */
+  width: ${props => props.isExpanded ? '800px' : '350px'};
+  height: ${props => props.isExpanded ? '700px' : '500px'};
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
   z-index: 1000;
   display: ${props => props.isOpen ? 'block' : 'none'};
   overflow: hidden;
-  transition: all 0.3s ease; /* Add smooth transition */
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
 `;
 
 const ChatHeader = styled.div`
-  padding: 15px;
-  background: #007bff;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1a73e8 0%, #2575fc 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
 `;
 
 const HeaderActions = styled.div`
@@ -74,10 +88,12 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
   
   &:hover {
-    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.1);
   }
 `;
 
@@ -86,45 +102,58 @@ const MessageList = styled.div`
   overflow-y: auto;
   margin-bottom: 1rem;
   padding: 1rem;
-  background: #f5f5f5;
-  border-radius: 8px;
+  background: #f8f9fa;
   transition: height 0.3s ease;
 `;
 
 const MessageInput = styled.input`
   width: 75%;
-  padding: 0.5rem;
-  margin-right: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  margin-right: 8px;
+  border: 2px solid #e2e8f0;
+  border-radius: 25px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    border-color: #1a73e8;
+  }
 `;
 
 const SendButton = styled.button`
-  padding: 0.5rem 1rem;
-  background: #007bff;
+  padding: 12px 20px;
+  background: #1a73e8;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 25px;
   cursor: pointer;
   width: 20%;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
 
   &:hover {
-    background: #0056b3;
+    background: #0d47a1;
   }
 `;
 
 const Message = styled.div`
-  padding: 0.5rem 1rem;
-  margin: 0.5rem;
-  border-radius: 1rem;
+  padding: 12px 16px;
+  margin: 8px;
+  border-radius: 18px;
   max-width: 80%;
+  word-wrap: break-word;
   ${props => props.isUser ? `
-    background: #007bff;
+    background: #1a73e8;
     color: white;
     margin-left: auto;
+    border-bottom-right-radius: 6px;
   ` : `
-    background: #e9ecef;
+    background: white;
+    color: #2d3748;
     margin-right: auto;
+    border-bottom-left-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   `}
 `;
 
@@ -143,7 +172,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('phone')}
         style={{
           padding: '10px 18px',
-          background: '#007bff',
+          background: '#1a73e8',
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -155,8 +184,8 @@ const CategoryButtons = ({ onCategorySelect }) => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
       >
         <span role="img" aria-label="Phone">📱</span> Phone
       </button>
@@ -164,7 +193,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('laptop')}
         style={{
           padding: '10px 18px',
-          background: '#007bff',
+          background: '#1a73e8',
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -176,8 +205,8 @@ const CategoryButtons = ({ onCategorySelect }) => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
       >
         <span role="img" aria-label="Laptop">💻</span> Laptop
       </button>
@@ -185,7 +214,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('tv')}
         style={{
           padding: '10px 18px',
-          background: '#007bff',
+          background: '#1a73e8',
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -197,8 +226,8 @@ const CategoryButtons = ({ onCategorySelect }) => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0069d9'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
+        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
       >
         <span role="img" aria-label="TV">📺</span> TV
       </button>
@@ -252,23 +281,23 @@ const fadeIn = keyframes`
 
 const CloseNotificationButton = styled.button`
   position: absolute;
-  top: -8px; /* Changed from 4px to -8px to move it above the notification */
-  right: -8px; /* Changed from 4px to -8px to position it outside the container */
-  background: white; /* Added white background for visibility */
-  border-radius: 50%; /* Makes it circular */
-  border: 1px solid #eee; /* Light border */
+  top: -8px;
+  right: -8px;
+  background: white;
+  border-radius: 50%;
+  border: 1px solid #eee;
   color: #999;
   font-size: 12px;
   cursor: pointer;
   padding: 3px;
-  width: 20px; /* Fixed width */
-  height: 20px; /* Fixed height */
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.2s ease, color 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Light shadow for depth */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   
   &:hover {
     color: #666;
@@ -280,8 +309,8 @@ const NotificationContainer = styled.div`
   bottom: 100px;
   right: 20px;
   background: white;
-  padding: 16px; /* Increased from 12px */
-  border-radius: 12px; /* Increased from 8px for softer corners */
+  padding: 16px;
+  border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
@@ -291,10 +320,10 @@ const NotificationContainer = styled.div`
   opacity: ${(props) => (props.visible ? "1" : "0")};
   visibility: ${(props) => (props.visible ? "visible" : "hidden")};
   transition: opacity 0.3s, visibility 0.3s;
-  max-width: 320px; /* Added max-width to make it larger */
+  max-width: 320px;
   
   &:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); /* Enhanced hover effect */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     
     ${CloseNotificationButton} {
       opacity: 1;
@@ -303,11 +332,11 @@ const NotificationContainer = styled.div`
 `;
 
 const ChatIcon = styled.div`
-  font-size: 24px; /* Larger icon */
-  color: #007bff;
+  font-size: 24px;
+  color: #1a73e8;
   margin-right: 12px;
   position: relative;
-  background: #e6f0ff; /* Light blue background */
+  background: #e6f0ff;
   width: 45px;
   height: 45px;
   display: flex;
@@ -324,8 +353,8 @@ const TextContainer = styled.div`
 const NotificationText = styled.div`
   font-size: 16px;
   color: #333;
-  font-weight: 600; /* Make it bolder */
-  margin-bottom: 2px; /* Space between lines */
+  font-weight: 600;
+  margin-bottom: 2px;
 `;
 
 const NotificationSubtext = styled.div`
@@ -390,7 +419,7 @@ const generateChatProductId = (productName, category) => {
   const nameSlug = productName.toLowerCase()
     .replace(/[^a-z0-9]/g, '-')
     .replace(/^-+|-+$/g, '')
-    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+    .replace(/-+/g, '-');
   
   // Detect category from name if not provided
   const detectedCategory = category || detectCategory(productName);
@@ -433,7 +462,7 @@ const formatProductLinks = (text) => {
       
       // Extract price if available
       const priceMatch = productPart.match(/\$(\d+(\.\d{1,2})?)/);
-      const price = priceMatch ? priceMatch[0] : "Price unavailable"; // Keep $ symbol
+      const price = priceMatch ? priceMatch[0] : "Price unavailable";
       
       // Generate a product ID for routing that's more compatible
       const productId = generateChatProductId(productName);
@@ -449,7 +478,6 @@ const formatProductLinks = (text) => {
       }
       
       // Format with image and link that opens in new tab
-      // Use consistent styling that matches Image 1 (the first recommendation style)
       formattedText += `
 <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
   <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
@@ -470,7 +498,7 @@ const formatProductLinks = (text) => {
       href="/product/${productId}" 
       target="_blank"
       rel="noopener noreferrer" 
-      style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+      style="color: #1a73e8; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
       data-product-id="${productId}"
       data-product-name="${productName.replace(/"/g, '&quot;')}"
     >
@@ -485,7 +513,7 @@ const formatProductLinks = (text) => {
       style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
       </svg>
       Add to Cart
     </button>
@@ -518,7 +546,7 @@ const CartSuccessMessage = styled.div`
 
 const ChatInterface = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // New state for expanded mode
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -527,7 +555,7 @@ const ChatInterface = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [manuallyDismissed, setManuallyDismissed] = useState(false);
   const [cartMessage, setCartMessage] = useState(null);
-  const messagesEndRef = useRef(null); // Ref for auto-scrolling
+  const messagesEndRef = useRef(null);
   
   // Get cart dispatch function from context
   const { dispatch } = useCart();
@@ -572,7 +600,6 @@ const ChatInterface = () => {
       window.addToCartFromChatbot = undefined;
     };
   }, [dispatch]);
-
 
   useEffect(() => {
     const handleAddToCartClick = (e) => {
@@ -636,7 +663,7 @@ const ChatInterface = () => {
   // Handle opening the chat
   const handleOpenChat = async () => {
     setIsOpen(true);
-    setShowNotification(false); // Hide notification when opening chat
+    setShowNotification(false);
     
     // If this is the first time opening the chat in this session
     if (!hasInitialized) {
@@ -645,10 +672,10 @@ const ChatInterface = () => {
       // Add a slight delay for a more natural feel
       setTimeout(() => {
         setMessages([{ 
-          text: `Welcome to SmartShop, I am Mark, Smartshop's virtual assistant! We offer wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`, 
+          text: `Welcome to Vision Electronics! I'm your AI assistant here to help you find the perfect electronics. We offer a wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`,
           isUser: false,
           isHtml: true,
-          hasButtons: true // New flag to indicate this message has buttons
+          hasButtons: true
         }]);
       }, 800);
     }
@@ -780,7 +807,7 @@ const ChatInterface = () => {
         
         setTimeout(() => {
           setMessages([{ 
-            text: "Hi, I'm SmartShop's virtual assistant! How can I help you find the perfect product today?", 
+            text: "Hi, I'm Vision Electronics' AI assistant! How can I help you find the perfect product today?", 
             isUser: false 
           }]);
         }, 800);
@@ -792,14 +819,14 @@ const ChatInterface = () => {
   }, [hasInitialized]);
 
   const handleDismissNotification = (e) => {
-    e.stopPropagation(); // Prevent the notification click from triggering
+    e.stopPropagation();
     setShowNotification(false);
     setManuallyDismissed(true);
   };
 
   return (
     <>
-      {/* Add notification component with updated text */}
+      {/* Notification component */}
       {showNotification && !isOpen && (
         <NotificationContainer 
           visible={showNotification}
@@ -817,7 +844,7 @@ const ChatInterface = () => {
           </ChatIcon>
           <TextContainer>
             <NotificationText>Need help finding products?</NotificationText>
-            <NotificationSubtext>Talk to our virtual assistant</NotificationSubtext>
+            <NotificationSubtext>Talk to our AI assistant</NotificationSubtext>
           </TextContainer>
         </NotificationContainer>
       )}
@@ -828,7 +855,7 @@ const ChatInterface = () => {
       
       <ChatPopup isOpen={isOpen} isExpanded={isExpanded}>
         <ChatHeader>
-          <span>Product Assistant</span>
+          <h3>Vision Electronics AI Assistant</h3>
           <HeaderActions>
             <IconButton onClick={toggleExpandChat} aria-label={isExpanded ? "Collapse chat" : "Expand chat"}>
               {isExpanded ? <FaCompress /> : <FaExpand />}
@@ -851,7 +878,7 @@ const ChatInterface = () => {
               </Message>
             ))}
             {isLoading && <Message>Thinking...</Message>}
-            <div ref={messagesEndRef} /> {/* Element to scroll to */}
+            <div ref={messagesEndRef} />
           </MessageList>
           <form onSubmit={handleSubmit} style={{ 
             padding: '1rem', 
@@ -871,7 +898,7 @@ const ChatInterface = () => {
         </div>
       </ChatPopup>
       
-      {/* Add success message notification */}
+      {/* Success message notification */}
       {cartMessage && cartMessage.visible && (
         <CartSuccessMessage>
           <FaShoppingCart style={{ marginRight: '10px' }} />

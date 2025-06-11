@@ -178,10 +178,10 @@ const Footer = () => {
     <FooterContainer>
       <FooterContent>
         <FooterSection>
-          <FooterTitle>Smart Shop</FooterTitle>
+          <FooterTitle>Vision Electronics</FooterTitle>
           <FooterText>
-            Your AI-powered shopping companion for the best tech products. 
-            We help you find exactly what you need with personalized recommendations.
+            Your trusted partner for quality electronics. We provide expert recommendations 
+            powered by AI to help you find the perfect tech products.
           </FooterText>
           <SocialIcons>
             <SocialIcon href="https://facebook.com" target="_blank" aria-label="Facebook">
@@ -240,7 +240,7 @@ const Footer = () => {
       
       <BottomSection>
         <Copyright>
-          &copy; {new Date().getFullYear()} Smart Shop. All rights reserved.
+          &copy; {new Date().getFullYear()} Vision Electronics. All rights reserved.
         </Copyright>
         <LegalLinks>
           <LegalLink to="/privacy">Privacy Policy</LegalLink>
