@@ -53,20 +53,72 @@ const ProductsHeader = styled.div`
 const HeaderLeft = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const PageTitle = styled.h1`
-  font-size: 2rem;
-  font-weight: 700;
-  color: #333;
-  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #333333 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 1rem 0;
+  position: relative;
+  display: inline-block;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  
+  /* Add decorative underline */
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, #000000 0%, #1a1a1a 50%, #333333 100%);
+    border-radius: 2px;
+    opacity: 0.8;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+    
+    &:after {
+      width: 60px;
+      height: 3px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 2rem;
+    
+    &:after {
+      width: 50px;
+      height: 3px;
+    }
+  }
 `;
 
 const ResultsCount = styled.p`
-  color: #666;
-  font-size: 0.9rem;
+  color: #6c757d;
+  font-size: 1rem;
   margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
 `;
 
 const HeaderRight = styled.div`
@@ -81,11 +133,11 @@ const SortSelect = styled.select`
   border-radius: 6px;
   background: white;
   font-size: 14px;
-  color: #333;
+  color: #1a1a1a;
   
   &:focus {
     outline: none;
-    border-color: #1a73e8;
+    border-color: #000000;
   }
 `;
 
@@ -99,13 +151,13 @@ const ViewToggle = styled.div`
 const ViewButton = styled.button`
   padding: 8px 12px;
   border: none;
-  background: ${props => props.active ? '#1a73e8' : 'white'};
+  background: ${props => props.active ? '#000000' : 'white'};
   color: ${props => props.active ? 'white' : '#666'};
   cursor: pointer;
   font-size: 12px;
   
   &:hover {
-    background: ${props => props.active ? '#1a73e8' : '#f5f5f5'};
+    background: ${props => props.active ? '#000000' : '#f8f9fa'};
   }
 `;
 
@@ -166,15 +218,15 @@ const CategoryItem = styled.li`
   padding: 12px 0;
   margin-bottom: 0.5rem;
   cursor: pointer;
-  color: ${props => props.active ? '#1a73e8' : '#666'};
+  color: ${props => props.active ? '#000000' : '#666'};
   font-weight: ${props => props.active ? '600' : 'normal'};
   border-radius: 6px;
   transition: all 0.2s ease;
   position: relative;
   
   &:hover {
-    color: #1a73e8;
-    background: rgba(26, 115, 232, 0.05);
+    color: #000000;
+    background: rgba(0, 0, 0, 0.05);
     padding-left: 0.5rem;
   }
   
@@ -184,13 +236,13 @@ const CategoryItem = styled.li`
   }
   
   ${props => props.active && `
-    background: rgba(26, 115, 232, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     padding-left: 0.5rem;
   `}
 `;
 
 const CategoryCount = styled.span`
-  background-color: ${props => props.active ? '#1a73e8' : '#e9ecef'};
+  background-color: ${props => props.active ? '#000000' : '#e9ecef'};
   color: ${props => props.active ? 'white' : '#6c757d'};
   font-size: 0.75rem;
   padding: 2px 6px;
@@ -222,8 +274,8 @@ const BrandFilterItem = styled.label`
   margin: 0;
   
   &:hover {
-    color: #333;
-    background: rgba(26, 115, 232, 0.05);
+    color: #1a1a1a;
+    background: rgba(0, 0, 0, 0.05);
   }
   
   input[type="checkbox"] {
@@ -237,8 +289,8 @@ const BrandFilterItem = styled.label`
     cursor: pointer;
     
     &:checked {
-      background: #1a73e8;
-      border-color: #1a73e8;
+      background: #000000;
+      border-color: #000000;
       
       &:after {
         content: '';
@@ -254,7 +306,7 @@ const BrandFilterItem = styled.label`
     }
     
     &:hover {
-      border-color: #1a73e8;
+      border-color: #000000;
     }
   }
   
@@ -730,8 +782,8 @@ const ProductsPage = () => {
   
   const getPageTitle = () => {
     if (searchQuery) return `Search results for "${searchQuery}"`;
-    if (selectedCategory === 'all') return 'All Products';
-    return `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}s`;
+    // Always return "Products" instead of category-specific titles
+    return 'Products';
   };
   
   const getActiveFilters = () => {
@@ -868,7 +920,7 @@ const ProductsPage = () => {
         <MainContent>
           <ProductsHeader>
             <HeaderLeft>
-              <PageTitle>{getPageTitle()}</PageTitle>
+              {searchQuery && <PageTitle>{getPageTitle()}</PageTitle>}
               <ResultsCount>
                 {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
               </ResultsCount>

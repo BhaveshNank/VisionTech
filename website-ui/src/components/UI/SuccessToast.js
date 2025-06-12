@@ -1,39 +1,62 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaShoppingCart, FaCheck } from 'react-icons/fa';
 
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+const slideInUp = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, 20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, 0); 
+  }
 `;
 
 const ToastContainer = styled.div`
   position: fixed;
-  bottom: 30px;
+  bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  background: #28a745;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  background: #ffffff;
+  color: #202124;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
   z-index: 1100;
-  animation: ${fadeIn} 0.3s ease-out;
+  animation: ${slideInUp} 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid #e8eaed;
+  min-width: 280px;
+  max-width: 400px;
 `;
 
 const IconWrapper = styled.div`
-  margin-right: 10px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #34a853;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+`;
+
+const MessageText = styled.span`
+  font-weight: 500;
+  font-size: 0.95rem;
 `;
 
 const SuccessToast = ({ message }) => {
   return (
     <ToastContainer>
       <IconWrapper>
-        <FaShoppingCart />
+        <FaCheck />
       </IconWrapper>
-      {message}
+      <MessageText>{message}</MessageText>
     </ToastContainer>
   );
 };

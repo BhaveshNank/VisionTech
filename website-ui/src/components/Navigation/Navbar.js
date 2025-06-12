@@ -38,7 +38,7 @@ const LogoContainer = styled(Link)`
 const LogoIcon = styled.div`
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@ const NavLink = styled(Link)`
   gap: 0.25rem;
   
   &:hover {
-    color: #1a73e8;
+    color: #000000;
   }
   
   &:after {
@@ -106,7 +106,7 @@ const NavLink = styled(Link)`
     left: 0;
     width: 0;
     height: 2px;
-    background: #1a73e8;
+    background: #000000;
     transition: width 0.3s ease;
   }
   
@@ -129,7 +129,7 @@ const MegaMenuNavLink = styled.div`
   cursor: pointer;
   
   &:hover {
-    color: #1a73e8;
+    color: #000000;
   }
   
   &:after {
@@ -139,7 +139,7 @@ const MegaMenuNavLink = styled.div`
     left: 0;
     width: 0;
     height: 2px;
-    background: #1a73e8;
+    background: #000000;
     transition: width 0.3s ease;
   }
   
@@ -148,14 +148,7 @@ const MegaMenuNavLink = styled.div`
   }
 `;
 
-const ChevronIcon = styled(FaChevronDown)`
-  font-size: 0.8rem;
-  transition: transform 0.3s ease;
-  
-  ${props => props.isOpen && `
-    transform: rotate(180deg);
-  `}
-`;
+
 
 const DisabledNavItem = styled.span`
   text-decoration: none;
@@ -189,14 +182,14 @@ const SearchForm = styled.form`
   background: #f8f9fa;
   border-radius: 25px;
   padding: 0.5rem 1rem;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   transition: all 0.3s ease;
   position: relative;
   
   &:focus-within {
-    border-color: #1a73e8;
+    border-color: #e2e8f0;
     background: white;
-    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
   
   @media (max-width: 768px) {
@@ -286,6 +279,11 @@ const SearchInput = styled.input`
   font-size: 0.9rem;
   width: 200px;
   
+  &:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  
   &::placeholder {
     color: #6c757d;
   }
@@ -301,7 +299,7 @@ const SearchButton = styled.button`
   align-items: center;
   
   &:hover {
-    color: #1a73e8;
+    color: #000000;
   }
 `;
 
@@ -311,7 +309,7 @@ const CartButton = styled(Link)`
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #1a73e8;
+  background: #000000;
   color: white;
   border-radius: 50%;
   text-decoration: none;
@@ -319,7 +317,7 @@ const CartButton = styled(Link)`
   position: relative;
   
   &:hover {
-    background: #1557b0;
+    background: #1a1a1a;
     transform: translateY(-1px);
   }
 `;
@@ -360,27 +358,11 @@ const MegaMenuOverlay = styled.div`
 const MegaMenuContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 2rem;
+  display: block;
   padding: 2rem;
   
   @media (max-width: 968px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
     padding: 1.5rem;
-  }
-`;
-
-const BrandsSection = styled.div`
-  border-right: 1px solid #e5e5e5;
-  padding-right: 2rem;
-  
-  @media (max-width: 968px) {
-    border-right: none;
-    padding-right: 0;
-    border-bottom: 1px solid #e5e5e5;
-    padding-bottom: 1.5rem;
   }
 `;
 
@@ -391,29 +373,6 @@ const SectionTitle = styled.h3`
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-`;
-
-const BrandsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const BrandLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 0;
-  color: #666;
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-  
-  &:hover {
-    color: #1a73e8;
-    background: rgba(26, 115, 232, 0.05);
-    padding-left: 0.5rem;
-  }
 `;
 
 const LatestSection = styled.div`
@@ -475,14 +434,14 @@ const ProductImage = styled.div`
 const ProductName = styled.h4`
   font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
+  color: #1a1a1a;
   margin-bottom: 0.25rem;
   line-height: 1.3;
 `;
 
 const ProductPrice = styled.p`
   font-size: 0.85rem;
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
   margin: 0;
 `;
@@ -492,14 +451,14 @@ const ViewAllLink = styled(Link)`
   align-items: center;
   gap: 0.5rem;
   margin-top: 1rem;
-  color: #1a73e8;
+  color: #000000;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
   transition: color 0.2s ease;
   
   &:hover {
-    color: #1557b0;
+    color: #1a1a1a;
   }
   
   &:after {
@@ -512,67 +471,7 @@ const ViewAllLink = styled(Link)`
   }
 `;
 
-// Laptop mega menu specific styled components
-const CategoryLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  padding: 1rem 0;
-  color: #333;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  
-  &:hover {
-    color: #1a73e8;
-    background: rgba(26, 115, 232, 0.05);
-    padding-left: 0.5rem;
-    transform: translateX(4px);
-  }
-`;
 
-const CategoryIcon = styled.div`
-  font-size: 1.8rem;
-  margin-right: 1rem;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(26, 115, 232, 0.1);
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  
-  ${CategoryLink}:hover & {
-    background: rgba(26, 115, 232, 0.2);
-    transform: scale(1.1);
-  }
-`;
-
-const CategoryInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
-const CategoryName = styled.h4`
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem 0;
-  color: inherit;
-  transition: color 0.2s ease;
-`;
-
-const CategoryDescription = styled.p`
-  font-size: 0.85rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.3;
-  transition: color 0.2s ease;
-  
-  ${CategoryLink}:hover & {
-    color: #555;
-  }
-`;
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -1011,7 +910,6 @@ const Navbar = () => {
           >
             <MegaMenuNavLink>
               Phone
-              <ChevronIcon isOpen={isPhoneMegaMenuOpen} />
             </MegaMenuNavLink>
           </NavItemContainer>
           
@@ -1022,7 +920,6 @@ const Navbar = () => {
           >
             <MegaMenuNavLink>
               Laptop
-              <ChevronIcon isOpen={isLaptopMegaMenuOpen} />
             </MegaMenuNavLink>
           </NavItemContainer>
           
@@ -1033,7 +930,6 @@ const Navbar = () => {
           >
             <MegaMenuNavLink>
               TV & Monitors
-              <ChevronIcon isOpen={isTvMegaMenuOpen} />
             </MegaMenuNavLink>
           </NavItemContainer>
           <DisabledNavItem title="Coming Soon">Gaming</DisabledNavItem>
@@ -1104,24 +1000,6 @@ const Navbar = () => {
         onMouseLeave={handlePhoneMegaMenuLeave}
       >
         <MegaMenuContainer>
-          {/* Brands Section */}
-          <BrandsSection>
-            <SectionTitle>Shop by Brand</SectionTitle>
-            <BrandsList>
-              {phoneData.brands.map(brand => (
-                <BrandLink 
-                  key={brand} 
-                  to={`/products?category=phone&brands=${brand}`}
-                >
-                  {brand}
-                </BrandLink>
-              ))}
-              <ViewAllLink to="/products?category=phone">
-                View All Phones
-              </ViewAllLink>
-            </BrandsList>
-          </BrandsSection>
-
           {/* Latest Phones Section */}
           <LatestSection>
             <SectionTitle>Latest Phones</SectionTitle>
@@ -1159,28 +1037,6 @@ const Navbar = () => {
         onMouseLeave={handleLaptopMegaMenuLeave}
       >
         <MegaMenuContainer>
-          {/* Categories Section */}
-          <BrandsSection>
-            <SectionTitle>Shop by Use Case</SectionTitle>
-            <BrandsList>
-              {laptopData.categories.map(category => (
-                <CategoryLink 
-                  key={category.name} 
-                  to={`/products?category=laptop&search=${category.query}`}
-                >
-                  <CategoryIcon>{category.icon}</CategoryIcon>
-                  <CategoryInfo>
-                    <CategoryName>{category.name}</CategoryName>
-                    <CategoryDescription>{category.description}</CategoryDescription>
-                  </CategoryInfo>
-                </CategoryLink>
-              ))}
-              <ViewAllLink to="/products?category=laptop">
-                View All Laptops
-              </ViewAllLink>
-            </BrandsList>
-          </BrandsSection>
-
           {/* Featured Laptops Section */}
           <LatestSection>
             <SectionTitle>Featured Laptops</SectionTitle>
@@ -1218,28 +1074,6 @@ const Navbar = () => {
         onMouseLeave={handleTvMegaMenuLeave}
       >
         <MegaMenuContainer>
-          {/* Categories Section */}
-          <BrandsSection>
-            <SectionTitle>Shop by Use Case</SectionTitle>
-            <BrandsList>
-              {tvData.categories.map(category => (
-                <CategoryLink 
-                  key={category.name} 
-                  to={`/products?category=tv&search=${category.query}`}
-                >
-                  <CategoryIcon>{category.icon}</CategoryIcon>
-                  <CategoryInfo>
-                    <CategoryName>{category.name}</CategoryName>
-                    <CategoryDescription>{category.description}</CategoryDescription>
-                  </CategoryInfo>
-                </CategoryLink>
-              ))}
-              <ViewAllLink to="/products?category=tv">
-                View All TVs & Monitors
-              </ViewAllLink>
-            </BrandsList>
-          </BrandsSection>
-
           {/* Featured TVs & Monitors Section */}
           <LatestSection>
             <SectionTitle>Featured Displays</SectionTitle>

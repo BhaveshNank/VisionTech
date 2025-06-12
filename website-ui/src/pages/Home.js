@@ -25,7 +25,7 @@ const PhonesHeader = styled.div`
   }
 `;
 
-const PhonesTitle = styled.h2`
+const LatestTitle = styled.h2`
   font-size: 48px;
   font-weight: 700;
   color: #000000;
@@ -78,6 +78,9 @@ const PhoneCard = styled.div`
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   min-width: 240px; /* Set minimum width */
   max-width: 280px; /* Set maximum width */
+  display: flex;
+  flex-direction: column;
+  height: 500px; /* Fixed height for consistent alignment */
   
   &:hover {
     transform: translateY(-4px);
@@ -89,12 +92,14 @@ const PhoneCard = styled.div`
     margin-right: 16px;
     min-width: 280px;
     max-width: 320px;
+    height: 520px;
   }
   
   @media (max-width: 480px) {
     flex: 0 0 90%;
     margin-right: 12px;
     min-width: 260px;
+    height: 480px;
   }
 `;
 
@@ -156,12 +161,14 @@ const PhoneDescription = styled.p`
   -webkit-line-clamp: 3; /* Limit to 3 lines */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex-grow: 1; /* Allow description to grow and push buttons down */
 `;
 
 const PhoneButtonContainer = styled.div`
   display: flex;
   gap: 10px; /* Reduced gap */
   justify-content: center;
+  margin-top: auto; /* Push buttons to bottom */
   
   @media (max-width: 480px) {
     flex-direction: column;
@@ -211,22 +218,23 @@ const SliderNavButton = styled.button`
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e0e0e0;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   font-size: 1.2rem;
-  color: #333333;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  color: #000000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 10;
   transition: all 0.3s ease;
   
   &:hover {
     background: rgba(255, 255, 255, 1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: #000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
   
   &:focus {
@@ -322,19 +330,19 @@ const IPadButtonContainer = styled.div`
 const IPadBuyButton = styled(Link)`
   display: inline-block;
   padding: 12px 24px;
-  background: #1a73e8;
+  background: #000000;
   color: #ffffff;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
   border-radius: 25px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   
   &:hover {
-    background: #1557b0;
+    background: #333333;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
   
   @media (max-width: 480px) {
@@ -349,8 +357,8 @@ const IPadLearnButton = styled.button`
   display: inline-block;
   padding: 12px 24px;
   background: transparent;
-  color: #1a73e8;
-  border: 2px solid #1a73e8;
+  color: #000000;
+  border: 2px solid #000000;
   font-size: 0.9rem;
   font-weight: 600;
   border-radius: 25px;
@@ -358,7 +366,7 @@ const IPadLearnButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #1a73e8;
+    background: #000000;
     color: #ffffff;
     transform: translateY(-2px);
   }
@@ -543,20 +551,20 @@ const GalaxyTabButtonContainer = styled.div`
 const GalaxyTabBuyButton = styled(Link)`
   display: inline-block;
   padding: 14px 28px;
-  background: #1a73e8;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 600;
   border-radius: 25px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(26, 115, 232, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   text-align: center;
   
   &:hover {
-    background: #1557b0;
+    background: #f0f0f0;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(26, 115, 232, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   }
   
   @media (max-width: 480px) {
@@ -715,7 +723,8 @@ const ShowcaseTitle = styled.h2`
   font-size: 3rem;
   font-weight: 800;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
   line-height: 1.1;
   
   @media (max-width: 768px) {
@@ -731,7 +740,8 @@ const ShowcaseTitle = styled.h2`
 const ShowcaseSubtitle = styled.p`
   font-size: 1rem;
   margin-bottom: 2rem;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
   opacity: 0.95;
   line-height: 1.5;
   
@@ -746,7 +756,7 @@ const ShowcaseSubtitle = styled.p`
   }
 `;
 
-// OnePlus style button - clean and minimal
+// OnePlus style button - clean and minimal with better contrast
 const OnePlusBuyButton = styled(Link)`
   display: inline-block;
   padding: 16px 48px;
@@ -754,17 +764,19 @@ const OnePlusBuyButton = styled(Link)`
   color: #000000;
   text-decoration: none;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 4px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 2px solid #ffffff;
   
   &:hover {
-    background: #f0f0f0;
+    background: #f8f8f8;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-color: #f8f8f8;
   }
   
   @media (max-width: 768px) {
@@ -906,7 +918,7 @@ const FeaturedContent = styled.div`
 `;
 
 const OfferBadge = styled.span`
-  background: #1a73e8;
+  background: #000000;
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
@@ -915,7 +927,7 @@ const OfferBadge = styled.span`
   display: inline-block;
   margin-bottom: 24px;
   width: fit-content;
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 `;
 
 const FeaturedProductLayout = styled.div`
@@ -969,7 +981,7 @@ const PriceContainer = styled.div`
 const SalePrice = styled.span`
   font-size: 28px;
   font-weight: 800;
-  color: #1a73e8;
+  color: #000000;
 `;
 
 const OriginalPriceOffer = styled.span`
@@ -985,7 +997,7 @@ const Savings = styled.div`
 `;
 
 const FeaturedButton = styled.button`
-  background: #1a73e8;
+  background: #000000;
   color: white;
   padding: 16px 32px;
   border-radius: 25px;
@@ -993,12 +1005,12 @@ const FeaturedButton = styled.button`
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   
   &:hover {
-    background: #1557b0;
+    background: #333333;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
 `;
 
@@ -1071,7 +1083,7 @@ const GridCardOffer = styled.p`
 `;
 
 const GridCardLink = styled.div`
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
   font-size: 13px;
   display: flex;
@@ -1191,7 +1203,8 @@ const GamingAccessoryTitle = styled.h3`
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
   
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -1201,8 +1214,9 @@ const GamingAccessoryTitle = styled.h3`
 const GamingAccessorySubtitle = styled.p`
   font-size: 1.1rem;
   margin-bottom: 2rem;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  opacity: 0.9;
+  color: #ffffff;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+  opacity: 0.95;
   line-height: 1.5;
   
   @media (max-width: 768px) {
@@ -1237,15 +1251,19 @@ const GamingAccessoryBuyButton = styled(Link)`
   color: #000000;
   text-decoration: none;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 4px;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 2px solid #ffffff;
   
   &:hover {
-    background: #f0f0f0;
+    background: #f8f8f8;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border-color: #f8f8f8;
   }
   
   @media (max-width: 480px) {
@@ -1261,17 +1279,19 @@ const GamingAccessoryEnquireButton = styled.button`
   color: #ffffff;
   border: 2px solid #ffffff;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   
   &:hover {
     background: #ffffff;
     color: #000000;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
   
   @media (max-width: 480px) {
@@ -2438,8 +2458,8 @@ const Home = () => {
   //   }
   // ];
 
-  // Phones data for the slider
-  const phonesData = [
+  // Latest products data for the slider
+  const latestData = [
     {
       id: 1,
       tagline: "Flagship Performance",
@@ -2448,7 +2468,7 @@ const Home = () => {
       originalPrice: "£1,299.00",
       description: "Experience the ultimate in mobile technology with A17 Pro chip and titanium design.",
       image: "http://localhost:5001/images/iphone_16_pro_max.jpg",
-      link: "/product/1-iphone-15-pro-max-phone"
+      link: "/product/1-iphone-16-pro-max-phone"
     },
     {
       id: 2,
@@ -2457,7 +2477,7 @@ const Home = () => {
       priceFrom: "From £1,149.00",
       originalPrice: "£1,299.00",
       description: "Next-gen Galaxy AI is here. Transform your mobile experience with advanced AI features.",
-      image: "http://localhost:5001/images/samsungs25ultra.jpg",
+      image: "http://localhost:5001/images/samsung_s24_ultra.jpg",
       link: "/product/1-samsung-galaxy-s25-ultra-phone"
     },
     {
@@ -2472,23 +2492,23 @@ const Home = () => {
     },
     {
       id: 4,
-      tagline: "Pure Android Experience",
-      name: "Google Pixel 8 Pro",
-      priceFrom: "From £899.00",
-      originalPrice: "£999.00",
-      description: "The most helpful Pixel yet, with advanced AI and the best Pixel camera.",
-      image: "http://localhost:5001/images/google_pixel_9_pro.jpg",
-      link: "/product/1-google-pixel-9-pro-phone"
+      tagline: "Professional Power",
+      name: "MacBook M4 Pro",
+      priceFrom: "From £1,999.00",
+      originalPrice: "£2,199.00",
+      description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
+      image: "http://localhost:5001/images/macbook_m4_pro.jpg",
+      link: "/product/1-macbook-m4-pro-laptop"
     },
     {
       id: 5,
-      tagline: "Never Settle",
-      name: "OnePlus 12",
-      priceFrom: "From £749.00",
-      originalPrice: "£849.00",
-      description: "Flagship performance meets elegant design. Fast charging, smooth display.",
-      image: "http://localhost:5001/images/oneplus_13r.jpg",
-      link: "/product/1-oneplus-12-phone"
+      tagline: "Slim & Powerful",
+      name: "Lenovo Yoga Slim",
+      priceFrom: "From £849.00",
+      originalPrice: "£999.00",
+      description: "Ultra-slim design meets powerful performance. Perfect for work and entertainment.",
+      image: "/images/lenovo_gaming_laptop.jpg",
+      link: "/product/1-lenovo-yoga-slim-laptop"
     }
   ];
 
@@ -2537,16 +2557,16 @@ const Home = () => {
 
   const tabs = ['New In', 'Mobile', 'TV & AV', 'Laptops & Monitors'];
 
-  // Phones slider navigation
+  // Latest products slider navigation
   const nextPhonesSlide = () => {
-  setPhonesSlide(current => (current === phonesData.length - 3 ? 0 : current + 1));
+  setPhonesSlide(current => (current === latestData.length - 3 ? 0 : current + 1));
   };
 
   const prevPhonesSlide = () => {
-  setPhonesSlide(current => (current === 0 ? phonesData.length - 3 : current - 1));
+  setPhonesSlide(current => (current === 0 ? latestData.length - 3 : current - 1));
   };
 
-  const handlePhoneEnquire = () => {
+  const handleProductEnquire = () => {
     eventSystem.emit('openChat');
   };
 
@@ -2713,36 +2733,36 @@ const Home = () => {
           </StoryProgressBars>
         </CarouselContainer>
 
-        {/* Phones Section */}
+        {/* Latest Section */}
         <PhonesSection>
           <PhonesHeader>
-            <PhonesTitle>Phones</PhonesTitle>
-            <ViewAllButton to="/products?category=phone">View all</ViewAllButton>
+            <LatestTitle>Latest</LatestTitle>
+            <ViewAllButton to="/products">View all</ViewAllButton>
           </PhonesHeader>
           
           <PhonesSliderContainer>
             <PhonesSlider currentSlide={phonesSlide}>
-              {phonesData.map(phone => (
-                <PhoneCard key={phone.id}>
+              {latestData.map(product => (
+                <PhoneCard key={product.id}>
                   <PhoneImageContainer>
                     <PhoneImage 
-                      src={phone.image} 
-                      alt={phone.name}
+                      src={product.image} 
+                      alt={product.name}
                       onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/200x200?text=Phone';
+                        e.target.src = 'https://via.placeholder.com/200x200?text=Product';
                       }}
                     />
                   </PhoneImageContainer>
-                  <PhoneTagline>{phone.tagline}</PhoneTagline>
-                  <PhoneName>{phone.name}</PhoneName>
+                  <PhoneTagline>{product.tagline}</PhoneTagline>
+                  <PhoneName>{product.name}</PhoneName>
                   <PhonePrice>
-                    <PriceText>{phone.priceFrom}</PriceText>
-                    <OriginalPrice>{phone.originalPrice}</OriginalPrice>
+                    <PriceText>{product.priceFrom}</PriceText>
+                    <OriginalPrice>{product.originalPrice}</OriginalPrice>
                   </PhonePrice>
-                  <PhoneDescription>{phone.description}</PhoneDescription>
+                  <PhoneDescription>{product.description}</PhoneDescription>
                   <PhoneButtonContainer>
-                    <PhoneBuyButton to={phone.link}>Buy now</PhoneBuyButton>
-                    <PhoneEnquireButton onClick={handlePhoneEnquire}>Enquire</PhoneEnquireButton>
+                    <PhoneBuyButton to={product.link}>Buy now</PhoneBuyButton>
+                    <PhoneEnquireButton onClick={handleProductEnquire}>Enquire</PhoneEnquireButton>
                   </PhoneButtonContainer>
                 </PhoneCard>
               ))}

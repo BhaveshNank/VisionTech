@@ -23,11 +23,11 @@ const ChatButton = styled.button`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #1a73e8;  // Keep this blue color
+  background: #000000;  // Changed from blue to black
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);  // Changed to black shadow
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,9 +36,9 @@ const ChatButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #1557b0;
+    background: #1a1a1a;  // Changed to dark gray on hover
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);  // Changed to black shadow
   }
 `;
 
@@ -60,7 +60,7 @@ const ChatPopup = styled.div`
 
 const ChatHeader = styled.div`
   padding: 16px 20px;
-  background: linear-gradient(135deg, #1a73e8 0%, #2575fc 100%);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);  // Changed to black gradient
   color: white;
   display: flex;
   justify-content: space-between;
@@ -110,20 +110,21 @@ const MessageInput = styled.input`
   width: 75%;
   padding: 12px 16px;
   margin-right: 8px;
-  border: 2px solid #e2e8f0;
+  border: 1px solid #e2e8f0;
   border-radius: 25px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
   
   &:focus {
-    border-color: #1a73e8;
+    border-color: #333333;  // Changed to dark gray
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  // Changed to black shadow
   }
 `;
 
 const SendButton = styled.button`
   padding: 12px 20px;
-  background: #1a73e8;
+  background: #000000;  // Changed from blue to black
   color: white;
   border: none;
   border-radius: 25px;
@@ -133,7 +134,7 @@ const SendButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #0d47a1;
+    background: #1a1a1a;  // Changed to dark gray on hover
   }
 `;
 
@@ -144,7 +145,7 @@ const Message = styled.div`
   max-width: 80%;
   word-wrap: break-word;
   ${props => props.isUser ? `
-    background: #1a73e8;
+    background: #000000;  // Changed from blue to black
     color: white;
     margin-left: auto;
     border-bottom-right-radius: 6px;
@@ -172,7 +173,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('phone')}
         style={{
           padding: '10px 18px',
-          background: '#1a73e8',
+          background: '#000000',  // Changed from blue to black
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -181,11 +182,11 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
+        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
       >
         <span role="img" aria-label="Phone">📱</span> Phone
       </button>
@@ -193,7 +194,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('laptop')}
         style={{
           padding: '10px 18px',
-          background: '#1a73e8',
+          background: '#000000',  // Changed from blue to black
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -202,11 +203,11 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
+        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
       >
         <span role="img" aria-label="Laptop">💻</span> Laptop
       </button>
@@ -214,7 +215,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('tv')}
         style={{
           padding: '10px 18px',
-          background: '#1a73e8',
+          background: '#000000',  // Changed from blue to black
           color: 'white',
           border: 'none',
           borderRadius: '20px',
@@ -223,11 +224,11 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
           transition: 'all 0.2s ease'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#0d47a1'}
-        onMouseOut={(e) => e.currentTarget.style.background = '#1a73e8'}
+        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
+        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
       >
         <span role="img" aria-label="TV">📺</span> TV
       </button>
@@ -333,10 +334,10 @@ const NotificationContainer = styled.div`
 
 const ChatIcon = styled.div`
   font-size: 24px;
-  color: #1a73e8;
+  color: #000000;  // Changed from blue to black
   margin-right: 12px;
   position: relative;
-  background: #e6f0ff;
+  background: #f0f0f0;  // Changed from blue background to light gray
   width: 45px;
   height: 45px;
   display: flex;
@@ -498,7 +499,7 @@ const formatProductLinks = (text) => {
       href="/product/${productId}" 
       target="_blank"
       rel="noopener noreferrer" 
-      style="color: #1a73e8; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+      style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
       data-product-id="${productId}"
       data-product-name="${productName.replace(/"/g, '&quot;')}"
     >
@@ -510,7 +511,7 @@ const formatProductLinks = (text) => {
       data-name="${productName.replace(/'/g, "\\'")}" 
       data-price="${price.replace(/[^\d.]/g, '')}" 
       data-image="${productImage}"
-      style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+      style="color: white; background: #000000; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
@@ -533,7 +534,7 @@ const CartSuccessMessage = styled.div`
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #28a745;
+  background: #000000;  // Changed from green to black
   color: white;
   padding: 10px 20px;
   border-radius: 4px;
