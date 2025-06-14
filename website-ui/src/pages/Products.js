@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/Products/ProductCard';
 
 const PageContainer = styled.div`
@@ -59,6 +59,7 @@ const ProductsGrid = styled.div`
 
 const ProductsPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -68,43 +69,58 @@ const ProductsPage = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch(`/api/products?category=${category}`);
-        const data = await response.json();
-        setProducts(data);
+        if (category === 'all') {
+          // Fetch all products from all categories
+          const [phoneRes, laptopRes, tvRes, gamingRes, audioRes] = await Promise.all([
+            fetch('http://localhost:5001/api/products?category=phone'),
+            fetch('http://localhost:5001/api/products?category=laptop'),
+            fetch('http://localhost:5001/api/products?category=tv'),
+            fetch('http://localhost:5001/api/products?category=gaming'),
+            fetch('http://localhost:5001/api/products?category=audio')
+          ]);
+          
+          const [phones, laptops, tvs, gaming, audio] = await Promise.all([
+            phoneRes.json(),
+            laptopRes.json(),
+            tvRes.json(),
+            gamingRes.json(),
+            audioRes.json()
+          ]);
+          
+          setProducts([...phones, ...laptops, ...tvs, ...gaming, ...audio]);
+        } else {
+          // Fetch products for specific category
+          const response = await fetch(`http://localhost:5001/api/products?category=${category}`);
+          const data = await response.json();
+          setProducts(data);
+        }
       } catch (error) {
         console.error('Error fetching products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
     
-    // For now, use dummy data
-    const dummyProducts = [
-      { id: 1, name: 'iPhone 16 Pro', price: 999, image: '/images/iphone_16_pro.jpg', category: 'phones' },
-      { id: 2, name: 'Samsung Galaxy S24', price: 899, image: '/images/samsung_s24.jpg', category: 'phones' },
-      { id: 3, name: 'MacBook Pro', price: 1499, image: '/images/macbook_pro.jpg', category: 'laptops' },
-      { id: 4, name: 'Dell XPS 15', price: 1299, image: '/images/dell_xps.jpg', category: 'laptops' },
-      { id: 5, name: 'Sony 65" 4K TV', price: 1199, image: '/images/sony_tv.jpg', category: 'tvs' },
-      { id: 6, name: 'LG OLED 55"', price: 999, image: '/images/lg_oled.jpg', category: 'tvs' }
-    ];
-    
-    setTimeout(() => {
-      if (category === 'all') {
-        setProducts(dummyProducts);
-      } else {
-        setProducts(dummyProducts.filter(p => p.category === category));
-      }
-      setLoading(false);
-    }, 500);
+    fetchProducts();
   }, [category]);
 
   const getCategoryTitle = () => {
     switch(category) {
-      case 'phones': return 'Phones';
-      case 'laptops': return 'Laptops';
-      case 'tvs': return 'TVs';
+      case 'phone': return 'Phones';
+      case 'laptop': return 'Laptops';
+      case 'tv': return 'TVs & Monitors';
+      case 'gaming': return 'Gaming';
+      case 'audio': return 'Audio';
       default: return 'All Products';
+    }
+  };
+
+  const handleCategoryChange = (newCategory) => {
+    if (newCategory === 'all') {
+      navigate('/products');
+    } else {
+      navigate(`/products?category=${newCategory}`);
     }
   };
 
@@ -121,30 +137,63 @@ const ProductsPage = () => {
             <FilterTitle>Categories</FilterTitle>
             <FilterItem>
               <input 
-                type="checkbox" 
-                id="phones" 
-                checked={category === 'phones'} 
-                onChange={() => {}} 
+                type="radio" 
+                id="all" 
+                name="category"
+                checked={category === 'all'} 
+                onChange={() => handleCategoryChange('all')} 
               />
-              <label htmlFor="phones">Phones</label>
+              <label htmlFor="all">All Products</label>
             </FilterItem>
             <FilterItem>
               <input 
-                type="checkbox" 
-                id="laptops" 
-                checked={category === 'laptops'} 
-                onChange={() => {}} 
+                type="radio" 
+                id="phone" 
+                name="category"
+                checked={category === 'phone'} 
+                onChange={() => handleCategoryChange('phone')} 
               />
-              <label htmlFor="laptops">Laptops</label>
+              <label htmlFor="phone">Phones</label>
             </FilterItem>
             <FilterItem>
               <input 
-                type="checkbox" 
-                id="tvs" 
-                checked={category === 'tvs'} 
-                onChange={() => {}} 
+                type="radio" 
+                id="laptop" 
+                name="category"
+                checked={category === 'laptop'} 
+                onChange={() => handleCategoryChange('laptop')} 
               />
-              <label htmlFor="tvs">TVs</label>
+              <label htmlFor="laptop">Laptops</label>
+            </FilterItem>
+            <FilterItem>
+              <input 
+                type="radio" 
+                id="tv" 
+                name="category"
+                checked={category === 'tv'} 
+                onChange={() => handleCategoryChange('tv')} 
+              />
+              <label htmlFor="tv">TVs & Monitors</label>
+            </FilterItem>
+            <FilterItem>
+              <input 
+                type="radio" 
+                id="gaming" 
+                name="category"
+                checked={category === 'gaming'} 
+                onChange={() => handleCategoryChange('gaming')} 
+              />
+              <label htmlFor="gaming">Gaming</label>
+            </FilterItem>
+            <FilterItem>
+              <input 
+                type="radio" 
+                id="audio" 
+                name="category"
+                checked={category === 'audio'} 
+                onChange={() => handleCategoryChange('audio')} 
+              />
+              <label htmlFor="audio">Audio</label>
             </FilterItem>
           </FilterSection>
           

@@ -20,29 +20,38 @@ const ChatButton = styled.button`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   color: white;
-  border: none;
+  border: 3px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 28px;
   z-index: 1000;
   transition: all 0.3s ease;
+  overflow: hidden;
   
   &:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+    background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   &:active {
-    transform: translateY(0);
+    transform: translateY(-1px) scale(1.02);
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
   }
 `;
 
@@ -52,15 +61,15 @@ const ChatPopup = styled.div`
   right: 20px;
   width: ${props => props.isExpanded ? '800px' : '380px'};
   height: ${props => props.isExpanded ? '700px' : '550px'};
-  background: white;
+  background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   display: ${props => props.isOpen ? 'flex' : 'none'};
   flex-direction: column;
   overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  border: 1px solid #e0e0e0;
   
   @media (max-width: 768px) {
     right: 10px;
@@ -71,12 +80,24 @@ const ChatPopup = styled.div`
 
 const ChatHeader = styled.div`
   padding: 20px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 20px 20px 0 0;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  }
   
   h3 {
     margin: 0;
@@ -92,9 +113,81 @@ const HeaderActions = styled.div`
   gap: 12px;
 `;
 
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const AvatarContainer = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const HeaderText = styled.div`
+  display: flex;
+  flex-direction: column;
+  
+  h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: white;
+  }
+  
+  .status-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .online-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-green 2s infinite;
+  }
+  
+  @keyframes pulse-green {
+    0% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+  }
+  
+  span {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+  }
+`;
+
 const IconButton = styled.button`
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   font-size: 16px;
   cursor: pointer;
@@ -102,11 +195,11 @@ const IconButton = styled.button`
   align-items: center;
   justify-content: center;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(1.05);
   }
 `;
@@ -115,9 +208,10 @@ const MessageList = styled.div`
   height: ${props => props.isExpanded ? '550px' : '380px'}; 
   overflow-y: auto;
   padding: 20px;
-  background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
   flex: 1;
   transition: height 0.3s ease;
+  position: relative;
 
   /* Custom scrollbar */
   &::-webkit-scrollbar {
@@ -125,24 +219,24 @@ const MessageList = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #e0e0e0;
     border-radius: 10px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%);
     border-radius: 10px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
+    background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
   }
 `;
 
 const MessageInputContainer = styled.div`
   padding: 20px 24px;
   background: #ffffff;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e0e0e0;
   border-radius: 0 0 20px 20px;
 `;
 
@@ -150,15 +244,15 @@ const MessageInputForm = styled.form`
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f8fafc;
+  background: #f8f9fa;
   border-radius: 25px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #e0e0e0;
   padding: 4px;
   transition: all 0.2s ease;
 
   &:focus-within {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -170,16 +264,16 @@ const MessageInput = styled.input`
   font-size: 14px;
   outline: none;
   background: transparent;
-  color: #2d3748;
+  color: #000000;
   
   &::placeholder {
-    color: #a0aec0;
+    color: #888888;
   }
 `;
 
 const SendButton = styled.button`
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   color: white;
   border: none;
   border-radius: 50%;
@@ -191,10 +285,12 @@ const SendButton = styled.button`
   justify-content: center;
   transition: all 0.2s ease;
   margin-right: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   &:active {
@@ -203,26 +299,17 @@ const SendButton = styled.button`
 `;
 
 const Message = styled.div`
-  padding: 12px 18px;
-  margin: 12px 0;
-  border-radius: 18px;
-  max-width: 85%;
-  word-wrap: break-word;
+  display: flex;
+  align-items: flex-start;
+  margin: 16px 0;
   animation: slideIn 0.3s ease-out;
+  gap: 10px;
   
   ${props => props.isUser ? `
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    margin-left: auto;
-    border-bottom-right-radius: 6px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    flex-direction: row-reverse;
+    justify-content: flex-start;
   ` : `
-    background: #ffffff;
-    color: #2d3748;
-    margin-right: auto;
-    border-bottom-left-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e2e8f0;
+    flex-direction: row;
   `}
 
   @keyframes slideIn {
@@ -237,19 +324,108 @@ const Message = styled.div`
   }
 `;
 
+const MessageBubble = styled.div`
+  padding: 12px 18px;
+  border-radius: 18px;
+  max-width: 85%;
+  word-wrap: break-word;
+  position: relative;
+  
+  ${props => props.isUser ? `
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+    color: white;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: -8px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-left-color: #000000;
+      border-bottom: 0;
+      border-top-left-radius: 8px;
+    }
+  ` : `
+    background: #ffffff;
+    color: #000000;
+    border-bottom-left-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: -8px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-right-color: #ffffff;
+      border-bottom: 0;
+      border-top-right-radius: 8px;
+    }
+  `}
+`;
+
+const MessageAvatar = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  ${props => props.isUser ? `
+    background: #000000;
+    border-color: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+  ` : ``}
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
 const LoadingIndicator = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  margin: 12px 0;
-  background: #f7fafc;
+  background: #ffffff;
   border-radius: 18px;
+  border-bottom-left-radius: 6px;
   max-width: 85%;
-  color: #718096;
+  color: #666666;
   font-style: italic;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
   animation: pulse 1.5s ease-in-out infinite;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -8px;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+    border-right-color: #ffffff;
+    border-bottom: 0;
+    border-top-right-radius: 8px;
+  }
 
   @keyframes pulse {
     0%, 100% { opacity: 0.7; }
@@ -272,7 +448,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('phone')}
         style={{
           padding: '12px 20px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
           color: 'white',
           border: 'none',
           borderRadius: '25px',
@@ -281,7 +457,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           transition: 'all 0.2s ease',
           fontSize: '14px'
         }}
@@ -294,7 +470,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('laptop')}
         style={{
           padding: '12px 20px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
           color: 'white',
           border: 'none',
           borderRadius: '25px',
@@ -303,7 +479,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           transition: 'all 0.2s ease',
           fontSize: '14px'
         }}
@@ -316,7 +492,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
         onClick={() => onCategorySelect('tv')}
         style={{
           padding: '12px 20px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
           color: 'white',
           border: 'none',
           borderRadius: '25px',
@@ -325,7 +501,7 @@ const CategoryButtons = ({ onCategorySelect }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           transition: 'all 0.2s ease',
           fontSize: '14px'
         }}
@@ -339,32 +515,58 @@ const CategoryButtons = ({ onCategorySelect }) => {
 };
 
 // Update the MessageContent component to include category buttons
-const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect }) => {
+const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect, isUser }) => {
   if (isHtml) {
     return (
-      <div className="html-content-wrapper">
-        <div 
-          dangerouslySetInnerHTML={{ __html: text }} 
-          onClick={(e) => {
-            // Only handle links that don't have target="_blank"
-            const link = e.target.closest('a[href^="/product/"]');
-            if (link && link.getAttribute('target') !== '_blank') {
-              e.preventDefault();
-              window.open(link.getAttribute('href'), '_blank');
-            }
-          }}
-          style={{ overflowX: 'auto' }} // Add horizontal scroll for wide tables
-        />
-        {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
-      </div>
+      <Message isUser={isUser}>
+        {!isUser && (
+          <MessageAvatar>
+            <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+          </MessageAvatar>
+        )}
+        {isUser && (
+          <MessageAvatar isUser={true}>
+            U
+          </MessageAvatar>
+        )}
+        <MessageBubble isUser={isUser}>
+          <div className="html-content-wrapper">
+            <div 
+              dangerouslySetInnerHTML={{ __html: text }} 
+              onClick={(e) => {
+                // Only handle links that don't have target="_blank"
+                const link = e.target.closest('a[href^="/product/"]');
+                if (link && link.getAttribute('target') !== '_blank') {
+                  e.preventDefault();
+                  window.open(link.getAttribute('href'), '_blank');
+                }
+              }}
+              style={{ overflowX: 'auto' }} // Add horizontal scroll for wide tables
+            />
+            {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
+          </div>
+        </MessageBubble>
+      </Message>
     );
   }
   
   return (
-    <>
-      {text}
-      {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
-    </>
+    <Message isUser={isUser}>
+      {!isUser && (
+        <MessageAvatar>
+          <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+        </MessageAvatar>
+      )}
+      {isUser && (
+        <MessageAvatar isUser={true}>
+          U
+        </MessageAvatar>
+      )}
+      <MessageBubble isUser={isUser}>
+        {text}
+        {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
+      </MessageBubble>
+    </Message>
   );
 };
 
@@ -386,10 +588,10 @@ const CloseNotificationButton = styled.button`
   position: absolute;
   top: -8px;
   right: -8px;
-  background: white;
+  background: #ffffff;
   border-radius: 50%;
-  border: 1px solid #e2e8f0;
-  color: #a0aec0;
+  border: 1px solid #e0e0e0;
+  color: #666666;
   font-size: 12px;
   cursor: pointer;
   padding: 4px;
@@ -403,7 +605,9 @@ const CloseNotificationButton = styled.button`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   
   &:hover {
-    color: #718096;
+    color: #000000;
+    background: #f8f9fa;
+    border-color: #000000;
     transform: scale(1.1);
   }
 `;
@@ -412,7 +616,7 @@ const NotificationContainer = styled.div`
   position: fixed;
   bottom: 100px;
   right: 20px;
-  background: white;
+  background: #ffffff;
   padding: 20px;
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
@@ -425,7 +629,7 @@ const NotificationContainer = styled.div`
   visibility: ${(props) => (props.visible ? "visible" : "hidden")};
   transition: all 0.3s ease;
   max-width: 340px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e0e0e0;
   
   &:hover {
     box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2);
@@ -439,7 +643,7 @@ const NotificationContainer = styled.div`
 
 const ChatIcon = styled.div`
   font-size: 28px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000000;
   color: white;
   margin-right: 16px;
   position: relative;
@@ -449,7 +653,14 @@ const ChatIcon = styled.div`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `;
 
 const TextContainer = styled.div`
@@ -459,14 +670,14 @@ const TextContainer = styled.div`
 
 const NotificationText = styled.div`
   font-size: 16px;
-  color: #2d3748;
+  color: #000000;
   font-weight: 600;
   margin-bottom: 4px;
 `;
 
 const NotificationSubtext = styled.div`
   font-size: 14px;
-  color: #718096;
+  color: #666666;
   font-weight: normal;
 `;
 
@@ -588,18 +799,18 @@ const formatProductLinks = (text) => {
       
       // Format with image and link that opens in new tab
       formattedText += `
-<div style="margin: 15px 0; padding: 15px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+<div style="margin: 15px 0; padding: 15px; border-radius: 12px; background: #ffffff; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
   <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
     <img 
       src="${productImage}" 
       alt="${productName}" 
-      style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 8px; background: #f8fafc;" 
+      style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 8px; background: #f8f9fa;" 
       onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
     />
     <div style="flex: 1;">
-      <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px; color: #2d3748;">${productName}</div>
-      <div style="font-weight: 600; font-size: 16px; margin-bottom: 6px; color: #667eea;">${price}</div>
-      <div style="font-size: 14px; color: #718096; line-height: 1.4;">${features.join(', ')}</div>
+      <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px; color: #000000;">${productName}</div>
+      <div style="font-weight: 600; font-size: 16px; margin-bottom: 6px; color: #666666;">${price}</div>
+      <div style="font-size: 14px; color: #888888; line-height: 1.4;">${features.join(', ')}</div>
     </div>
   </div>
   <div style="display: flex; gap: 10px; margin-top: 12px;">
@@ -607,11 +818,11 @@ const formatProductLinks = (text) => {
       href="/product/${productId}" 
       target="_blank"
       rel="noopener noreferrer" 
-      style="color: #667eea; text-decoration: none; display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 20px; font-size: 14px; flex: 1; text-align: center; font-weight: 500; transition: all 0.2s ease;"
+      style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 16px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 20px; font-size: 14px; flex: 1; text-align: center; font-weight: 500; transition: all 0.2s ease;"
       data-product-id="${productId}"
       data-product-name="${productName.replace(/"/g, '&quot;')}"
-      onmouseover="this.style.background='linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)'"
-      onmouseout="this.style.background='linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)'"
+      onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#000000'"
+      onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e0e0e0'"
     >
       View Details
     </a>
@@ -621,9 +832,9 @@ const formatProductLinks = (text) => {
       data-name="${productName.replace(/'/g, "\\'")}" 
       data-price="${price.replace(/[^\d.]/g, '')}" 
       data-image="${productImage}"
-      style="color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; transition: all 0.2s ease;"
-      onmouseover="this.style.background='linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%)'; this.style.transform='translateY(-1px)'"
-      onmouseout="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; this.style.transform='translateY(0)'"
+      style="color: white; background: #000000; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; transition: all 0.2s ease;"
+      onmouseover="this.style.background='#333333'; this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.background='#000000'; this.style.transform='translateY(0)'"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
@@ -646,11 +857,12 @@ const CartSuccessMessage = styled.div`
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #28a745;
+  background: #404040;
   color: white;
   padding: 10px 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  border-radius: 8px;
+  border: 1px solid #606060;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   z-index: 1100;
@@ -785,7 +997,7 @@ const ChatInterface = () => {
       // Add a slight delay for a more natural feel
       setTimeout(() => {
         setMessages([{ 
-          text: `Welcome to Vision Electronics! I'm your AI assistant here to help you find the perfect electronics. We offer a wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`,
+          text: `Hi there! I'm Mark, your personal AI assistant at Vision Electronics! 👋 I'm here to help you find the perfect electronics. We offer a wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`,
           isUser: false,
           isHtml: true,
           hasButtons: true
@@ -920,7 +1132,7 @@ const ChatInterface = () => {
         
         setTimeout(() => {
           setMessages([{ 
-            text: "Hi, I'm Vision Electronics' AI assistant! How can I help you find the perfect product today?", 
+            text: "Hi! I'm Mark, your AI assistant at Vision Electronics! How can I help you find the perfect product today? 😊", 
             isUser: false 
           }]);
         }, 800);
@@ -952,23 +1164,38 @@ const ChatInterface = () => {
             <FaTimes />
           </CloseNotificationButton>
           <ChatIcon>
-            <FaCommentAlt />
+            <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
             <UnreadBadge>1</UnreadBadge>
           </ChatIcon>
           <TextContainer>
-            <NotificationText>Need help finding products?</NotificationText>
-            <NotificationSubtext>Talk to our AI assistant</NotificationSubtext>
+            <NotificationText>Hi! I'm Mark 👋</NotificationText>
+            <NotificationSubtext>Need help finding products?</NotificationSubtext>
           </TextContainer>
         </NotificationContainer>
       )}
       
       <ChatButton onClick={() => isOpen ? setIsOpen(false) : handleOpenChat()}>
-        {isOpen ? '✕' : '💬'}
+        {isOpen ? (
+          <FaTimes style={{ fontSize: '20px' }} />
+        ) : (
+          <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+        )}
       </ChatButton>
       
       <ChatPopup isOpen={isOpen} isExpanded={isExpanded}>
         <ChatHeader>
-          <h3>Vision Electronics AI Assistant</h3>
+          <HeaderContent>
+            <AvatarContainer>
+              <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+            </AvatarContainer>
+            <HeaderText>
+              <h3>Mark</h3>
+              <div className="status-container">
+                <div className="online-dot"></div>
+                <span>Online • Ready to help</span>
+              </div>
+            </HeaderText>
+          </HeaderContent>
           <HeaderActions>
             <IconButton onClick={toggleExpandChat} aria-label={isExpanded ? "Collapse chat" : "Expand chat"}>
               {isExpanded ? <FaCompress /> : <FaExpand />}
@@ -981,40 +1208,45 @@ const ChatInterface = () => {
         <div style={{ height: 'calc(100% - 60px)', display: 'flex', flexDirection: 'column' }}>
           <MessageList isExpanded={isExpanded}>
             {messages.map((msg, idx) => (
-              <Message key={idx} isUser={msg.isUser}>
-                <MessageContent 
-                  text={msg.text} 
-                  isHtml={msg.isHtml || false} 
-                  hasButtons={msg.hasButtons || false} 
-                  onCategorySelect={handleCategorySelect} 
-                />
-              </Message>
+              <MessageContent 
+                key={idx}
+                text={msg.text} 
+                isHtml={msg.isHtml || false} 
+                hasButtons={msg.hasButtons || false} 
+                onCategorySelect={handleCategorySelect}
+                isUser={msg.isUser}
+              />
             ))}
             {isLoading && (
-              <LoadingIndicator>
-                <div style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  background: '#667eea', 
-                  animation: 'pulse 1.5s ease-in-out infinite' 
-                }}></div>
-                <div style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  background: '#667eea', 
-                  animation: 'pulse 1.5s ease-in-out infinite 0.2s' 
-                }}></div>
-                <div style={{ 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  background: '#667eea', 
-                  animation: 'pulse 1.5s ease-in-out infinite 0.4s' 
-                }}></div>
-                <span style={{ marginLeft: '8px' }}>Thinking...</span>
-              </LoadingIndicator>
+              <Message isUser={false}>
+                <MessageAvatar>
+                  <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+                </MessageAvatar>
+                <LoadingIndicator>
+                  <div style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    background: '#000000', 
+                    animation: 'pulse 1.5s ease-in-out infinite' 
+                  }}></div>
+                  <div style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    background: '#000000', 
+                    animation: 'pulse 1.5s ease-in-out infinite 0.2s' 
+                  }}></div>
+                  <div style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    background: '#000000', 
+                    animation: 'pulse 1.5s ease-in-out infinite 0.4s' 
+                  }}></div>
+                  <span style={{ marginLeft: '8px' }}>Mark is thinking...</span>
+                </LoadingIndicator>
+              </Message>
             )}
             <div ref={messagesEndRef} />
           </MessageList>

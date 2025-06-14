@@ -413,6 +413,103 @@ const LatestGrid = styled.div`
   }
 `;
 
+const StoreMegaGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    max-width: 200px;
+  }
+`;
+
+const StoreMegaContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ViewAllSection = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 1rem;
+  padding-left: calc(66.66% + 1rem);
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+    padding-left: 0;
+  }
+  
+  @media (max-width: 480px) {
+    justify-content: center;
+    padding-left: 0;
+  }
+`;
+
+const CategoryCard = styled(Link)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  padding: 1.5rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background: rgba(248, 249, 250, 0.5);
+  
+  &:hover {
+    background: rgba(248, 249, 250, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const CategoryImage = styled.div`
+  width: 120px;
+  height: 120px;
+  background: #ffffff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  
+  img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+  
+  ${CategoryCard}:hover & {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+  
+  ${CategoryCard}:hover & img {
+    transform: scale(1.05);
+  }
+`;
+
+const CategoryName = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.3px;
+`;
+
 const ProductCard = styled(Link)`
   display: flex;
   flex-direction: column;
@@ -495,18 +592,27 @@ const ViewAllLink = styled(Link)`
 
 
 
+
 const Navbar = () => {
   const navigate = useNavigate();
   const { cartItems } = useCart();
   const [isPhoneMegaMenuOpen, setIsPhoneMegaMenuOpen] = useState(false);
   const [isLaptopMegaMenuOpen, setIsLaptopMegaMenuOpen] = useState(false);
   const [isTvMegaMenuOpen, setIsTvMegaMenuOpen] = useState(false);
+  const [isStoreMegaMenuOpen, setIsStoreMegaMenuOpen] = useState(false);
+  const [isGamingMegaMenuOpen, setIsGamingMegaMenuOpen] = useState(false);
+  const [isAudioMegaMenuOpen, setIsAudioMegaMenuOpen] = useState(false);
   const [phoneData, setPhoneData] = useState({ brands: [], latestPhones: [] });
   const [laptopData, setLaptopData] = useState({ categories: [], featuredLaptops: [] });
   const [tvData, setTvData] = useState({ categories: [], featuredTvs: [] });
+  const [gamingData, setGamingData] = useState({ featuredGaming: [] });
+  const [audioData, setAudioData] = useState({ featuredAudio: [] });
   const [phoneMegaMenuTimeout, setPhoneMegaMenuTimeout] = useState(null);
   const [laptopMegaMenuTimeout, setLaptopMegaMenuTimeout] = useState(null);
   const [tvMegaMenuTimeout, setTvMegaMenuTimeout] = useState(null);
+  const [storeMegaMenuTimeout, setStoreMegaMenuTimeout] = useState(null);
+  const [gamingMegaMenuTimeout, setGamingMegaMenuTimeout] = useState(null);
+  const [audioMegaMenuTimeout, setAudioMegaMenuTimeout] = useState(null);
   
   // Search suggestions state
   const [searchQuery, setSearchQuery] = useState('');
@@ -724,6 +830,52 @@ const Navbar = () => {
     fetchTvData();
   }, []);
 
+  // Fetch Gaming data for mega menu
+  useEffect(() => {
+    const fetchGamingData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/products?category=gaming');
+        if (response.ok) {
+          const gamingProducts = await response.json();
+          
+          // Get featured gaming products (first 6)
+          const featuredGaming = gamingProducts.slice(0, 6);
+
+          setGamingData({
+            featuredGaming: featuredGaming
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching gaming data:', error);
+      }
+    };
+
+    fetchGamingData();
+  }, []);
+
+  // Fetch Audio data for mega menu
+  useEffect(() => {
+    const fetchAudioData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/products?category=audio');
+        if (response.ok) {
+          const audioProducts = await response.json();
+          
+          // Get featured audio products (first 6)
+          const featuredAudio = audioProducts.slice(0, 6);
+
+          setAudioData({
+            featuredAudio: featuredAudio
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching audio data:', error);
+      }
+    };
+
+    fetchAudioData();
+  }, []);
+
   // Fetch search suggestions from API
   const fetchSearchSuggestions = async (query) => {
     if (!query || query.length < 2) {
@@ -899,6 +1051,54 @@ const Navbar = () => {
     setTvMegaMenuTimeout(timeout);
   };
 
+  // Store mega menu handlers
+  const handleStoreMegaMenuEnter = () => {
+    if (storeMegaMenuTimeout) {
+      clearTimeout(storeMegaMenuTimeout);
+      setStoreMegaMenuTimeout(null);
+    }
+    setIsStoreMegaMenuOpen(true);
+  };
+
+  const handleStoreMegaMenuLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsStoreMegaMenuOpen(false);
+    }, 200); // Small delay to prevent flickering
+    setStoreMegaMenuTimeout(timeout);
+  };
+
+  // Gaming mega menu handlers
+  const handleGamingMegaMenuEnter = () => {
+    if (gamingMegaMenuTimeout) {
+      clearTimeout(gamingMegaMenuTimeout);
+      setGamingMegaMenuTimeout(null);
+    }
+    setIsGamingMegaMenuOpen(true);
+  };
+
+  const handleGamingMegaMenuLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsGamingMegaMenuOpen(false);
+    }, 200); // Small delay to prevent flickering
+    setGamingMegaMenuTimeout(timeout);
+  };
+
+  // Audio mega menu handlers
+  const handleAudioMegaMenuEnter = () => {
+    if (audioMegaMenuTimeout) {
+      clearTimeout(audioMegaMenuTimeout);
+      setAudioMegaMenuTimeout(null);
+    }
+    setIsAudioMegaMenuOpen(true);
+  };
+
+  const handleAudioMegaMenuLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsAudioMegaMenuOpen(false);
+    }, 200); // Small delay to prevent flickering
+    setAudioMegaMenuTimeout(timeout);
+  };
+
   // Generate consistent product ID
   const generateProductId = (productName, category = 'phone') => {
     if (!productName) return '1-unknown-product';
@@ -923,7 +1123,16 @@ const Navbar = () => {
         {/* Navigation Links */}
         <NavLinks>
           <NavLink to="/">Home</NavLink>
-          <NavLink to="/products">Store</NavLink>
+          
+          {/* Store with Mega Menu */}
+          <NavItemContainer
+            onMouseEnter={handleStoreMegaMenuEnter}
+            onMouseLeave={handleStoreMegaMenuLeave}
+          >
+            <MegaMenuNavLink>
+              Store
+            </MegaMenuNavLink>
+          </NavItemContainer>
           
           {/* Phone with Mega Menu */}
           <NavItemContainer
@@ -954,8 +1163,27 @@ const Navbar = () => {
               TV & Monitors
             </MegaMenuNavLink>
           </NavItemContainer>
-          <DisabledNavItem title="Coming Soon">Gaming</DisabledNavItem>
-          <DisabledNavItem title="Coming Soon">Audio</DisabledNavItem>
+          
+          {/* Gaming with Mega Menu */}
+          <NavItemContainer
+            onMouseEnter={handleGamingMegaMenuEnter}
+            onMouseLeave={handleGamingMegaMenuLeave}
+          >
+            <MegaMenuNavLink>
+              Gaming
+            </MegaMenuNavLink>
+          </NavItemContainer>
+          
+          {/* Audio with Mega Menu */}
+          <NavItemContainer
+            onMouseEnter={handleAudioMegaMenuEnter}
+            onMouseLeave={handleAudioMegaMenuLeave}
+          >
+            <MegaMenuNavLink>
+              Audio
+            </MegaMenuNavLink>
+          </NavItemContainer>
+          
           <NavLink to="/about">About</NavLink>
           <NavLink to="/contact">Contact</NavLink>
         </NavLinks>
@@ -1121,6 +1349,139 @@ const Navbar = () => {
             </LatestGrid>
             <ViewAllLink to="/products?category=tv">
               View All TVs & Monitors
+            </ViewAllLink>
+          </LatestSection>
+        </MegaMenuContainer>
+      </MegaMenuOverlay>
+
+      {/* Store Mega Menu */}
+      <MegaMenuOverlay 
+        isOpen={isStoreMegaMenuOpen}
+        onMouseEnter={handleStoreMegaMenuEnter}
+        onMouseLeave={handleStoreMegaMenuLeave}
+      >
+        <MegaMenuContainer>
+          <StoreMegaContainer>
+            <StoreMegaGrid>
+              {/* Phone Category */}
+              <CategoryCard to="/products?category=phone">
+                <CategoryImage>
+                  <img 
+                    src={phoneData.latestPhones[0]?.image || 'https://via.placeholder.com/120x120?text=📱'}
+                    alt="Phones"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/120x120?text=📱';
+                    }}
+                  />
+                </CategoryImage>
+                <CategoryName>Phone</CategoryName>
+              </CategoryCard>
+
+              {/* Laptop Category */}
+              <CategoryCard to="/products?category=laptop">
+                <CategoryImage>
+                  <img 
+                    src={laptopData.featuredLaptops[0]?.image || 'https://via.placeholder.com/120x120?text=💻'}
+                    alt="Laptops"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/120x120?text=💻';
+                    }}
+                  />
+                </CategoryImage>
+                <CategoryName>Laptop</CategoryName>
+              </CategoryCard>
+
+              {/* TV & Monitors Category */}
+              <CategoryCard to="/products?category=tv">
+                <CategoryImage>
+                  <img 
+                    src={tvData.featuredTvs[0]?.image || 'https://via.placeholder.com/120x120?text=📺'}
+                    alt="TVs & Monitors"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/120x120?text=📺';
+                    }}
+                  />
+                </CategoryImage>
+                <CategoryName>TV & Monitors</CategoryName>
+              </CategoryCard>
+            </StoreMegaGrid>
+            
+            <ViewAllSection>
+              <ViewAllLink to="/products">
+                View All Products
+              </ViewAllLink>
+            </ViewAllSection>
+          </StoreMegaContainer>
+        </MegaMenuContainer>
+      </MegaMenuOverlay>
+
+      {/* Gaming Mega Menu */}
+      <MegaMenuOverlay 
+        isOpen={isGamingMegaMenuOpen}
+        onMouseEnter={handleGamingMegaMenuEnter}
+        onMouseLeave={handleGamingMegaMenuLeave}
+      >
+        <MegaMenuContainer>
+          <LatestSection>
+            <SectionTitle>Featured Gaming Products</SectionTitle>
+            <LatestGrid>
+              {gamingData.featuredGaming.map(product => (
+                <ProductCard 
+                  key={product.id || product.name} 
+                  to={`/product/${generateProductId(product.name, 'gaming')}`}
+                >
+                  <ProductImage>
+                    <img 
+                      src={`http://localhost:5001/static/images/ps5.jpg`}
+                      alt={product.name}
+                      onError={(e) => {
+                        e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;
+                      }}
+                    />
+                  </ProductImage>
+                  <ProductName>{product.name}</ProductName>
+                  <ProductPrice>{product.price}</ProductPrice>
+                </ProductCard>
+              ))}
+            </LatestGrid>
+            <ViewAllLink to="/products?category=gaming">
+              View All Gaming Products
+            </ViewAllLink>
+          </LatestSection>
+        </MegaMenuContainer>
+      </MegaMenuOverlay>
+
+      {/* Audio Mega Menu */}
+      <MegaMenuOverlay 
+        isOpen={isAudioMegaMenuOpen}
+        onMouseEnter={handleAudioMegaMenuEnter}
+        onMouseLeave={handleAudioMegaMenuLeave}
+      >
+        <MegaMenuContainer>
+          <LatestSection>
+            <SectionTitle>Featured Audio Products</SectionTitle>
+            <LatestGrid>
+              {audioData.featuredAudio.map(product => (
+                <ProductCard 
+                  key={product.id || product.name} 
+                  to={`/product/${generateProductId(product.name, 'audio')}`}
+                >
+                  <ProductImage>
+                    <img 
+                      src={`http://localhost:5001/static/images/gamingheadphone.jpg`}
+                      alt={product.name}
+                      onError={(e) => {
+                        e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;
+                      }}
+                    />
+                  </ProductImage>
+                  <ProductName>{product.name}</ProductName>
+                  <ProductPrice>{product.price}</ProductPrice>
+                </ProductCard>
+              ))}
+            </LatestGrid>
+            <ViewAllLink to="/products?category=audio">
+              View All Audio Products
             </ViewAllLink>
           </LatestSection>
         </MegaMenuContainer>

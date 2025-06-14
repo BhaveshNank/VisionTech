@@ -1708,13 +1708,14 @@ const StoryProgressFill = styled.div`
     if (props.slideIndex < props.currentSlide) return '100%'; // Completed slides
     if (props.slideIndex === props.currentSlide) {
       // Current slide - starts at 0% and animates to 100%
-      return props.isPaused ? 'var(--paused-width, 0%)' : '0%';
+      return '0%';
     }
     return '0%'; // Future slides
   }};
   height: 100%;
-  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
+  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.95) 100%);
   border-radius: 1px;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
   
   ${props => props.slideIndex === props.currentSlide && !props.isPaused && `
     animation: storyProgressFill 5s linear forwards;
@@ -1724,7 +1725,7 @@ const StoryProgressFill = styled.div`
     animation-play-state: paused;
   `}
   
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
 `;
 
 const storyProgressFill = keyframes`
@@ -2427,6 +2428,16 @@ const CustomerName = styled.p`
   color: #2d3748;
 `;
 
+const CustomerAvatar = styled.img`
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+`;
+
 const FeaturesSection = styled.div`
   padding: 5rem 2rem;
   background: #ffffff;
@@ -2492,11 +2503,11 @@ const Home = () => {
 
   
   const nextSlide = () => {
-    setCurrentSlide(current => (current === 1 ? 0 : current + 1));
+    setCurrentSlide(current => (current === 2 ? 0 : current + 1));
   };
 
   const prevSlide = () => {
-    setCurrentSlide(current => (current === 0 ? 1 : current - 1));
+    setCurrentSlide(current => (current === 0 ? 2 : current - 1));
   };
 
   const goToSlide = (slideIndex) => {
@@ -2507,7 +2518,7 @@ const Home = () => {
   useEffect(() => {
     if (!isPaused) {
       const timer = setTimeout(() => {
-        setCurrentSlide(current => (current === 1 ? 0 : current + 1));
+        setCurrentSlide(current => (current === 2 ? 0 : current + 1));
       }, 5000); // 5 seconds per slide
       
       return () => clearTimeout(timer);
@@ -2744,42 +2755,68 @@ const Home = () => {
               </GalaxyTabShowcaseSection>
             </CarouselSlide>
             
-            {/* SLIDE 2: Video Content */}
+            {/* SLIDE 2: iPhone 16 Sad */}
             <CarouselSlide>
-              <VideoSlide>
-                <VideoContainer>
-                  <video 
-                    width="100%" 
-                    height="100%" 
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    disablePictureInPicture
-                    style={{ 
-                      position: 'absolute', 
-                      top: 0, 
-                      left: 0, 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                      pointerEvents: 'none'
+              <GalaxyTabShowcaseSection>
+                <GalaxyTabImageContainer>
+                  <GalaxyTabImage 
+                    src="/images/iphone16sad.jpg"
+                    alt="iPhone 16"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/1400x600?text=iPhone+16';
                     }}
-                  >
-                    <source src="/videos/ROG_Strix_G_Video.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  <VideoOverlay>
-                    <VideoTitle>Vision Electronics Exclusive</VideoTitle>
-                    <VideoDescription>
-                      Discover our latest premium electronics collection with cutting-edge features and incredible performance.
-                    </VideoDescription>
-                    <PrimaryButton to="/products/featured">
-                      Shop Collection
-                    </PrimaryButton>
-                  </VideoOverlay>
-                </VideoContainer>
-              </VideoSlide>
+                  />
+                  <GalaxyTabOverlay />
+                  <GalaxyTabContentContainer>
+                    <GalaxyTabTagline>New iPhone 16</GalaxyTabTagline>
+                    <GalaxyTabTitle>Next-Level Innovation</GalaxyTabTitle>
+                    <GalaxyTabSubtitle>
+                      Revolutionary A18 chip, enhanced camera system, and incredible battery life. 
+                      The most advanced iPhone yet.
+                    </GalaxyTabSubtitle>
+                    <GalaxyTabButtonContainer>
+                      <GalaxyTabBuyButton to="/product/1-iphone-16-pro-max-phone">
+                        Buy Now
+                      </GalaxyTabBuyButton>
+                      <GalaxyTabLearnButton onClick={handleGalaxyTabLearnMore}>
+                        Learn More
+                      </GalaxyTabLearnButton>
+                    </GalaxyTabButtonContainer>
+                  </GalaxyTabContentContainer>
+                </GalaxyTabImageContainer>
+              </GalaxyTabShowcaseSection>
+            </CarouselSlide>
+            
+            {/* SLIDE 3: Google Pixel */}
+            <CarouselSlide>
+              <GalaxyTabShowcaseSection>
+                <GalaxyTabImageContainer>
+                  <GalaxyTabImage 
+                    src="/images/googlepixelad.jpg"
+                    alt="Google Pixel"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/1400x600?text=Google+Pixel';
+                    }}
+                  />
+                  <GalaxyTabOverlay />
+                  <GalaxyTabContentContainer>
+                    <GalaxyTabTagline>Google Pixel 9 Pro</GalaxyTabTagline>
+                    <GalaxyTabTitle>AI-Powered Excellence</GalaxyTabTitle>
+                    <GalaxyTabSubtitle>
+                      Experience pure Android with advanced AI features, incredible camera capabilities, 
+                      and seamless Google integration.
+                    </GalaxyTabSubtitle>
+                    <GalaxyTabButtonContainer>
+                      <GalaxyTabBuyButton to="/product/1-google-pixel-9-pro-xl-phone">
+                        Buy Now
+                      </GalaxyTabBuyButton>
+                      <GalaxyTabLearnButton onClick={handleGalaxyTabLearnMore}>
+                        Learn More
+                      </GalaxyTabLearnButton>
+                    </GalaxyTabButtonContainer>
+                  </GalaxyTabContentContainer>
+                </GalaxyTabImageContainer>
+              </GalaxyTabShowcaseSection>
             </CarouselSlide>
           </CarouselSlider>
           
@@ -2799,6 +2836,9 @@ const Home = () => {
             <StoryIndicator onClick={() => goToSlide(1)}>
               <StoryIndicatorFill active={currentSlide === 1} isPaused={isPaused} />
             </StoryIndicator>
+            <StoryIndicator onClick={() => goToSlide(2)}>
+              <StoryIndicatorFill active={currentSlide === 2} isPaused={isPaused} />
+            </StoryIndicator>
           </StoryIndicators>
           
           {/* Bottom Story Progress Bars (Samsung style) */}
@@ -2813,6 +2853,13 @@ const Home = () => {
             <StoryProgressBar onClick={() => goToSlide(1)}>
               <StoryProgressFill 
                 slideIndex={1} 
+                currentSlide={currentSlide} 
+                isPaused={isPaused} 
+              />
+            </StoryProgressBar>
+            <StoryProgressBar onClick={() => goToSlide(2)}>
+              <StoryProgressFill 
+                slideIndex={2} 
                 currentSlide={currentSlide} 
                 isPaused={isPaused} 
               />
@@ -3094,6 +3141,7 @@ const Home = () => {
           </SectionDescription>
           <TestimonialGrid>
             <TestimonialCard>
+              <CustomerAvatar src="/images/testimonial1.jpg" alt="Sarah Johnson" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 The AI recommendations were spot on! Found the perfect laptop for my needs within minutes.
@@ -3101,6 +3149,7 @@ const Home = () => {
               <CustomerName>— Sarah Johnson</CustomerName>
             </TestimonialCard>
             <TestimonialCard>
+              <CustomerAvatar src="/images/testimonial2.jpg" alt="Michael Chen" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 Excellent customer service and fast delivery. My go-to store for all electronics.
@@ -3108,6 +3157,7 @@ const Home = () => {
               <CustomerName>— Michael Chen</CustomerName>
             </TestimonialCard>
             <TestimonialCard>
+              <CustomerAvatar src="/images/testimonial3.jpg" alt="Emily Davis" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 Great prices and the extended warranty gives me peace of mind. Highly recommend!
