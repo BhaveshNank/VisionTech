@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { sendMessageToChatbot, generateConsistentProductId } from '../utils/api';
-import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart, FaPaperPlane } from 'react-icons/fa';
 import eventSystem from '../utils/events';
 import { useCart } from '../context/CartContext';
 
@@ -23,11 +23,11 @@ const ChatButton = styled.button`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #000000;  // Changed from blue to black
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);  // Changed to black shadow
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,9 +36,13 @@ const ChatButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #1a1a1a;  // Changed to dark gray on hover
+    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);  // Changed to black shadow
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -46,30 +50,39 @@ const ChatPopup = styled.div`
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: ${props => props.isExpanded ? '800px' : '350px'};
-  height: ${props => props.isExpanded ? '700px' : '500px'};
+  width: ${props => props.isExpanded ? '800px' : '380px'};
+  height: ${props => props.isExpanded ? '700px' : '550px'};
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  display: ${props => props.isOpen ? 'block' : 'none'};
+  display: ${props => props.isOpen ? 'flex' : 'none'};
+  flex-direction: column;
   overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  
+  @media (max-width: 768px) {
+    right: 10px;
+    width: calc(100vw - 20px);
+    max-width: 400px;
+  }
 `;
 
 const ChatHeader = styled.div`
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);  // Changed to black gradient
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-radius: 20px 20px 0 0;
   
   h3 {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
+    letter-spacing: 0.5px;
   }
 `;
 
@@ -80,7 +93,7 @@ const HeaderActions = styled.div`
 `;
 
 const IconButton = styled.button`
-  background: none;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
   font-size: 16px;
@@ -88,74 +101,160 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
   }
 `;
 
 const MessageList = styled.div`
-  height: ${props => props.isExpanded ? '550px' : '350px'}; 
+  height: ${props => props.isExpanded ? '550px' : '380px'}; 
   overflow-y: auto;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: #f8f9fa;
+  padding: 20px;
+  background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+  flex: 1;
   transition: height 0.3s ease;
+
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
+  }
+`;
+
+const MessageInputContainer = styled.div`
+  padding: 20px 24px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 20px 20px;
+`;
+
+const MessageInputForm = styled.form`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border-radius: 25px;
+  border: 2px solid #e2e8f0;
+  padding: 4px;
+  transition: all 0.2s ease;
+
+  &:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
 `;
 
 const MessageInput = styled.input`
-  width: 75%;
-  padding: 12px 16px;
-  margin-right: 8px;
-  border: 1px solid #e2e8f0;
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
   border-radius: 25px;
   font-size: 14px;
   outline: none;
-  transition: all 0.2s ease;
+  background: transparent;
+  color: #2d3748;
   
-  &:focus {
-    border-color: #333333;  // Changed to dark gray
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  // Changed to black shadow
+  &::placeholder {
+    color: #a0aec0;
   }
 `;
 
 const SendButton = styled.button`
-  padding: 12px 20px;
-  background: #000000;  // Changed from blue to black
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: 50%;
   cursor: pointer;
-  width: 20%;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-right: 4px;
 
   &:hover {
-    background: #1a1a1a;  // Changed to dark gray on hover
+    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
 const Message = styled.div`
-  padding: 12px 16px;
-  margin: 8px;
+  padding: 12px 18px;
+  margin: 12px 0;
   border-radius: 18px;
-  max-width: 80%;
+  max-width: 85%;
   word-wrap: break-word;
+  animation: slideIn 0.3s ease-out;
+  
   ${props => props.isUser ? `
-    background: #000000;  // Changed from blue to black
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     margin-left: auto;
     border-bottom-right-radius: 6px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   ` : `
-    background: white;
+    background: #ffffff;
     color: #2d3748;
     margin-right: auto;
     border-bottom-left-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
   `}
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const LoadingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  margin: 12px 0;
+  background: #f7fafc;
+  border-radius: 18px;
+  max-width: 85%;
+  color: #718096;
+  font-style: italic;
+  border: 1px solid #e2e8f0;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
 `;
 
 // Add this new component for the category selection buttons
@@ -165,70 +264,73 @@ const CategoryButtons = ({ onCategorySelect }) => {
       display: 'flex', 
       justifyContent: 'center', 
       flexWrap: 'wrap', 
-      gap: '10px', 
-      marginTop: '15px',
-      marginBottom: '5px'
+      gap: '12px', 
+      marginTop: '16px',
+      marginBottom: '8px'
     }}>
       <button
         onClick={() => onCategorySelect('phone')}
         style={{
-          padding: '10px 18px',
-          background: '#000000',  // Changed from blue to black
+          padding: '12px 20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
-          borderRadius: '20px',
+          borderRadius: '25px',
           cursor: 'pointer',
           fontWeight: '500',
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
-          transition: 'all 0.2s ease'
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          transition: 'all 0.2s ease',
+          fontSize: '14px'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
-        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
+        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
       >
         <span role="img" aria-label="Phone">📱</span> Phone
       </button>
       <button
         onClick={() => onCategorySelect('laptop')}
         style={{
-          padding: '10px 18px',
-          background: '#000000',  // Changed from blue to black
+          padding: '12px 20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
-          borderRadius: '20px',
+          borderRadius: '25px',
           cursor: 'pointer',
           fontWeight: '500',
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
-          transition: 'all 0.2s ease'
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          transition: 'all 0.2s ease',
+          fontSize: '14px'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
-        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
+        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
       >
         <span role="img" aria-label="Laptop">💻</span> Laptop
       </button>
       <button
         onClick={() => onCategorySelect('tv')}
         style={{
-          padding: '10px 18px',
-          background: '#000000',  // Changed from blue to black
+          padding: '12px 20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
-          borderRadius: '20px',
+          borderRadius: '25px',
           cursor: 'pointer',
           fontWeight: '500',
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',  // Changed to black shadow
-          transition: 'all 0.2s ease'
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          transition: 'all 0.2s ease',
+          fontSize: '14px'
         }}
-        onMouseOver={(e) => e.currentTarget.style.background = '#1a1a1a'}  // Changed to dark gray
-        onMouseOut={(e) => e.currentTarget.style.background = '#000000'}  // Changed to black
+        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
       >
         <span role="img" aria-label="TV">📺</span> TV
       </button>
@@ -286,22 +388,23 @@ const CloseNotificationButton = styled.button`
   right: -8px;
   background: white;
   border-radius: 50%;
-  border: 1px solid #eee;
-  color: #999;
+  border: 1px solid #e2e8f0;
+  color: #a0aec0;
   font-size: 12px;
   cursor: pointer;
-  padding: 3px;
-  width: 20px;
-  height: 20px;
+  padding: 4px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s ease, color 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   
   &:hover {
-    color: #666;
+    color: #718096;
+    transform: scale(1.1);
   }
 `;
 
@@ -310,9 +413,9 @@ const NotificationContainer = styled.div`
   bottom: 100px;
   right: 20px;
   background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -320,11 +423,13 @@ const NotificationContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
   opacity: ${(props) => (props.visible ? "1" : "0")};
   visibility: ${(props) => (props.visible ? "visible" : "hidden")};
-  transition: opacity 0.3s, visibility 0.3s;
-  max-width: 320px;
+  transition: all 0.3s ease;
+  max-width: 340px;
+  border: 1px solid #e2e8f0;
   
   &:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
     
     ${CloseNotificationButton} {
       opacity: 1;
@@ -333,17 +438,18 @@ const NotificationContainer = styled.div`
 `;
 
 const ChatIcon = styled.div`
-  font-size: 24px;
-  color: #000000;  // Changed from blue to black
-  margin-right: 12px;
+  font-size: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-right: 16px;
   position: relative;
-  background: #f0f0f0;  // Changed from blue background to light gray
-  width: 45px;
-  height: 45px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 `;
 
 const TextContainer = styled.div`
@@ -353,30 +459,32 @@ const TextContainer = styled.div`
 
 const NotificationText = styled.div`
   font-size: 16px;
-  color: #333;
+  color: #2d3748;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 `;
 
 const NotificationSubtext = styled.div`
   font-size: 14px;
-  color: #666;
+  color: #718096;
   font-weight: normal;
 `;
 
 const UnreadBadge = styled.span`
   position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ff3e3e;
+  top: -6px;
+  right: -6px;
+  background: #f56565;
   color: white;
   font-size: 10px;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 600;
+  border: 2px solid white;
 `;
 
 const findProductImage = (productName) => {
@@ -480,28 +588,30 @@ const formatProductLinks = (text) => {
       
       // Format with image and link that opens in new tab
       formattedText += `
-<div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
-  <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
+<div style="margin: 15px 0; padding: 15px; border-radius: 12px; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+  <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
     <img 
       src="${productImage}" 
       alt="${productName}" 
-      style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+      style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 8px; background: #f8fafc;" 
       onerror="this.onerror=null; this.src='${BACKEND_URL}/images/default-product.jpg';" 
     />
     <div style="flex: 1;">
-      <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">${productName}</div>
-      <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">${price}</div>
-      <div style="font-size: 14px; color: #666; line-height: 1.4;">${features.join(', ')}</div>
+      <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px; color: #2d3748;">${productName}</div>
+      <div style="font-weight: 600; font-size: 16px; margin-bottom: 6px; color: #667eea;">${price}</div>
+      <div style="font-size: 14px; color: #718096; line-height: 1.4;">${features.join(', ')}</div>
     </div>
   </div>
-  <div style="display: flex; gap: 10px; margin-top: 10px;">
+  <div style="display: flex; gap: 10px; margin-top: 12px;">
     <a 
       href="/product/${productId}" 
       target="_blank"
       rel="noopener noreferrer" 
-      style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+      style="color: #667eea; text-decoration: none; display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 20px; font-size: 14px; flex: 1; text-align: center; font-weight: 500; transition: all 0.2s ease;"
       data-product-id="${productId}"
       data-product-name="${productName.replace(/"/g, '&quot;')}"
+      onmouseover="this.style.background='linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)'"
+      onmouseout="this.style.background='linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)'"
     >
       View Details
     </a>
@@ -511,7 +621,9 @@ const formatProductLinks = (text) => {
       data-name="${productName.replace(/'/g, "\\'")}" 
       data-price="${price.replace(/[^\d.]/g, '')}" 
       data-image="${productImage}"
-      style="color: white; background: #000000; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+      style="color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; transition: all 0.2s ease;"
+      onmouseover="this.style.background='linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%)'; this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; this.style.transform='translateY(0)'"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
         <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
@@ -534,7 +646,7 @@ const CartSuccessMessage = styled.div`
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #000000;  // Changed from green to black
+  background: #28a745;
   color: white;
   padding: 10px 20px;
   border-radius: 4px;
@@ -878,24 +990,47 @@ const ChatInterface = () => {
                 />
               </Message>
             ))}
-            {isLoading && <Message>Thinking...</Message>}
+            {isLoading && (
+              <LoadingIndicator>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#667eea', 
+                  animation: 'pulse 1.5s ease-in-out infinite' 
+                }}></div>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#667eea', 
+                  animation: 'pulse 1.5s ease-in-out infinite 0.2s' 
+                }}></div>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#667eea', 
+                  animation: 'pulse 1.5s ease-in-out infinite 0.4s' 
+                }}></div>
+                <span style={{ marginLeft: '8px' }}>Thinking...</span>
+              </LoadingIndicator>
+            )}
             <div ref={messagesEndRef} />
           </MessageList>
-          <form onSubmit={handleSubmit} style={{ 
-            padding: '1rem', 
-            marginTop: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <MessageInput
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask about products..."
-            />
-            <SendButton type="submit">Send</SendButton>
-          </form>
+          <MessageInputContainer>
+            <MessageInputForm onSubmit={handleSubmit}>
+              <MessageInput
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Ask about products..."
+              />
+              <SendButton type="submit">
+                <FaPaperPlane />
+              </SendButton>
+            </MessageInputForm>
+          </MessageInputContainer>
         </div>
       </ChatPopup>
       

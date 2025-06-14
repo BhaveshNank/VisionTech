@@ -216,25 +216,25 @@ const SliderNavButton = styled.button`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
+  background: #000000;
+  border: none;
+  border-radius: 4px;
+  width: 45px;
+  height: 45px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  font-size: 1.2rem;
-  color: #000000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  font-size: 1.5rem;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 20;
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 1);
-    color: #000000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: #333333;
+    transform: translateY(-50%) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
   
   &:focus {
@@ -242,15 +242,32 @@ const SliderNavButton = styled.button`
   }
   
   &.prev {
-    left: -25px;
+    left: 15px;
   }
   
   &.next {
-    right: -25px;
+    right: 15px;
   }
   
   @media (max-width: 768px) {
-    display: none;
+    display: flex;
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+    
+    &.prev {
+      left: 10px;
+    }
+    
+    &.next {
+      right: 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
   }
 `;
 
@@ -831,6 +848,65 @@ const ArrowIcon = styled.span`
   
   ${EnquireButton}:hover & {
     transform: translateX(4px);
+  }
+`;
+
+// Gaming Banner Section - Separate from ROG Showcase
+const GamingBannerSection = styled.section`
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  background: linear-gradient(
+    90deg, 
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.9) 50%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  padding: 40px 60px;
+  text-align: center;
+  border-top: 3px solid rgba(124, 58, 237, 0.8);
+  border-bottom: 3px solid rgba(124, 58, 237, 0.8);
+  backdrop-filter: blur(2px);
+  
+  @media (max-width: 768px) {
+    padding: 30px 30px;
+  }
+`;
+
+const GamingMainText = styled.h1`
+  font-size: 4rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: linear-gradient(
+    45deg,
+    #ffffff 0%,
+    #a855f7 30%,
+    #06b6d4 60%,
+    #10b981 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
+  letter-spacing: 3px;
+  margin: 0;
+  line-height: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+    letter-spacing: 2px;
+  }
+`;
+
+const GamingSubText = styled.p`
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 10px 0 0 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
   }
 `;
 
@@ -2061,11 +2137,21 @@ const BenefitsSectionWrapper = styled.section`
 
 const BenefitsSection = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 30px;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 `;
 
 
@@ -2198,6 +2284,7 @@ const SectionDescription = styled.p`
   max-width: 800px;
   margin: 2rem auto 3rem;
   padding-bottom: 1rem;
+  text-align: center;
 `;
 
 const ProductsGrid = styled.div`
@@ -2897,6 +2984,12 @@ const Home = () => {
             </BenefitCard>
           </BenefitsSection>
         </BenefitsSectionWrapper>
+
+        {/* Gaming Banner Section */}
+        <GamingBannerSection>
+          <GamingMainText>Unleash Gaming Power</GamingMainText>
+          <GamingSubText>Performance Beyond Limits</GamingSubText>
+        </GamingBannerSection>
 
         {/* ROG Strix Gaming Showcase */}
         <OnePlusStyleShowcase>

@@ -168,7 +168,7 @@ const DisabledNavItem = styled.span`
 const SearchContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   position: relative;
   
   @media (max-width: 768px) {
@@ -185,11 +185,16 @@ const SearchForm = styled.form`
   border: 1px solid transparent;
   transition: all 0.3s ease;
   position: relative;
+  min-width: 300px;
   
   &:focus-within {
-    border-color: #e2e8f0;
+    border-color: #000000;
     background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (max-width: 1024px) {
+    min-width: 240px;
   }
   
   @media (max-width: 768px) {
@@ -211,6 +216,12 @@ const SearchSuggestionsDropdown = styled.div`
   overflow-y: auto;
   border: 1px solid #e5e7eb;
   display: ${props => props.show ? 'block' : 'none'};
+  width: 100%;
+  min-width: 280px;
+  
+  @media (max-width: 1024px) {
+    min-width: 220px;
+  }
 `;
 
 const SuggestionItem = styled.div`
@@ -277,7 +288,7 @@ const SearchInput = styled.input`
   background: transparent;
   outline: none;
   font-size: 0.9rem;
-  width: 200px;
+  width: 280px;
   
   &:focus {
     outline: none;
@@ -286,6 +297,10 @@ const SearchInput = styled.input`
   
   &::placeholder {
     color: #6c757d;
+  }
+  
+  @media (max-width: 1024px) {
+    width: 220px;
   }
 `;
 
@@ -297,6 +312,7 @@ const SearchButton = styled.button`
   padding: 0.25rem;
   display: flex;
   align-items: center;
+  transition: color 0.2s ease;
   
   &:hover {
     color: #000000;
@@ -307,18 +323,22 @@ const CartButton = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   background: #000000;
   color: white;
   border-radius: 50%;
   text-decoration: none;
   transition: all 0.3s ease;
   position: relative;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffffff;
+  font-size: 1.1rem;
   
   &:hover {
     background: #1a1a1a;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
   }
 `;
 
@@ -329,13 +349,15 @@ const CartCount = styled.span`
   background: #ff4757;
   color: white;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 // Mega Menu Styles

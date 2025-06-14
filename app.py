@@ -116,13 +116,13 @@ def generate_comparison_table(comparison_data):
     <div style="margin: 20px 0; overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 500px;">
             <thead>
-                <tr style="background: #007bff; color: white;">
-                    <th style="padding: 12px; text-align: left; border: 1px solid #0056b3; font-weight: 600; min-width: 120px;">Feature</th>
+                <tr style="background: #000000; color: white;">
+                    <th style="padding: 12px; text-align: left; border: 1px solid #333333; font-weight: 600; min-width: 120px;">Feature</th>
     """
     
     # Add product headers
     for product in products:
-        html += f'<th style="padding: 12px; text-align: left; border: 1px solid #0056b3; font-weight: 600;">{product}</th>\n'
+        html += f'<th style="padding: 12px; text-align: left; border: 1px solid #333333; font-weight: 600;">{product}</th>\n'
     
     html += """
                 </tr>
@@ -1272,7 +1272,7 @@ def send_followup_to_gemini(query_data):
                     href="/product/1-{product_id}" 
                     target="_blank"
                     rel="noopener noreferrer" 
-                    style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f7ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+                    style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
                     data-product-id="1-{product_id}"
                     data-product-name="{name.replace('"', '&quot;')}"
                     >
@@ -1352,7 +1352,7 @@ def send_followup_to_gemini(query_data):
                   href="/product/1-{product_id}" 
                   target="_blank"
                   rel="noopener noreferrer" 
-                  style="color: #007bff; text-decoration: none; display: inline-block; padding: 8px 12px; background: #e6f0ff; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+                  style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
                   data-product-id="1-{product_id}"
                   data-product-name="{name.replace('"', '&quot;')}"
                 >
