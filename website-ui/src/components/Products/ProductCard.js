@@ -29,17 +29,16 @@ const scaleIn = keyframes`
   }
 `;
 
-// Enhanced Card with Samsung/OnePlus clean styling
+// Simple clean card styling
 const Card = styled.div`
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
   height: 100%;
   position: relative;
-  border: 1px solid #f1f3f4;
-  animation: ${fadeIn} 0.5s ease-out;
+  border: 1px solid #e0e0e0;
   
   ${props => props.viewMode === 'list' ? css`
     display: flex;
@@ -48,30 +47,19 @@ const Card = styled.div`
     min-height: 200px;
     
     &:hover {
-      transform: translateX(4px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      border-color: #dadce0;
     }
   ` : css`
     display: flex;
     flex-direction: column;
     
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      border-color: #dadce0;
-      
-      .product-image img {
-        transform: scale(1.03);
-      }
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       
       .action-buttons {
         opacity: 1;
         transform: translateY(0);
-      }
-      
-      .quick-actions {
-        opacity: 1;
       }
     }
   `}
@@ -320,21 +308,21 @@ const ButtonContainer = styled.div`
   }
 `;
 
-// Samsung/OnePlus style buttons
+// Simple style buttons
 const ViewButton = styled(Link)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: ${props => props.viewMode === 'list' ? '10px 20px' : '10px 16px'};
+  gap: 6px;
+  padding: ${props => props.viewMode === 'list' ? '8px 16px' : '8px 12px'};
   background: transparent;
-  color: #1a73e8;
+  color: #666;
   text-decoration: none;
-  border: 1px solid #dadce0;
-  border-radius: 20px;
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
   text-align: center;
   white-space: nowrap;
   
@@ -345,9 +333,9 @@ const ViewButton = styled(Link)`
   `}
   
   &:hover {
-    background: #f8f9fa;
-    border-color: #1a73e8;
-    transform: translateY(-1px);
+    background: #f5f5f5;
+    border-color: #000;
+    color: #000;
   }
 `;
 
@@ -355,16 +343,16 @@ const CartButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: ${props => props.viewMode === 'list' ? '10px 20px' : '10px 16px'};
-  background: #1a73e8;
+  gap: 6px;
+  padding: ${props => props.viewMode === 'list' ? '8px 16px' : '8px 12px'};
+  background: #000;
   color: white;
   border: none;
-  border-radius: 20px;
-  font-weight: 500;
-  font-size: 0.875rem;
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease;
   white-space: nowrap;
   
   ${props => props.viewMode === 'list' ? css`
@@ -374,23 +362,16 @@ const CartButton = styled.button`
   `}
   
   &:hover {
-    background: #1557b0;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
+    background: #333;
   }
   
   &:disabled {
-    background: #f1f3f4;
-    color: #9aa0a6;
+    background: #ccc;
+    color: #666;
     cursor: not-allowed;
     
     &:hover {
-      transform: none;
-      box-shadow: none;
+      background: #ccc;
     }
   }
 `;

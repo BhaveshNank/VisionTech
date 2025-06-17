@@ -35,7 +35,7 @@ Session(app)
 
 # MongoDB Connection 
 client = MongoClient("mongodb://localhost:27017/")  # Connect to MongoDB
-db = client["ecommerce_db"]  # The database name
+db = client["vision_electronics"]  # The database name
 collection = db["products"]  # The collection in that database 
 
 
@@ -157,7 +157,11 @@ def test():
 @app.route('/images/<filename>')
 def serve_image(filename):
     """Serve images from the static/images directory"""
-    return send_from_directory('static/images', filename)  #  Securely serve images
+    response = make_response(send_from_directory('static/images', filename))
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+    response.headers['Access-Control-Allow-Methods'] = 'GET'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
@@ -1396,10 +1400,14 @@ def fetch_products_from_database():
         products_cursor = collection.find({}, {"_id": 0})
         structured_products = {}
 
-        # Short debug message
+        # Enhanced debug message
         print("🔍 Fetching products from database...")
+        all_docs = list(products_cursor)
+        print(f"📋 Found {len(all_docs)} documents in database")
+        for i, doc in enumerate(all_docs):
+            print(f"📄 Document {i+1}: category='{doc.get('category', 'NO CATEGORY')}', products={len(doc.get('products', []))}")
 
-        for doc in products_cursor:
+        for doc in all_docs:
             category = doc.get("category", "").strip().lower()
             
             if not category:
@@ -1448,9 +1456,15 @@ def fetch_products_from_database():
                         "image": image_url  # Use the full URL path
                     })
 
-        # Shorter summary debug
+        # Detailed summary debug
         product_counts = {cat: len(prods) for cat, prods in structured_products.items()}
         print(f"📦 Loaded products: {product_counts}")
+        
+        # Extra debug for gaming and audio
+        if 'gaming' in structured_products:
+            print(f"🎮 Gaming products: {[p['name'] for p in structured_products['gaming']]}")
+        if 'audio' in structured_products:
+            print(f"🔊 Audio products: {[p['name'] for p in structured_products['audio']]}")
         
         return structured_products
 

@@ -3,50 +3,178 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { fetchProducts } from '../utils/api';
 import ProductCard from '../components/Products/ProductCard';
-import { FaMobileAlt, FaLaptop, FaTv, FaList, FaFilter, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaMobileAlt, FaLaptop, FaTv, FaList, FaFilter, FaTimes, FaCheck, FaGamepad, FaHeadphones, FaSearch, FaSort, FaEye } from 'react-icons/fa';
 
 const PageContainer = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
+  background: #f8f9fa;
+  min-height: 100vh;
+  padding-top: 80px;
 `;
 
-const SidebarLayout = styled.div`
+
+
+
+
+
+
+const ContentWrapper = styled.div`
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1.5rem 16px 0;
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 12px 0;
+  }
+`;
+
+const FilterAndGridContainer = styled.div`
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 80px;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
   align-items: start;
-  margin-left: 0;
   
   @media (max-width: 1200px) {
-    grid-template-columns: 260px 1fr;
-    gap: 60px;
-    margin-left: 0;
+    grid-template-columns: 280px 1fr;
+    gap: 1.25rem;
   }
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 24px;
-    margin-left: 0;
+    gap: 1rem;
   }
 `;
 
-const MainContent = styled.div`
-  width: 100%;
-  min-width: 0; /* Prevents overflow */
+const ProductsSection = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  
+  @media (max-width: 768px) {
+    border-radius: 6px;
+    padding: 1rem;
+  }
 `;
 
 const ProductsHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
   
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+`;
+
+const ResultsInfo = styled.div`
+  .count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+`;
+
+const ControlsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const SearchBar = styled.div`
+  position: relative;
+  
+  input {
+    width: 250px;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    transition: border-color 0.2s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: #000;
+    }
+    
+    @media (max-width: 768px) {
+      width: 180px;
+    }
+  }
+  
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+  }
+`;
+
+const SortDropdown = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+  
+  &:focus {
+    outline: none;
+    border-color: #000;
+  }
+`;
+
+
+// Loading and Empty States
+const LoadingState = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 1.1rem;
+  color: #666;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 4rem 2rem;
+  
+  .icon {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    color: #666;
+    font-size: 1rem;
   }
 `;
 
@@ -161,89 +289,84 @@ const ViewButton = styled.button`
   }
 `;
 
-// Enhanced Sidebar
+// Clean Sidebar
 const Sidebar = styled.div`
-  background-color: white;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  padding: 1.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  align-self: start;
+  border: 1px solid #e0e0e0;
   position: sticky;
   top: 100px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-  width: 100%;
-  margin-left: 0;
+  height: fit-content;
   
   @media (max-width: 768px) {
     position: static;
-    display: ${props => props.isOpen ? 'block' : 'none'};
-    margin-bottom: 1.5rem;
-    margin-left: 0;
+    border-radius: 6px;
+    padding: 1rem;
   }
 `;
 
 const FilterSection = styled.div`
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 1.5rem;
   
   &:last-child {
     margin-bottom: 0;
-    border-bottom: none;
-    padding-bottom: 0;
   }
 `;
 
 const FilterTitle = styled.h3`
   font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
   color: #333;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-size: 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
 `;
 
-const CategoryList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+const CategoryList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
-const CategoryItem = styled.li`
+const CategoryItem = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  color: ${props => props.active ? '#000000' : '#666'};
-  font-weight: ${props => props.active ? '600' : 'normal'};
+  padding: 10px 12px;
   border-radius: 6px;
+  cursor: pointer;
   transition: all 0.2s ease;
-  position: relative;
+  background: ${props => props.active ? '#000' : 'transparent'};
+  color: ${props => props.active ? 'white' : '#666'};
+  margin-bottom: 4px;
   
   &:hover {
-    color: #000000;
-    background: rgba(0, 0, 0, 0.05);
-    padding-left: 0.5rem;
+    background: ${props => props.active ? '#000' : '#f5f5f5'};
   }
   
-  svg {
-    margin-right: 10px;
-    font-size: 1.1rem;
+  .category-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    svg {
+      font-size: 0.9rem;
+    }
+    
+    span {
+      font-weight: ${props => props.active ? '500' : '400'};
+      font-size: 0.9rem;
+    }
   }
-  
-  ${props => props.active && `
-    background: rgba(0, 0, 0, 0.1);
-    padding-left: 0.5rem;
-  `}
 `;
 
 const CategoryCount = styled.span`
-  background-color: ${props => props.active ? '#000000' : '#e9ecef'};
-  color: ${props => props.active ? 'white' : '#6c757d'};
+  background: ${props => props.active ? 'rgba(255, 255, 255, 0.2)' : '#f0f0f0'};
+  color: ${props => props.active ? 'white' : '#666'};
   font-size: 0.75rem;
   padding: 2px 6px;
   border-radius: 10px;
@@ -379,25 +502,20 @@ const PriceSeparator = styled.span`
 `;
 
 const ApplyButton = styled.button`
-  background: #1a73e8;
+  background: #000;
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
   width: 100%;
   margin-top: 8px;
   
   &:hover {
-    background-color: #1557b0;
-    transform: translateY(-1px);
-  }
-  
-  &:active {
-    transform: translateY(0);
+    background-color: #333;
   }
 `;
 
@@ -437,30 +555,25 @@ const FilterTagClose = styled.button`
 
 const ClearAllFilters = styled.button`
   background: #fff;
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  padding: 10px 16px;
-  border-radius: 6px;
-  margin-top: 1.5rem;
+  border: 1px solid #ccc;
+  color: #666;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 1rem;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 400;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   transition: all 0.2s ease;
-  gap: 6px;
+  gap: 4px;
   
   &:hover {
-    background-color: #dc3545;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(0);
+    background-color: #f5f5f5;
+    border-color: #000;
+    color: #000;
   }
 `;
 
@@ -556,6 +669,7 @@ const ProductsPage = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [availableBrands, setAvailableBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
   const productRefs = useRef({});
   
   // Extract parameters from URL
@@ -580,6 +694,7 @@ const ProductsPage = () => {
   useEffect(() => {
     const fetchAllProducts = async () => {
       try {
+        setLoading(true);
         const response = await fetch(`http://localhost:5001/api/products`);
         
         if (!response.ok) {
@@ -590,6 +705,8 @@ const ProductsPage = () => {
         setAllProducts(data);
       } catch (error) {
         console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -811,30 +928,33 @@ const ProductsPage = () => {
 
   return (
     <PageContainer>
-      <MobileFilterToggle onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}>
-        <FaFilter /> {isMobileFilterOpen ? 'Hide Filters' : 'Show Filters'}
-      </MobileFilterToggle>
-      
-      <SidebarLayout>
-        <Sidebar isOpen={isMobileFilterOpen}>
-          {/* Categories */}
-          <FilterSection>
-            <FilterTitle>Categories</FilterTitle>
-            <CategoryList>
-              <CategoryItem 
-                active={selectedCategory === 'all'} 
-                onClick={() => handleCategoryChange('all')}
-              >
-                <span><FaList /> All Products</span>
-                <CategoryCount active={selectedCategory === 'all'}>
-                  {allProducts.length}
-                </CategoryCount>
-              </CategoryItem>
+      <ContentWrapper>
+        <FilterAndGridContainer>
+          <Sidebar>
+            {/* Categories */}
+            <FilterSection>
+              <FilterTitle>Categories</FilterTitle>
+              <CategoryList>
+                <CategoryItem 
+                  active={selectedCategory === 'all'} 
+                  onClick={() => handleCategoryChange('all')}
+                >
+                  <div className="category-content">
+                    <FaList />
+                    <span>All Products</span>
+                  </div>
+                  <CategoryCount active={selectedCategory === 'all'}>
+                    {allProducts.length}
+                  </CategoryCount>
+                </CategoryItem>
               <CategoryItem 
                 active={selectedCategory === 'phone'} 
                 onClick={() => handleCategoryChange('phone')}
               >
-                <span><FaMobileAlt /> Phones</span>
+                <div className="category-content">
+                  <FaMobileAlt />
+                  <span>Phones</span>
+                </div>
                 <CategoryCount active={selectedCategory === 'phone'}>
                   {allProducts.filter(p => p.category === 'phone').length}
                 </CategoryCount>
@@ -843,7 +963,10 @@ const ProductsPage = () => {
                 active={selectedCategory === 'laptop'} 
                 onClick={() => handleCategoryChange('laptop')}
               >
-                <span><FaLaptop /> Laptops</span>
+                <div className="category-content">
+                  <FaLaptop />
+                  <span>Laptops</span>
+                </div>
                 <CategoryCount active={selectedCategory === 'laptop'}>
                   {allProducts.filter(p => p.category === 'laptop').length}
                 </CategoryCount>
@@ -852,9 +975,36 @@ const ProductsPage = () => {
                 active={selectedCategory === 'tv'} 
                 onClick={() => handleCategoryChange('tv')}
               >
-                <span><FaTv /> TVs</span>
+                <div className="category-content">
+                  <FaTv />
+                  <span>TVs & Monitors</span>
+                </div>
                 <CategoryCount active={selectedCategory === 'tv'}>
                   {allProducts.filter(p => p.category === 'tv').length}
+                </CategoryCount>
+              </CategoryItem>
+              <CategoryItem 
+                active={selectedCategory === 'gaming'} 
+                onClick={() => handleCategoryChange('gaming')}
+              >
+                <div className="category-content">
+                  <FaGamepad />
+                  <span>Gaming</span>
+                </div>
+                <CategoryCount active={selectedCategory === 'gaming'}>
+                  {allProducts.filter(p => p.category === 'gaming').length}
+                </CategoryCount>
+              </CategoryItem>
+              <CategoryItem 
+                active={selectedCategory === 'audio'} 
+                onClick={() => handleCategoryChange('audio')}
+              >
+                <div className="category-content">
+                  <FaHeadphones />
+                  <span>Audio</span>
+                </div>
+                <CategoryCount active={selectedCategory === 'audio'}>
+                  {allProducts.filter(p => p.category === 'audio').length}
                 </CategoryCount>
               </CategoryItem>
             </CategoryList>
@@ -917,37 +1067,35 @@ const ProductsPage = () => {
           )}
         </Sidebar>
         
-        <MainContent>
+        <ProductsSection>
           <ProductsHeader>
-            <HeaderLeft>
-              {searchQuery && <PageTitle>{getPageTitle()}</PageTitle>}
-              <ResultsCount>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-              </ResultsCount>
-            </HeaderLeft>
+            <ResultsInfo>
+              <div className="count">{filteredProducts.length} Products</div>
+              <div className="subtitle">
+                {selectedCategory === 'all' ? 'All Categories' : selectedCategory}
+              </div>
+            </ResultsInfo>
             
-            <HeaderRight>
-              <SortSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <ControlsRow>
+              <SearchBar>
+                <FaSearch className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchBar>
+              
+              <SortDropdown
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
                 <option value="name">Sort by Name</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
-              </SortSelect>
-              
-              <ViewToggle>
-                <ViewButton 
-                  active={viewMode === 'grid'} 
-                  onClick={() => setViewMode('grid')}
-                >
-                  Grid
-                </ViewButton>
-                <ViewButton 
-                  active={viewMode === 'list'} 
-                  onClick={() => setViewMode('list')}
-                >
-                  List
-                </ViewButton>
-              </ViewToggle>
-            </HeaderRight>
+              </SortDropdown>
+            </ControlsRow>
           </ProductsHeader>
           
           {/* Active Filters */}
@@ -964,36 +1112,33 @@ const ProductsPage = () => {
             </ActiveFilters>
           )}
           
-          {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
-            <NoResultsMessage>
-              <h2>No products found</h2>
-              <p>Try adjusting your search criteria or filters.</p>
-              <button onClick={clearAllFilters}>Clear All Filters</button>
-            </NoResultsMessage>
+          {/* Products Grid or Loading/Empty State */}
+          {loading ? (
+            <LoadingState>Loading amazing products...</LoadingState>
+          ) : filteredProducts.length === 0 ? (
+            <EmptyState>
+              <div className="icon">📱</div>
+              <h3>No products found</h3>
+              <p>Try adjusting your search or filter criteria</p>
+            </EmptyState>
           ) : (
-            <ProductGrid viewMode={viewMode}>
+            <ProductGrid>
               {filteredProducts.map(product => {
                 const productId = product.id || `${product.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
                 
                 return (
                   <ProductCard
                     key={productId}
-                    ref={el => {
-                      if (el) {
-                        productRefs.current[productId] = el;
-                      }
-                    }}
                     product={product}
-                    viewMode={viewMode}
                   />
                 );
               })}
             </ProductGrid>
           )}
-        </MainContent>
-      </SidebarLayout>
-    </PageContainer>
+        </ProductsSection>
+      </FilterAndGridContainer>
+    </ContentWrapper>
+  </PageContainer>
   );
 };
 

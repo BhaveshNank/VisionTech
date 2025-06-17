@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { sendMessageToChatbot, generateConsistentProductId } from '../utils/api';
-import { FaExpand, FaCompress, FaTimes, FaCommentAlt, FaShoppingCart, FaPaperPlane } from 'react-icons/fa';
+import { sendMessageToChatbot } from '../utils/api';
+import { FaExpand, FaCompress, FaTimes, FaShoppingCart, FaPaperPlane } from 'react-icons/fa';
 import eventSystem from '../utils/events';
 import { useCart } from '../context/CartContext';
 
 // Define backend URL at the top of your file for consistency
 const BACKEND_URL = "http://localhost:5001";
 
-const ChatContainer = styled.div`
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-`;
+// Removed unused ChatContainer
 
 const ChatButton = styled.button`
   position: fixed;
@@ -715,46 +709,7 @@ const generateProductId = (name, category = '') => {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   
-  // Add category if provided
-  if (category) {
-    return `1-${nameSlug}-${category}`;
-  }
-  
-  // Detect category from name
-  const categories = ['phone', 'laptop', 'tv'];
-  for (const cat of categories) {
-    if (name.toLowerCase().includes(cat)) {
-      return `1-${nameSlug}-${cat}`;
-    }
-  }
-  
-  // Default with no category
-  return `1-${nameSlug}`;
-};
-
-const generateChatProductId = (productName, category) => {
-  if (!productName) return '1-unknown-product';
-  
-  // Clean up the name for URL usage
-  const nameSlug = productName.toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-+/g, '-');
-  
-  // Detect category from name if not provided
-  const detectedCategory = category || detectCategory(productName);
-  
-  // Create formatted product ID
-  return `1-${nameSlug}${detectedCategory ? `-${detectedCategory}` : ''}`;
-};
-
-// Helper to detect category from name
-const detectCategory = (name) => {
-  name = name.toLowerCase();
-  if (name.includes('phone') || name.includes('iphone') || name.includes('galaxy')) return 'phone';
-  if (name.includes('laptop') || name.includes('macbook') || name.includes('notebook')) return 'laptop';
-  if (name.includes('tv') || name.includes('television') || name.includes('smart tv')) return 'tv';
-  return '';
+  return nameSlug;
 };
 
 const formatProductLinks = (text) => {
@@ -785,7 +740,7 @@ const formatProductLinks = (text) => {
       const price = priceMatch ? priceMatch[0] : "Price unavailable";
       
       // Generate a product ID for routing that's more compatible
-      const productId = generateChatProductId(productName);
+      const productId = generateProductId(productName);
       
       // Find a product image
       const productImage = findProductImage(productName);

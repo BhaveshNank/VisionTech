@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaShoppingCart, FaSearch, FaChevronDown } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 
 const NavbarContainer = styled.nav`
@@ -94,6 +94,7 @@ const NavLink = styled(Link)`
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
   
   &:hover {
     color: #000000;
@@ -127,6 +128,7 @@ const MegaMenuNavLink = styled.div`
   align-items: center;
   gap: 0.25rem;
   cursor: pointer;
+  white-space: nowrap;
   
   &:hover {
     color: #000000;
@@ -146,24 +148,16 @@ const MegaMenuNavLink = styled.div`
   &:hover:after {
     width: 100%;
   }
-`;
-
-
-
-const DisabledNavItem = styled.span`
-  text-decoration: none;
-  color: #adb5bd;
-  font-size: 1rem;
-  font-weight: 500;
-  position: relative;
-  padding: 0.5rem 0;
-  cursor: not-allowed;
-  opacity: 0.6;
   
-  &:hover {
-    color: #adb5bd;
+  /* Support for when used as Link component */
+  &.nav-link {
+    text-decoration: none;
   }
 `;
+
+
+
+// Removed unused DisabledNavItem
 
 const SearchContainer = styled.div`
   display: flex;
@@ -404,11 +398,11 @@ const LatestSection = styled.div`
 
 const LatestGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 200px));
   gap: 1.5rem;
   
   @media (max-width: 968px) {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 180px));
     gap: 1rem;
   }
 `;
@@ -539,8 +533,8 @@ const ProductImage = styled.div`
   overflow: hidden;
   
   img {
-    max-width: 80%;
-    max-height: 80%;
+    width: 70%;
+    height: 70%;
     object-fit: contain;
     transition: transform 0.3s ease;
   }
@@ -646,13 +640,19 @@ const Navbar = () => {
             return 'Other';
           }).filter(brand => brand !== 'Other'))].sort();
 
-          // Get latest phones (first 6)
-          const latestPhones = phones.slice(0, 6);
+          // Get latest phones (first 6) and update image paths to use local images
+          const latestPhones = phones.slice(0, 6).map(phone => ({
+            ...phone,
+            image: phone.name.toLowerCase().includes('iphone') && phone.name.toLowerCase().includes('16') && phone.name.toLowerCase().includes('pro') 
+              ? '/images/iphone_16_pro_max.jpg'
+              : phone.image
+          }));
 
           setPhoneData({
             brands: uniqueBrands,
             latestPhones: latestPhones
           });
+          
         }
       } catch (error) {
         console.error('Error fetching phone data:', error);
@@ -947,6 +947,9 @@ const Navbar = () => {
         setHighlightedIndex(-1);
         searchInputRef.current?.blur();
         break;
+      default:
+        // Do nothing for other keys
+        break;
     }
   };
 
@@ -1129,7 +1132,7 @@ const Navbar = () => {
             onMouseEnter={handleStoreMegaMenuEnter}
             onMouseLeave={handleStoreMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products">
               Store
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1139,7 +1142,7 @@ const Navbar = () => {
             onMouseEnter={handlePhoneMegaMenuEnter}
             onMouseLeave={handlePhoneMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products?category=phone">
               Phone
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1149,7 +1152,7 @@ const Navbar = () => {
             onMouseEnter={handleLaptopMegaMenuEnter}
             onMouseLeave={handleLaptopMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products?category=laptop">
               Laptop
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1159,7 +1162,7 @@ const Navbar = () => {
             onMouseEnter={handleTvMegaMenuEnter}
             onMouseLeave={handleTvMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products?category=tv">
               TV & Monitors
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1169,7 +1172,7 @@ const Navbar = () => {
             onMouseEnter={handleGamingMegaMenuEnter}
             onMouseLeave={handleGamingMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products?category=gaming">
               Gaming
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1179,7 +1182,7 @@ const Navbar = () => {
             onMouseEnter={handleAudioMegaMenuEnter}
             onMouseLeave={handleAudioMegaMenuLeave}
           >
-            <MegaMenuNavLink>
+            <MegaMenuNavLink as={Link} to="/products?category=audio">
               Audio
             </MegaMenuNavLink>
           </NavItemContainer>
@@ -1367,10 +1370,10 @@ const Navbar = () => {
               <CategoryCard to="/products?category=phone">
                 <CategoryImage>
                   <img 
-                    src={phoneData.latestPhones[0]?.image || 'https://via.placeholder.com/120x120?text=📱'}
+                    src="http://localhost:5001/images/google_pixel_9_pro.jpg"
                     alt="Phones"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/120x120?text=📱';
+                      e.target.src = phoneData.latestPhones[0]?.image || 'https://via.placeholder.com/120x120?text=📱';
                     }}
                   />
                 </CategoryImage>

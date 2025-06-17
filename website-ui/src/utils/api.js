@@ -10,7 +10,7 @@ async function fetchProducts(category = 'all', brand = '') {
         }
         
         // Make request
-        const response = await fetch(`/api/products?${params.toString()}`);
+        const response = await fetch(`http://localhost:5001/api/products?${params.toString()}`);
         
         if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -151,7 +151,7 @@ function getMatchScore(productName, searchName) {
 }
 
 function sendInquiry(data) {
-    return fetch('/api/inquiry', {
+    return fetch('http://localhost:5001/api/inquiry', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

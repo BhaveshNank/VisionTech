@@ -80,7 +80,7 @@ const PhoneCard = styled.div`
   max-width: 280px; /* Set maximum width */
   display: flex;
   flex-direction: column;
-  height: 500px; /* Fixed height for consistent alignment */
+  height: 580px; /* Increased height for better text visibility */
   
   &:hover {
     transform: translateY(-4px);
@@ -92,7 +92,7 @@ const PhoneCard = styled.div`
     margin-right: 16px;
     min-width: 280px;
     max-width: 320px;
-    height: 520px;
+    height: 600px;
   }
   
   @media (max-width: 480px) {
@@ -855,16 +855,9 @@ const ArrowIcon = styled.span`
 const GamingBannerSection = styled.section`
   width: 100vw;
   margin-left: calc(-50vw + 50%);
-  background: linear-gradient(
-    90deg, 
-    rgba(0, 0, 0, 0.95) 0%,
-    rgba(0, 0, 0, 0.9) 50%,
-    rgba(0, 0, 0, 0.95) 100%
-  );
+  background: #000000;
   padding: 40px 60px;
   text-align: center;
-  border-top: 3px solid rgba(124, 58, 237, 0.8);
-  border-bottom: 3px solid rgba(124, 58, 237, 0.8);
   backdrop-filter: blur(2px);
   
   @media (max-width: 768px) {
@@ -1658,11 +1651,11 @@ const StoryIndicatorFill = styled.div`
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
   transform-origin: left;
   
-  ${props => props.active && !props.isPaused && `
-    animation: storyProgressFill 5s linear;
+  ${props => props.active && !props.isPaused && css`
+    animation: ${storyProgressFill} 5s linear;
   `}
   
-  ${props => props.isPaused && `
+  ${props => props.isPaused && css`
     animation-play-state: paused;
   `}
 `;
@@ -1686,14 +1679,14 @@ const StoryProgressBars = styled.div`
 const StoryProgressBar = styled.div`
   width: 80px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  background: ${props => props.isLightSlide ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)'};
   border-radius: 1px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: ${props => props.isLightSlide ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)'};
     transform: scaleY(1.5);
   }
   
@@ -1713,15 +1706,19 @@ const StoryProgressFill = styled.div`
     return '0%'; // Future slides
   }};
   height: 100%;
-  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.95) 100%);
+  background: ${props => props.isLightSlide 
+    ? 'linear-gradient(90deg, #000000 0%, rgba(0, 0, 0, 0.95) 100%)'
+    : 'linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.95) 100%)'};
   border-radius: 1px;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  box-shadow: ${props => props.isLightSlide 
+    ? '0 0 4px rgba(0, 0, 0, 0.3)' 
+    : '0 0 4px rgba(255, 255, 255, 0.3)'};
   
-  ${props => props.slideIndex === props.currentSlide && !props.isPaused && `
-    animation: storyProgressFill 5s linear forwards;
+  ${props => props.slideIndex === props.currentSlide && !props.isPaused && css`
+    animation: ${storyProgressFill} 5s linear forwards;
   `}
   
-  ${props => props.isPaused && props.slideIndex === props.currentSlide && `
+  ${props => props.isPaused && props.slideIndex === props.currentSlide && css`
     animation-play-state: paused;
   `}
   
@@ -1852,7 +1849,7 @@ const Title = styled.h1`
   color: #1a202c;
   font-weight: 800;
   margin-bottom: 1rem;
-  animation: ${fadeIn} 1s ease-out;
+  ${css`animation: ${fadeIn} 1s ease-out;`}
   
   @media (max-width: 768px) {
     font-size: 2.5rem;
@@ -1866,7 +1863,7 @@ const Subtitle = styled.p`
   max-width: 700px;
   margin-left: auto;
   margin-right: auto;
-  animation: ${fadeIn} 1s ease-out;
+  ${css`animation: ${fadeIn} 1s ease-out;`}
   line-height: 1.8;
 `;
 
@@ -1874,7 +1871,7 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 20px;
-  animation: ${fadeIn} 1s ease-out;
+  ${css`animation: ${fadeIn} 1s ease-out;`}
   
   @media (max-width: 600px) {
     flex-direction: column;
@@ -2575,8 +2572,8 @@ const Home = () => {
       priceFrom: "From £1,149.00",
       originalPrice: "£1,299.00",
       description: "Next-gen Galaxy AI is here. Transform your mobile experience with advanced AI features.",
-      image: "http://localhost:5001/images/samsung_s24_ultra.jpg",
-      link: "/product/1-samsung-galaxy-s25-ultra-phone"
+      image: "http://localhost:5001/images/samsungs25ultra.jpg",
+      link: "/product/samsung-galaxy-s25-ultra"
     },
     {
       id: 3,
@@ -2605,7 +2602,7 @@ const Home = () => {
       priceFrom: "From £849.00",
       originalPrice: "£999.00",
       description: "Ultra-slim design meets powerful performance. Perfect for work and entertainment.",
-      image: "/images/lenovo_gaming_laptop.jpg",
+      image: "/images/lenovo_yoga_slim_6.jpg",
       link: "/product/1-lenovo-yoga-slim-laptop"
     }
   ];
@@ -2843,25 +2840,31 @@ const Home = () => {
           
           {/* Bottom Story Progress Bars (Samsung style) */}
           <StoryProgressBars>
-            <StoryProgressBar onClick={() => goToSlide(0)}>
+            <StoryProgressBar onClick={() => goToSlide(0)} isLightSlide={currentSlide === 2}>
               <StoryProgressFill 
+                key={`progress-0-${currentSlide}`}
                 slideIndex={0} 
                 currentSlide={currentSlide} 
                 isPaused={isPaused} 
+                isLightSlide={currentSlide === 2}
               />
             </StoryProgressBar>
-            <StoryProgressBar onClick={() => goToSlide(1)}>
+            <StoryProgressBar onClick={() => goToSlide(1)} isLightSlide={currentSlide === 2}>
               <StoryProgressFill 
+                key={`progress-1-${currentSlide}`}
                 slideIndex={1} 
                 currentSlide={currentSlide} 
                 isPaused={isPaused} 
+                isLightSlide={currentSlide === 2}
               />
             </StoryProgressBar>
-            <StoryProgressBar onClick={() => goToSlide(2)}>
+            <StoryProgressBar onClick={() => goToSlide(2)} isLightSlide={currentSlide === 2}>
               <StoryProgressFill 
+                key={`progress-2-${currentSlide}`}
                 slideIndex={2} 
                 currentSlide={currentSlide} 
                 isPaused={isPaused} 
+                isLightSlide={currentSlide === 2}
               />
             </StoryProgressBar>
           </StoryProgressBars>
