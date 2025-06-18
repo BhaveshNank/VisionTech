@@ -16,7 +16,8 @@ import requests
 import json
 
 # Replace this with your actual Gemini API key
-API_KEY = "GEMINI_KEY_HERE"
+import os
+API_KEY = os.getenv('GEMINI_API_KEY')
 
 # Gemini API endpoint
 ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"

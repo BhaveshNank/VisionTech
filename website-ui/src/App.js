@@ -13,6 +13,7 @@ import './styles/main.css';
 import Contact from './pages/Contact';
 import { CartProvider } from './context/CartContext';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 
 // App container styles
 const AppContainer = styled.div`
@@ -137,12 +138,35 @@ export const Sidebar = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   align-self: start;
   position: sticky;
-  top: 20px;
+  top: 100px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
   
   @media (max-width: 768px) {
     position: static;
     display: ${props => props.isOpen ? 'block' : 'none'};
     margin-bottom: 1.5rem;
+    max-height: 70vh;
   }
 `;
 
@@ -188,6 +212,7 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
             </Routes>
           </ContentContainer>
           <ChatInterface />

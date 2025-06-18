@@ -538,6 +538,16 @@ const GalaxyTabImage = styled.img`
   background: #000000;
 `;
 
+// Specific styling for Samsung slide image to reduce black borders
+const SamsungTabImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  background: #000000;
+  transform: scale(1.1);
+`;
+
 const GalaxyTabButtonContainer = styled.div`
   display: flex;
   gap: 1rem;
@@ -947,30 +957,6 @@ const FeaturedCard = styled.div`
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid #f0f0f0;
-  
-  &:before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 300px;
-    height: 300px;
-    background: linear-gradient(135deg, #1a73e8, #4285f4);
-    border-radius: 50%;
-    opacity: 0.1;
-  }
-  
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: -30%;
-    left: -10%;
-    width: 200px;
-    height: 200px;
-    background: linear-gradient(135deg, #34a853, #1ea362);
-    border-radius: 50%;
-    opacity: 0.08;
-  }
   
   @media (max-width: 768px) {
     padding: 32px;
@@ -2559,8 +2545,8 @@ const Home = () => {
       id: 1,
       tagline: "Flagship Performance",
       name: "iPhone 16 Pro Max",
-      priceFrom: "From £1,199.00",
-      originalPrice: "£1,299.00",
+      priceFrom: "From $1,199.00",
+      originalPrice: "$1,299.00",
       description: "Experience the ultimate in mobile technology with A17 Pro chip and titanium design.",
       image: "http://localhost:5001/images/iphone_16_pro_max.jpg",
       link: "/product/1-iphone-16-pro-max-phone"
@@ -2569,8 +2555,8 @@ const Home = () => {
       id: 2,
       tagline: "AI Revolution",
       name: "Samsung Galaxy S25 Ultra",
-      priceFrom: "From £1,149.00",
-      originalPrice: "£1,299.00",
+      priceFrom: "From $1,149.00",
+      originalPrice: "$1,299.00",
       description: "Next-gen Galaxy AI is here. Transform your mobile experience with advanced AI features.",
       image: "http://localhost:5001/images/samsungs25ultra.jpg",
       link: "/product/samsung-galaxy-s25-ultra"
@@ -2579,8 +2565,8 @@ const Home = () => {
       id: 3,
       tagline: "Pure Android Experience",
       name: "Google Pixel 9 Pro XL",
-      priceFrom: "From £999.00",
-      originalPrice: "£1,099.00",
+      priceFrom: "From $999.00",
+      originalPrice: "$1,099.00",
       description: "The most helpful Pixel yet, with advanced AI and the best Pixel camera system.",
       image: "http://localhost:5001/images/googlepixel9proxl.jpg",
       link: "/product/1-google-pixel-9-pro-xl-phone"
@@ -2589,8 +2575,8 @@ const Home = () => {
       id: 4,
       tagline: "Professional Power",
       name: "MacBook M4 Pro",
-      priceFrom: "From £1,999.00",
-      originalPrice: "£2,199.00",
+      priceFrom: "From $1,999.00",
+      originalPrice: "$2,199.00",
       description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
       image: "http://localhost:5001/images/macbook_m4_pro.jpg",
       link: "/product/1-macbook-m4-pro-laptop"
@@ -2599,8 +2585,8 @@ const Home = () => {
       id: 5,
       tagline: "Slim & Powerful",
       name: "Lenovo Yoga Slim",
-      priceFrom: "From £849.00",
-      originalPrice: "£999.00",
+      priceFrom: "From $849.00",
+      originalPrice: "$999.00",
       description: "Ultra-slim design meets powerful performance. Perfect for work and entertainment.",
       image: "/images/lenovo_yoga_slim_6.jpg",
       link: "/product/1-lenovo-yoga-slim-laptop"
@@ -2611,11 +2597,11 @@ const Home = () => {
   const featuredOffer = {
     id: 1,
     name: 'MacBook Pro M4',
-    subtitle: 'Professional Performance Unleashed',
-    originalPrice: '£2,399',
-    salePrice: '£1,999',
-    savings: 'Save £400',
-    offer: 'Limited Time Offer',
+    subtitle: '10% Student Discount',
+    originalPrice: '$2,399',
+    salePrice: '$2,159',
+    savings: 'Save $240',
+    offer: 'Student Discount Available',
     image: 'http://localhost:5001/images/macbook_m4_pro.jpg'
   };
 
@@ -2623,7 +2609,7 @@ const Home = () => {
     {
       id: 2,
       name: 'iPhone 16 Pro',
-      offer: 'Trade-in deals up to £800 off',
+      offer: 'Trade-in deals up to $800 off',
       image: '/images/iphone_16_pro_max.jpg',
       bgColor: '#f8f9fa'
     },
@@ -2644,8 +2630,8 @@ const Home = () => {
     {
       id: 5,
       name: 'ASUS ROG Laptop',
-      offer: 'Gaming bundle worth £300 included',
-      image: '/images/rogstrix.jpg',
+      offer: 'Gaming bundle worth $300 included',
+      image: '/images/asus_rog_strix_g16.jpg',
       bgColor: '#fef0f0'
     }
   ];
@@ -2703,7 +2689,7 @@ const Home = () => {
                 stunning display, and all-day battery life.
               </GalaxyTabSubtitle>
               <GalaxyTabButtonContainer>
-                <GalaxyTabBuyButton to="/products?search=galaxy%20tab">
+                <GalaxyTabBuyButton to="/products">
                   Buy Now
                 </GalaxyTabBuyButton>
                 <GalaxyTabLearnButton onClick={handleGalaxyTabLearnMore}>
@@ -2740,7 +2726,7 @@ const Home = () => {
                       stunning display, and all-day battery life.
                     </GalaxyTabSubtitle>
                     <GalaxyTabButtonContainer>
-                      <GalaxyTabBuyButton to="/products?search=galaxy%20tab">
+                      <GalaxyTabBuyButton to="/products">
                         Buy Now
                       </GalaxyTabBuyButton>
                       <GalaxyTabLearnButton onClick={handleGalaxyTabLearnMore}>
@@ -2784,27 +2770,27 @@ const Home = () => {
               </GalaxyTabShowcaseSection>
             </CarouselSlide>
             
-            {/* SLIDE 3: Google Pixel */}
+            {/* SLIDE 3: Samsung Galaxy */}
             <CarouselSlide>
               <GalaxyTabShowcaseSection>
                 <GalaxyTabImageContainer>
-                  <GalaxyTabImage 
+                  <SamsungTabImage 
                     src="/images/googlepixelad.jpg"
-                    alt="Google Pixel"
+                    alt="Samsung Galaxy"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/1400x600?text=Google+Pixel';
+                      e.target.src = 'https://via.placeholder.com/1400x600?text=Samsung+Galaxy';
                     }}
                   />
                   <GalaxyTabOverlay />
                   <GalaxyTabContentContainer>
-                    <GalaxyTabTagline>Google Pixel 9 Pro</GalaxyTabTagline>
-                    <GalaxyTabTitle>AI-Powered Excellence</GalaxyTabTitle>
+                    <GalaxyTabTagline>Samsung Galaxy S25 Ultra</GalaxyTabTagline>
+                    <GalaxyTabTitle>Galaxy AI Revolution</GalaxyTabTitle>
                     <GalaxyTabSubtitle>
-                      Experience pure Android with advanced AI features, incredible camera capabilities, 
-                      and seamless Google integration.
+                      Experience the next generation of mobile innovation with Galaxy AI, 
+                      advanced S Pen capabilities, and professional-grade cameras.
                     </GalaxyTabSubtitle>
                     <GalaxyTabButtonContainer>
-                      <GalaxyTabBuyButton to="/product/1-google-pixel-9-pro-xl-phone">
+                      <GalaxyTabBuyButton to="/product/samsung-galaxy-s25-ultra">
                         Buy Now
                       </GalaxyTabBuyButton>
                       <GalaxyTabLearnButton onClick={handleGalaxyTabLearnMore}>
@@ -3002,7 +2988,7 @@ const Home = () => {
                 <FaShippingFast />
               </BenefitIcon>
               <BenefitTitle>Free Delivery</BenefitTitle>
-              <BenefitText>Fast shipping on orders over £75</BenefitText>
+              <BenefitText>Fast shipping on orders over $75</BenefitText>
               <LearnMoreLink>Learn more</LearnMoreLink>
             </BenefitCard>
             

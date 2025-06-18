@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 
 const FooterContainer = styled.footer`
-  background-color: #1a202c; /* Darker background for modern look */
+  background-color: #000000; /* Black background to match website theme */
   color: #e2e8f0;
   padding: 3rem 1.5rem 1.5rem; /* More top padding */
 `;
@@ -85,7 +85,7 @@ const SocialIcon = styled.a`
 `;
 
 const Divider = styled.div`
-  border-top: 1px solid #2d3748;
+  border-top: 1px solid #333333;
   margin: 1.5rem 0;
   width: 100%;
 `;
@@ -135,13 +135,13 @@ const EmailInput = styled.input`
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 4px 0 0 4px;
-  background-color: #2d3748;
+  background-color: #1a1a1a;
   color: white;
   flex-grow: 1;
   
   &:focus {
     outline: none;
-    background-color: #353f50;
+    background-color: #2a2a2a;
   }
   
   &::placeholder {

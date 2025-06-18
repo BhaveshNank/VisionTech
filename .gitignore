@@ -1,0 +1,81 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Flask
+instance/
+.webassets-cache
+.flask_session/
+
+# Logs
+*.log
+logs/
+flask_new.log
+
+# Database
+*.db
+*.sqlite3
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules (for React app)
+node_modules/
+website-ui/node_modules/
+website-ui/.cache/
+
+# Build files
+website-ui/build/
+
+# Vercel
+.vercel
+
+# JSON data files (if they contain sensitive data)
+users.json
+orders.json
+products.json
+
+# API keys and secrets (backup protection)
+**/config/keys.js
+**/config/keys.json
+**/*secret*
+**/*key*
+**/*token*

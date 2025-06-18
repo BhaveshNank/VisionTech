@@ -9,6 +9,10 @@ import json
 import os
 from flask_session import Session
 from flask import send_from_directory
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 #  Configure Flask Session
@@ -22,8 +26,9 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevents strict blocking
 app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for local HTTP (set True for HTTPS)
 
 #  Apply CORS with proper settings
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 CORS(app, 
-     resources={r"/*": {"origins": "http://localhost:3000"}}, 
+     resources={r"/*": {"origins": ALLOWED_ORIGINS}}, 
      supports_credentials=True,
      expose_headers=["Content-Type", "Authorization"],
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
@@ -34,13 +39,14 @@ CORS(app,
 Session(app)
 
 # MongoDB Connection 
-client = MongoClient("mongodb://localhost:27017/")  # Connect to MongoDB
-db = client["vision_electronics"]  # The database name
+MONGODB_URI = os.getenv('MONGODB_URI')
+client = MongoClient(MONGODB_URI, tlsAllowInvalidCertificates=True)  # Connect to MongoDB Atlas with SSL bypass for development
+db = client["ecommerce_db"]  # The database name
 collection = db["products"]  # The collection in that database 
 
 
 # Google Gemini API Setup
-api_key = "GEMINI_KEY_HERE"
+api_key = os.getenv('GEMINI_API_KEY')
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={api_key}"
 
 
@@ -597,7 +603,46 @@ def api_products():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-    
+
+
+@app.route('/api/product/<product_id>', methods=['GET'])
+def api_product_by_id(product_id):
+    """
+    Get a single product by its ID
+    """
+    try:
+        print(f"🔍 Looking for product with ID: {product_id}")
+        
+        # Fetch all products from database
+        structured_products = fetch_products_from_database()
+        
+        if not structured_products:
+            return jsonify({"error": "No products found"}), 404
+        
+        # Search through all categories for the product with matching ID
+        for category, products in structured_products.items():
+            for i, product in enumerate(products):
+                # Generate ID the same way as in /api/products
+                name_slug = re.sub(r'[^a-z0-9]', '-', product['name'].lower())
+                name_slug = name_slug.strip('-')
+                name_slug = re.sub(r'-+', '-', name_slug)
+                generated_id = f"{i+1}-{name_slug}"
+                
+                if generated_id == product_id:
+                    # Add category and ID to the product
+                    product['category'] = category
+                    product['id'] = generated_id
+                    print(f"✅ Found product: {product['name']}")
+                    return jsonify(product)
+        
+        print(f"❌ Product not found with ID: {product_id}")
+        return jsonify({"error": "Product not found"}), 404
+        
+    except Exception as e:
+        print(f"❌ Error in /api/product/{product_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 
@@ -1442,10 +1487,13 @@ def fetch_products_from_database():
                     # Create full image URL - use the image from database
                     image_url = None
                     if product_image:
-                        image_url = f"http://localhost:5001/images/{product_image}"
+                        # Use environment variable for base URL or fallback to localhost
+                        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+                        image_url = f"{base_url}/images/{product_image}"
                     else:
                         # If no image in database, create a generic name based on brand and product
-                        image_url = f"http://localhost:5001/images/default-product.jpg"
+                        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+                        image_url = f"{base_url}/images/default-product.jpg"
                     
                     # Add to structured products
                     structured_products[category].append({

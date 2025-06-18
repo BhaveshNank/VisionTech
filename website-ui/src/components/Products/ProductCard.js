@@ -523,10 +523,10 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
                     <ProductName viewMode={viewMode}>{product.name}</ProductName>
                   </div>
                   <ProductPrice viewMode={viewMode}>
-                    {product.price || '£N/A'}
+                    {product.price || '$N/A'}
                     {isOnSale && (
                       <>
-                        <span className="original-price">£{originalPrice}</span>
+                        <span className="original-price">${originalPrice}</span>
                         <span className="discount">-{discount}%</span>
                       </>
                     )}
@@ -622,10 +622,10 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
           </ProductRating>
           
           <ProductPrice viewMode={viewMode}>
-            {product.price || '£N/A'}
+            {product.price || '$N/A'}
             {isOnSale && (
               <>
-                <span className="original-price">£{originalPrice}</span>
+                <span className="original-price">${originalPrice}</span>
                 <span className="discount">-{discount}%</span>
               </>
             )}

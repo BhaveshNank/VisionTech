@@ -10,7 +10,8 @@ async function fetchProducts(category = 'all', brand = '') {
         }
         
         // Make request
-        const response = await fetch(`http://localhost:5001/api/products?${params.toString()}`);
+        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+        const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`);
         
         if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -23,7 +24,7 @@ async function fetchProducts(category = 'all', brand = '') {
     }
 }
 
-// Improve the fetchProductById function for more robust matching
+// Improve the fetchProductById function to use the new single product endpoint
 async function fetchProductById(productId) {
   try {
     console.group(`🔍 Debug - fetchProductById(${productId})`);
@@ -34,88 +35,44 @@ async function fetchProductById(productId) {
       return null;
     }
     
-    // Fetch all products
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/products`);
+    // Try the new single product endpoint first
+    const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+    const response = await fetch(`${API_BASE_URL}/api/product/${encodeURIComponent(productId)}`);
     
-    if (!response.ok) {
-      console.error(`API error: ${response.status}`);
-      console.groupEnd();
-      throw new Error('Network response was not ok');
-    }
-    
-    const allProducts = await response.json();
-    console.log(`Fetched ${allProducts.length} products from API`);
-    
-    // Direct ID match - most reliable
-    let product = allProducts.find(p => p.id && p.id === productId);
-    
-    if (product) {
-      console.log("✅ Found product by direct ID match");
+    if (response.ok) {
+      const product = await response.json();
+      console.log("✅ Found product by direct API endpoint");
       console.groupEnd();
       return product;
     }
     
-    // If productId matches our generated format (1-name-category)
-    if (productId.startsWith('1-')) {
-      // Extract the name part (without the prefix and potential category suffix)
-      const nameSlug = productId.replace(/^1-/, '');
-      const nameWithoutCategory = nameSlug.replace(/-(?:phone|laptop|tv)$/, '');
+    if (response.status === 404) {
+      console.log("Product not found via direct endpoint, trying fallback method...");
       
-      console.log("Looking for name match using:", nameWithoutCategory);
+      // Fallback: Fetch all products and search client-side
+      const allProductsResponse = await fetch(`${API_BASE_URL}/api/products`);
       
-      // First try exact slug match
-      const slugMatches = allProducts.filter(p => {
-        if (!p.name) return false;
-        const pSlug = p.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        return pSlug === nameWithoutCategory || nameWithoutCategory === pSlug;
-      });
-      
-      if (slugMatches.length > 0) {
-        console.log("✅ Found product by exact slug match");
+      if (!allProductsResponse.ok) {
+        console.error(`Fallback API error: ${allProductsResponse.status}`);
         console.groupEnd();
-        return slugMatches[0];
+        throw new Error('Network response was not ok');
       }
       
-      // Then try contains match
-      const containsMatches = allProducts.filter(p => {
-        if (!p.name) return false;
-        const pNameLower = p.name.toLowerCase();
-        const searchName = nameWithoutCategory.replace(/-/g, ' ');
-        return pNameLower.includes(searchName) || searchName.includes(pNameLower);
-      });
+      const allProducts = await allProductsResponse.json();
+      console.log(`Fetched ${allProducts.length} products for fallback search`);
       
-      if (containsMatches.length > 0) {
-        console.log("✅ Found product by contains match");
+      // Direct ID match - most reliable
+      let product = allProducts.find(p => p.id && p.id === productId);
+      
+      if (product) {
+        console.log("✅ Found product by direct ID match in fallback");
         console.groupEnd();
-        return containsMatches[0];
+        return product;
       }
-      
-      // Try token matching as last resort
-      const tokens = nameWithoutCategory.split('-').filter(t => t.length > 2);
-      if (tokens.length > 0) {
-        const tokenMatches = allProducts
-          .map(p => {
-            if (!p.name) return { product: p, score: 0 };
-            const pNameLower = p.name.toLowerCase();
-            let score = 0;
-            
-            for (const token of tokens) {
-              if (pNameLower.includes(token)) {
-                score += token.length;
-              }
-            }
-            
-            return { product: p, score };
-          })
-          .filter(item => item.score > 0)
-          .sort((a, b) => b.score - a.score);
-          
-        if (tokenMatches.length > 0) {
-          console.log("✅ Found product by token matching");
-          console.groupEnd();
-          return tokenMatches[0].product;
-        }
-      }
+    } else {
+      console.error(`API error: ${response.status}`);
+      console.groupEnd();
+      throw new Error('Network response was not ok');
     }
     
     console.log("❌ No product found for ID:", productId);
@@ -151,7 +108,8 @@ function getMatchScore(productName, searchName) {
 }
 
 function sendInquiry(data) {
-    return fetch('http://localhost:5001/api/inquiry', {
+    const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+    return fetch(`${API_BASE_URL}/api/inquiry`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -170,7 +128,8 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
-        const response = await fetch("http://localhost:5001/chat", {
+        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+        const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include", // Important: send cookies

@@ -476,7 +476,6 @@ const CategoryImage = styled.div`
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   
   img {
@@ -484,10 +483,6 @@ const CategoryImage = styled.div`
     max-height: 80%;
     object-fit: contain;
     transition: transform 0.3s ease;
-  }
-  
-  ${CategoryCard}:hover & {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
   
   ${CategoryCard}:hover & img {
@@ -1125,8 +1120,6 @@ const Navbar = () => {
         
         {/* Navigation Links */}
         <NavLinks>
-          <NavLink to="/">Home</NavLink>
-          
           {/* Store with Mega Menu */}
           <NavItemContainer
             onMouseEnter={handleStoreMegaMenuEnter}
@@ -1384,10 +1377,10 @@ const Navbar = () => {
               <CategoryCard to="/products?category=laptop">
                 <CategoryImage>
                   <img 
-                    src={laptopData.featuredLaptops[0]?.image || 'https://via.placeholder.com/120x120?text=💻'}
+                    src="http://localhost:5001/images/macbook_m4_pro.jpg"
                     alt="Laptops"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/120x120?text=💻';
+                      e.target.src = laptopData.featuredLaptops[0]?.image || 'https://via.placeholder.com/120x120?text=💻';
                     }}
                   />
                 </CategoryImage>

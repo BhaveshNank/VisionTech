@@ -20,10 +20,10 @@ const PageContainer = styled.div`
 const ContentWrapper = styled.div`
   max-width: 1600px;
   margin: 0 auto;
-  padding: 1.5rem 16px 0;
+  padding: 0.5rem 16px 0;
   
   @media (max-width: 768px) {
-    padding: 1.5rem 12px 0;
+    padding: 0.5rem 12px 0;
   }
 `;
 
@@ -298,12 +298,34 @@ const Sidebar = styled.div`
   border: 1px solid #e0e0e0;
   position: sticky;
   top: 100px;
-  height: fit-content;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
   
   @media (max-width: 768px) {
     position: static;
     border-radius: 6px;
     padding: 1rem;
+    max-height: 70vh;
   }
 `;
 

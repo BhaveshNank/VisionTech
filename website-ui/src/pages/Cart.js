@@ -485,8 +485,7 @@ const Cart = () => {
   const [orderSuccess, setOrderSuccess] = useState(false);
   
   const handleCheckout = () => {
-    setOrderSuccess(true);
-    dispatch({ type: "CLEAR_CART" });
+    navigate('/checkout');
   };
 
   return (
@@ -537,7 +536,7 @@ const Cart = () => {
                         <ProductBrand>Premium Tech</ProductBrand>
                         <ProductName>{item.name}</ProductName>
                         <ProductPrice>
-                          <div className="current-price">£{parseFloat(item.price.toString().replace(/[^0-9.-]+/g, '')).toFixed(2)}</div>
+                          <div className="current-price">${parseFloat(item.price.toString().replace(/[^0-9.-]+/g, '')).toFixed(2)}</div>
                           <div className="unit-price">Price per unit</div>
                         </ProductPrice>
                       </ProductInfo>
@@ -555,7 +554,7 @@ const Cart = () => {
                           </QuantityButton>
                         </QuantityControls>
                         <ItemSubtotal>
-                          £{(parseFloat(item.price.toString().replace(/[^0-9.-]+/g, '')) * item.quantity).toFixed(2)}
+                          ${(parseFloat(item.price.toString().replace(/[^0-9.-]+/g, '')) * item.quantity).toFixed(2)}
                         </ItemSubtotal>
                         <ActionButtons>
                           <WishlistButton onClick={() => console.log('Add to wishlist')}>
@@ -577,7 +576,7 @@ const Cart = () => {
                 </SummaryTitle>
                 <SummaryRow>
                   <span>Subtotal ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} items)</span>
-                  <span>£{cartTotal.toFixed(2)}</span>
+                  <span>${cartTotal.toFixed(2)}</span>
                 </SummaryRow>
                 <SummaryRow>
                   <span>Shipping & Handling</span>
@@ -589,7 +588,7 @@ const Cart = () => {
                 </SummaryRow>
                 <SummaryRow total>
                   <span>Total</span>
-                  <span>£{cartTotal.toFixed(2)}</span>
+                  <span>${cartTotal.toFixed(2)}</span>
                 </SummaryRow>
                 
                 <SecurityFeatures>
@@ -597,7 +596,7 @@ const Cart = () => {
                     <FaShieldAlt /> Secure checkout with SSL encryption
                   </SecurityItem>
                   <SecurityItem>
-                    <FaTruck /> Free shipping on orders over £50
+                    <FaTruck /> Free shipping on orders over $50
                   </SecurityItem>
                   <SecurityItem>
                     <FaGift /> Easy returns within 30 days
