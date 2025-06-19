@@ -283,11 +283,20 @@ def health_check():
 @app.route('/images/<filename>')
 def serve_image(filename):
     """Serve images from the static/images directory"""
-    response = make_response(send_from_directory('static/images', filename))
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-    response.headers['Access-Control-Allow-Methods'] = 'GET'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    return response
+    try:
+        response = make_response(send_from_directory('static/images', filename))
+        # Allow all origins for Vercel deployment
+        if os.getenv('VERCEL'):
+            response.headers['Access-Control-Allow-Origin'] = '*'
+        else:
+            response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+        response.headers['Access-Control-Allow-Methods'] = 'GET'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+        return response
+    except Exception as e:
+        print(f"❌ Error serving image {filename}: {str(e)}")
+        return jsonify({"error": "Image not found"}), 404
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
@@ -754,13 +763,19 @@ def api_products():
             for cat, products in structured_products.items():
                 for product in products:
                     product['category'] = cat  # Add category to each product
+                    # Fix image path to include /images/ prefix
+                    if 'image' in product and not product['image'].startswith('/'):
+                        product['image'] = f"/images/{product['image']}"
                     result.append(product)
         else:
             # Get products from the specific category
             result = structured_products.get(category, [])
-            # Add category to each product
+            # Add category to each product and fix image paths
             for product in result:
                 product['category'] = category
+                # Fix image path to include /images/ prefix
+                if 'image' in product and not product['image'].startswith('/'):
+                    product['image'] = f"/images/{product['image']}"
         
         # Apply brand filter if specified
         if brand:
@@ -830,6 +845,9 @@ def api_product_by_id(product_id):
                     # Add category and ID to the product
                     product['category'] = category
                     product['id'] = generated_id
+                    # Fix image path to include /images/ prefix
+                    if 'image' in product and not product['image'].startswith('/'):
+                        product['image'] = f"/images/{product['image']}"
                     print(f"✅ Found product: {product['name']}")
                     return jsonify(product)
         
