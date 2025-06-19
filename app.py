@@ -456,12 +456,9 @@ def chat():
     try:
         user_message = request.json.get("message", "").strip().lower()
         
-        # For Vercel deployment, use simplified chat without sessions
+        # For Vercel deployment, use client-side state management instead of sessions
         if os.getenv('VERCEL'):
-            return jsonify({
-                "reply": "Hello! I'm your VisionTech assistant. Due to current deployment constraints, I'm in simplified mode. Please visit our products page to explore our latest electronics!",
-                "isHtml": False
-            })
+            print("🔧 Using Vercel-compatible serverless chat mode")
         
         # Get the instance ID from the request
         instance_id = request.json.get("instance_id", "default")
@@ -497,7 +494,10 @@ def chat():
         if chat_data["chat_stage"] == "detect_category":
             detected_category = detect_product_category(user_message)
             if not detected_category:
-                return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, TV, Gaming product, or Audio equipment?"})
+                return jsonify({
+                    "reply": "Could you clarify? Are you looking for a Phone, Laptop, TV, Gaming product, or Audio equipment?",
+                    "chat_state": chat_data
+                })
             
             # Category detected - save it and move to Gemini conversation
             chat_data["selected_category"] = detected_category
@@ -505,7 +505,6 @@ def chat():
             chat_data["turn_count"] += 1
 
             chat_data["conversation_history"].append({"role": "user", "message": user_message})
-            session[session_key] = chat_data
             
             # Send to Gemini for natural conversation
             structured_query = {
@@ -525,11 +524,9 @@ def chat():
             if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
                 chat_data["recommended_products"] = gemini_response["recommended_products"]
                 chat_data["has_shown_initial_products"] = True
-                session[session_key] = chat_data
             
             # Add to conversation history
             chat_data["conversation_history"].append({"role": "assistant", "message": gemini_response.get("message", "")})
-            session[session_key] = chat_data
             
             # Convert markdown to HTML in the message
             message = gemini_response.get("message", "Let me help you find the perfect product.")
@@ -539,13 +536,15 @@ def chat():
             if "isHtml" in gemini_response and gemini_response["isHtml"]:
                 return jsonify({
                     "reply": converted_message,
-                    "isHtml": True
+                    "isHtml": True,
+                    "chat_state": chat_data
                 })
             else:
                 # Even if Gemini didn't mark it as HTML, we still want to render the converted markdown
                 return jsonify({
                     "reply": converted_message,
-                    "isHtml": True  # Always set to True since we're converting markdown
+                    "isHtml": True,  # Always set to True since we're converting markdown
+                    "chat_state": chat_data
                 })
 
         # Step 2: All subsequent messages go directly to Gemini
@@ -639,10 +638,9 @@ def chat():
                 # Send to Gemini with the new category context
                 new_gemini_response = send_followup_to_gemini(new_conversational_query)
                 
-                # Update session with the new response
+                # Update chat data with the new response
                 chat_data["conversation_history"].append({"role": "user", "message": user_message})
                 chat_data["conversation_history"].append({"role": "assistant", "message": new_gemini_response.get("message", "")})
-                session[session_key] = chat_data
                 
                 # Return the new category response
                 message = new_gemini_response.get("message", "Let me help you with that new category.")
@@ -650,7 +648,8 @@ def chat():
                 
                 return jsonify({
                     "reply": converted_message,
-                    "isHtml": True
+                    "isHtml": True,
+                    "chat_state": chat_data
                 })
             
             # Update recommended products if new ones are provided
@@ -673,7 +672,6 @@ def chat():
             
             # Add response to history
             chat_data["conversation_history"].append({"role": "assistant", "message": gemini_response.get("message", "")})
-            session[session_key] = chat_data
             
             # Convert markdown to HTML in the message
             message = gemini_response.get("message", "Let me help you with that.")
@@ -683,13 +681,15 @@ def chat():
             if "isHtml" in gemini_response and gemini_response["isHtml"]:
                 return jsonify({
                     "reply": converted_message,
-                    "isHtml": True
+                    "isHtml": True,
+                    "chat_state": chat_data
                 })
             else:
                 # Even if Gemini didn't mark it as HTML, we still want to render the converted markdown
                 return jsonify({
                     "reply": converted_message,
-                    "isHtml": True  # Always set to True since we're converting markdown
+                    "isHtml": True,  # Always set to True since we're converting markdown
+                    "chat_state": chat_data
                 })
             
     except Exception as e:
@@ -1924,16 +1924,14 @@ def fetch_products_from_database():
                         if not product_brand:
                             product_brand = "Generic Brand"
                         
-                        # Create full image URL - use the image from database
+                        # Create relative image URL - use the image from database
                         image_url = None
                         if product_image:
-                            # Use environment variable for base URL or fallback to localhost
-                            base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
-                            image_url = f"{base_url}/images/{product_image}"
+                            # Use relative path for production compatibility
+                            image_url = f"/images/{product_image}"
                         else:
-                            # If no image in database, create a generic name based on brand and product
-                            base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
-                            image_url = f"{base_url}/images/default-product.jpg"
+                            # If no image in database, use default image
+                            image_url = "/images/default-product.jpg"
                         
                         # Add to structured products
                         structured_products[category].append({
