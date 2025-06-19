@@ -187,7 +187,7 @@ def test():
 @app.route('/health', methods=['GET'])
 def health_check():
     """
-    Comprehensive health check for the Flask application
+    Comprehensive health check for the Flask application - v1.0.1
     """
     try:
         health_status = {
