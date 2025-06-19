@@ -15,13 +15,13 @@ const Header = styled.header`
 
 const Title = styled.h1`
   font-size: 2.5rem;
-  color: #2c3e50;
+  color: #000000;
   margin-bottom: 1rem;
 `;
 
 const Subtitle = styled.p`
   font-size: 1.2rem;
-  color: #7f8c8d;
+  color: #666666;
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
@@ -54,7 +54,7 @@ const InfoItem = styled.div`
 
 const InfoIcon = styled.div`
   font-size: 1.5rem;
-  color: #1a73e8;
+  color: #000000;
   margin-right: 1rem;
   min-width: 24px;
   display: flex;
@@ -63,7 +63,7 @@ const InfoIcon = styled.div`
 `;
 
 const InfoContent = styled.div`
-  color: #2c3e50;
+  color: #000000;
   
   h3 {
     font-size: 1.2rem;
@@ -73,6 +73,7 @@ const InfoContent = styled.div`
   p {
     margin: 0;
     line-height: 1.5;
+    color: #666666;
   }
 `;
 
@@ -85,7 +86,7 @@ const FormGroup = styled.div`
 const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  color: #2c3e50;
+  color: #000000;
   font-weight: 500;
 `;
 
@@ -99,7 +100,7 @@ const Input = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #1a73e8;
+    border-color: #000000;
   }
 `;
 
@@ -115,12 +116,12 @@ const Textarea = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: #1a73e8;
+    border-color: #000000;
   }
 `;
 
 const SubmitButton = styled.button`
-  background: #1a73e8;
+  background: #000000;
   color: white;
   border: none;
   padding: 12px 25px;
@@ -130,7 +131,7 @@ const SubmitButton = styled.button`
   transition: background 0.3s ease;
   
   &:hover {
-    background: #1557b0;
+    background: #333333;
   }
   
   &:disabled {

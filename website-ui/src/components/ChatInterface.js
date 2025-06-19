@@ -427,89 +427,10 @@ const LoadingIndicator = styled.div`
   }
 `;
 
-// Add this new component for the category selection buttons
-const CategoryButtons = ({ onCategorySelect }) => {
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      flexWrap: 'wrap', 
-      gap: '12px', 
-      marginTop: '16px',
-      marginBottom: '8px'
-    }}>
-      <button
-        onClick={() => onCategorySelect('phone')}
-        style={{
-          padding: '12px 20px',
-          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          fontWeight: '500',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          transition: 'all 0.2s ease',
-          fontSize: '14px'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-      >
-        <span role="img" aria-label="Phone">📱</span> Phone
-      </button>
-      <button
-        onClick={() => onCategorySelect('laptop')}
-        style={{
-          padding: '12px 20px',
-          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          fontWeight: '500',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          transition: 'all 0.2s ease',
-          fontSize: '14px'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-      >
-        <span role="img" aria-label="Laptop">💻</span> Laptop
-      </button>
-      <button
-        onClick={() => onCategorySelect('tv')}
-        style={{
-          padding: '12px 20px',
-          background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          fontWeight: '500',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          transition: 'all 0.2s ease',
-          fontSize: '14px'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-      >
-        <span role="img" aria-label="TV">📺</span> TV
-      </button>
-    </div>
-  );
-};
+// Category buttons removed - chatbot now handles all product categories through flexible text input
 
-// Update the MessageContent component to include category buttons
-const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect, isUser }) => {
+// Updated MessageContent component with category buttons removed
+const MessageContent = ({ text, isHtml, isUser }) => {
   if (isHtml) {
     return (
       <Message isUser={isUser}>
@@ -537,7 +458,6 @@ const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect, isUser }) 
               }}
               style={{ overflowX: 'auto' }} // Add horizontal scroll for wide tables
             />
-            {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
           </div>
         </MessageBubble>
       </Message>
@@ -558,7 +478,6 @@ const MessageContent = ({ text, isHtml, hasButtons, onCategorySelect, isUser }) 
       )}
       <MessageBubble isUser={isUser}>
         {text}
-        {hasButtons && <CategoryButtons onCategorySelect={onCategorySelect} />}
       </MessageBubble>
     </Message>
   );
@@ -952,10 +871,9 @@ const ChatInterface = () => {
       // Add a slight delay for a more natural feel
       setTimeout(() => {
         setMessages([{ 
-          text: `Hi there! I'm Mark, your personal AI assistant at Vision Electronics! 👋 I'm here to help you find the perfect electronics. We offer a wide range of <strong>Phones</strong>, <strong>Laptops</strong>, and <strong>TVs</strong>. What are you looking for today?`,
+          text: `Hi there! I'm Mark, your personal AI assistant at VisionTech! 👋 I'm here to help you find the perfect electronics. What are you looking for today?`,
           isUser: false,
-          isHtml: true,
-          hasButtons: true
+          isHtml: true
         }]);
       }, 800);
     }
@@ -1025,23 +943,7 @@ const ChatInterface = () => {
     }
   };
   
-  // Add this function to handle category selection
-  const handleCategorySelect = (category) => {
-    // Add the user's selection as a message
-    const categoryMessages = {
-      'phone': 'I need help finding a phone',
-      'laptop': 'I need help finding a laptop',
-      'tv': 'I need help finding a TV'
-    };
-    
-    const userMessage = categoryMessages[category];
-    
-    // Add user message to chat
-    setMessages(prevMessages => [...prevMessages, { text: userMessage, isUser: true }]);
-    
-    // Process the selection like a user message
-    processUserMessage(userMessage);
-  };
+  // Category selection function removed - users now interact through flexible text input
 
   useEffect(() => {
     let notificationTimer;
@@ -1087,7 +989,7 @@ const ChatInterface = () => {
         
         setTimeout(() => {
           setMessages([{ 
-            text: "Hi! I'm Mark, your AI assistant at Vision Electronics! How can I help you find the perfect product today? 😊", 
+            text: "Hi! I'm Mark, your AI assistant at VisionTech! How can I help you find the perfect product today? 😊", 
             isUser: false 
           }]);
         }, 800);
@@ -1167,8 +1069,6 @@ const ChatInterface = () => {
                 key={idx}
                 text={msg.text} 
                 isHtml={msg.isHtml || false} 
-                hasButtons={msg.hasButtons || false} 
-                onCategorySelect={handleCategorySelect}
                 isUser={msg.isUser}
               />
             ))}

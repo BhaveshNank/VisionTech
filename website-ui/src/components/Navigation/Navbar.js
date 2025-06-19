@@ -1115,7 +1115,7 @@ const Navbar = () => {
         {/* Logo */}
         <LogoContainer to="/">
           <LogoIcon>V</LogoIcon>
-          <LogoText>Vision</LogoText>
+          <LogoText>VisionTech</LogoText>
         </LogoContainer>
         
         {/* Navigation Links */}

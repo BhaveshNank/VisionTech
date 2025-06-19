@@ -38,11 +38,69 @@ CORS(app,
 # Initialize Flask-Session
 Session(app)
 
-# MongoDB Connection 
+# MongoDB Connection with improved error handling and SSL options
 MONGODB_URI = os.getenv('MONGODB_URI')
-client = MongoClient(MONGODB_URI, tlsAllowInvalidCertificates=True)  # Connect to MongoDB Atlas with SSL bypass for development
-db = client["ecommerce_db"]  # The database name
-collection = db["products"]  # The collection in that database 
+try:
+    # Try multiple connection configurations for maximum compatibility
+    connection_configs = [
+        # Configuration 1: Standard SSL settings
+        {
+            'tlsAllowInvalidCertificates': True,
+            'serverSelectionTimeoutMS': 8000,
+            'connectTimeoutMS': 8000,
+            'socketTimeoutMS': 8000,
+            'retryWrites': True,
+            'retryReads': True,
+            'maxPoolSize': 10
+        },
+        # Configuration 2: Disable SSL verification entirely
+        {
+            'ssl': False,
+            'serverSelectionTimeoutMS': 5000,
+            'connectTimeoutMS': 5000,
+            'socketTimeoutMS': 5000,
+            'retryWrites': True,
+            'retryReads': True
+        },
+        # Configuration 3: Basic connection with minimal SSL
+        {
+            'tls': True,
+            'tlsInsecure': True,
+            'serverSelectionTimeoutMS': 3000,
+            'connectTimeoutMS': 3000,
+            'socketTimeoutMS': 3000
+        }
+    ]
+    
+    client = None
+    for i, config in enumerate(connection_configs, 1):
+        try:
+            print(f"🔄 Attempting MongoDB connection (config {i})...")
+            test_client = MongoClient(MONGODB_URI, **config)
+            # Test the connection with a quick ping
+            test_client.admin.command('ping')
+            client = test_client
+            print(f"✅ Successfully connected to MongoDB Atlas (config {i})")
+            break
+        except Exception as config_error:
+            print(f"❌ Config {i} failed: {str(config_error)}")
+            continue
+    
+    if client:
+        db = client["ecommerce_db"]
+        collection = db["products"]
+        MONGODB_CONNECTED = True
+    else:
+        raise Exception("All connection configurations failed")
+        
+except Exception as e:
+    print(f"❌ Failed to connect to MongoDB Atlas with all configurations")
+    print(f"   Final error: {str(e)}")
+    print("🔄 Will use local JSON fallback for product data")
+    client = None
+    db = None
+    collection = None
+    MONGODB_CONNECTED = False 
 
 
 # Google Gemini API Setup
@@ -159,6 +217,62 @@ def generate_comparison_table(comparison_data):
 def test():
     logging.info("Test API called")
     return jsonify({"message": "API is working!"}), 200
+
+# Health check endpoint to monitor system status
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Comprehensive health check for the Flask application
+    """
+    try:
+        health_status = {
+            "status": "healthy",
+            "timestamp": json.dumps({"timestamp": "now"}, default=str),
+            "services": {
+                "flask": "running",
+                "mongodb": "connected" if MONGODB_CONNECTED else "disconnected",
+                "local_fallback": "available",
+                "gemini_api": "configured" if api_key else "not_configured"
+            },
+            "data_sources": {
+                "primary": "mongodb_atlas" if MONGODB_CONNECTED else "local_json",
+                "fallback": "local_json" if not MONGODB_CONNECTED else "mongodb_atlas"
+            }
+        }
+        
+        # Test data fetching
+        try:
+            products = fetch_products_from_database()
+            product_counts = {cat: len(prods) for cat, prods in products.items()}
+            health_status["product_data"] = {
+                "available": True,
+                "categories": list(products.keys()),
+                "total_products": sum(product_counts.values()),
+                "breakdown": product_counts
+            }
+        except Exception as e:
+            health_status["product_data"] = {
+                "available": False,
+                "error": str(e)
+            }
+            health_status["status"] = "degraded"
+        
+        # Determine overall status
+        if not MONGODB_CONNECTED:
+            health_status["status"] = "degraded"
+            health_status["message"] = "Running on local fallback data due to MongoDB connection issues"
+        else:
+            health_status["message"] = "All systems operational"
+            
+        status_code = 200 if health_status["status"] in ["healthy", "degraded"] else 503
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": json.dumps({"timestamp": "now"}, default=str)
+        }), 503
 
 @app.route('/images/<filename>')
 def serve_image(filename):
@@ -398,7 +512,7 @@ def chat():
         if chat_data["chat_stage"] == "detect_category":
             detected_category = detect_product_category(user_message)
             if not detected_category:
-                return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, or TV?"})
+                return jsonify({"reply": "Could you clarify? Are you looking for a Phone, Laptop, TV, Gaming product, or Audio equipment?"})
             
             # Category detected - save it and move to Gemini conversation
             chat_data["selected_category"] = detected_category
@@ -466,6 +580,10 @@ def chat():
                     for term in ['budget', 'cheap', 'expensive', 'afford', 'price', 'cost', '$']):
                     chat_data["has_budget"] = True
 
+            # Check for explicit show requests
+            show_keywords = ["show me", "what do you have", "let me see", "display", "list", "options", "available"]
+            explicit_show_request = any(keyword in user_message.lower() for keyword in show_keywords)
+            
             # Prepare query for Gemini with full context
             conversational_query = {
                 "category": chat_data["selected_category"],
@@ -478,9 +596,13 @@ def chat():
                 "turn_count": chat_data["turn_count"],
                 "has_use_case": chat_data["has_use_case"],
                 "has_budget": chat_data["has_budget"],
+                "explicit_show_request": explicit_show_request,
                 "should_show_products": (chat_data["has_use_case"] and chat_data["has_budget"] and 
                                         not chat_data["has_shown_initial_products"]) or
-                                    chat_data["turn_count"] >= 3
+                                    chat_data["turn_count"] >= 2 or
+                                    explicit_show_request or
+                                    (chat_data["selected_category"] in ["gaming", "audio"] and 
+                                     not chat_data["has_shown_initial_products"])
             }
 
             # Increment turn count
@@ -493,9 +615,63 @@ def chat():
             # Send to existing followup Gemini function
             gemini_response = send_followup_to_gemini(conversational_query)
             
+            # Handle category switching
+            if gemini_response.get("category_switch"):
+                new_category = gemini_response.get("new_category")
+                print(f"🔄 Processing category switch to: {new_category}")
+                
+                # Update session with new category and reset relevant data
+                chat_data["selected_category"] = new_category
+                chat_data["recommended_products"] = []
+                chat_data["rejected_products"] = []
+                chat_data["chosen_product"] = None
+                chat_data["has_shown_initial_products"] = False
+                chat_data["has_use_case"] = False
+                chat_data["has_budget"] = False
+                chat_data["turn_count"] = 1  # Reset turn count but keep conversation history
+                
+                # Create a new conversational query for the switched category
+                new_conversational_query = {
+                    "category": new_category,
+                    "user_message": user_message,
+                    "conversation_history": chat_data["conversation_history"],
+                    "recommended_products": [],
+                    "rejected_products": [],
+                    "is_followup": True,
+                    "is_gathering_requirements": True,  # Start gathering requirements for new category
+                    "turn_count": 1,
+                    "has_use_case": False,
+                    "has_budget": False,
+                    "explicit_show_request": False,
+                    "should_show_products": False,  # Don't show products immediately
+                    "category_switched": True  # Flag to indicate this is a category switch
+                }
+                
+                # Get products for the new category
+                structured_products = fetch_products_from_database()
+                new_conversational_query["all_products"] = structured_products.get(new_category, [])
+                
+                # Send to Gemini with the new category context
+                new_gemini_response = send_followup_to_gemini(new_conversational_query)
+                
+                # Update session with the new response
+                chat_data["conversation_history"].append({"role": "user", "message": user_message})
+                chat_data["conversation_history"].append({"role": "assistant", "message": new_gemini_response.get("message", "")})
+                session[session_key] = chat_data
+                
+                # Return the new category response
+                message = new_gemini_response.get("message", "Let me help you with that new category.")
+                converted_message = convert_markdown_to_html(message)
+                
+                return jsonify({
+                    "reply": converted_message,
+                    "isHtml": True
+                })
+            
             # Update recommended products if new ones are provided
             if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
                 chat_data["recommended_products"] = gemini_response["recommended_products"]
+                chat_data["has_shown_initial_products"] = True
             
             if "alternative_products" in gemini_response and gemini_response["alternative_products"]:
                 chat_data["recommended_products"] = gemini_response["alternative_products"]
@@ -545,11 +721,12 @@ def api_products():
         brand = request.args.get('brand', '').lower()
         search = request.args.get('search', '').strip()
         
-        # Fetch products from database
+        # Fetch products from database with fallback
         structured_products = fetch_products_from_database()
         
         # Handle empty database case
         if not structured_products:
+            print("⚠️ No products found from database or local fallback")
             return jsonify([])
             
         # Prepare result array
@@ -580,7 +757,7 @@ def api_products():
             
             for product in result:
                 product_name = product.get('name', '').lower()
-                product_features = ' '.join(product.get('specifications', [])).lower()
+                product_features = ' '.join(product.get('features', [])).lower()  # Changed from specifications to features
                 product_text = f"{product_name} {product_features}"
                 
                 # Check if all search terms are found in the product text
@@ -596,13 +773,17 @@ def api_products():
             name_slug = re.sub(r'-+', '-', name_slug)
             product['id'] = f"{i+1}-{name_slug}"
         
+        print(f"✅ API returning {len(result)} products for category '{category}'")
         return jsonify(result)
     
     except Exception as e:
         print(f"❌ Error in /api/products: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        # Return an empty array with error info in headers for debugging
+        response = jsonify([])
+        response.headers['X-Error'] = str(e)
+        return response, 200  # Return 200 to avoid frontend errors, but with empty array
 
 
 @app.route('/api/product/<product_id>', methods=['GET'])
@@ -685,14 +866,19 @@ def detect_product_category(user_message):
     # Convert user message to lowercase and clean whitespace
     user_message_lower = user_message.lower().strip()
     
-    # Expanded keywords for better matching
+    # Expanded keywords for better matching including all product categories
+    # Priority order: More specific terms should be checked first
     category_keywords = {
+        "laptop": ["laptop", "macbook", "notebook", "ultrabook", "gaming laptop",
+                   "computer", "pc", "portable computer", "lapto", "latop", "laptp", "labtop"],
         "phone": ["phone", "mobile", "smartphone", "iphone", "samsung", "android", 
                   "cell", "cellular", "fone", "celfone", "handset"],
-        "laptop": ["laptop", "macbook", "notebook", "ultrabook", "gaming laptop", 
-                   "computer", "pc", "portable computer", "lapto", "latop", "laptp", "labtop"],
         "tv": ["tv", "television", "oled", "4k", "smart tv", "qled", "lcd", 
-               "tele", "screen", "display", "monitor"]
+               "tele", "screen", "display", "monitor"],
+        "audio": ["audio", "headphones", "earphones", "speaker", "speakers", "earbuds", 
+                  "headset", "sound", "music", "bluetooth speaker", "gaming headphone", "gaming headphones"],
+        "gaming": ["gaming", "game", "console", "ps5", "xbox", "playstation", "nintendo", 
+                   "switch", "gaming chair", "gaming pc", "gaming console"]
     }
 
     # First check for explicit mentions with exact matching
@@ -843,6 +1029,9 @@ def send_to_gemini(user_data, structured_products):
         {products_json}
         ```
 
+        ### **CRITICAL PRODUCT RESTRICTION:**
+        **EXTREMELY IMPORTANT**: You MUST ONLY recommend products that are available in the product list above. You are STRICTLY FORBIDDEN from recommending any products not in this database. NEVER mention products like "Xbox Series X", "ASUS ROG Phone 7", "Nubia RedMagic 8 Pro" or any other products not explicitly listed above. If none of our products match the user's specific request, explain what we do have available instead.
+
         ### **RESPONSE FORMAT:**
         Respond ONLY in this exact JSON format:
 
@@ -940,6 +1129,7 @@ def send_to_gemini(user_data, structured_products):
 def send_followup_to_gemini(query_data):
     """
     Enhanced follow-up handler with better product memory to avoid contradictions.
+    Now includes category switching capability.
     """
     recommended_products = query_data.get("recommended_products", [])
     user_question = query_data.get("user_message", "")
@@ -951,6 +1141,46 @@ def send_followup_to_gemini(query_data):
     
     # Get rejected products
     rejected_products = query_data.get("rejected_products", [])
+    
+    # CATEGORY SWITCHING LOGIC
+    # Check if user is requesting a different product category
+    detected_new_category = detect_product_category(user_question)
+    if detected_new_category and detected_new_category.lower() != category.lower():
+        # Check for category switching indicators to avoid false positives
+        switching_indicators = [
+            "actually", "instead", "now i want", "i want a", "looking for a", 
+            "show me", "need a", "switch to", "change to", "rather have",
+            "prefer a", "get a", "buy a", "purchase a"
+        ]
+        
+        user_lower = user_question.lower()
+        has_switching_indicator = any(indicator in user_lower for indicator in switching_indicators)
+        
+        # Also check if it's a direct category request (like "laptop" as a standalone)
+        is_direct_category_request = user_question.strip().lower() in [
+            "laptop", "laptops", "phone", "phones", "tv", "tvs", "audio", "gaming"
+        ]
+        
+        # Check for comparison requests across categories (e.g., "laptop vs phone")
+        is_cross_category_comparison = any(
+            cat1 in user_lower and cat2 in user_lower 
+            for cat1 in ["laptop", "phone", "tv", "audio", "gaming"]
+            for cat2 in ["laptop", "phone", "tv", "audio", "gaming"]
+            if cat1 != cat2
+        )
+        
+        if has_switching_indicator or is_direct_category_request:
+            print(f"🔄 Category switch detected: {category} → {detected_new_category}")
+            return {
+                "category_switch": True,
+                "new_category": detected_new_category,
+                "restart_conversation": True
+            }
+        elif is_cross_category_comparison:
+            # For cross-category comparisons, explain that we focus on one category at a time
+            return {
+                "message": f"I can help you with {detected_new_category}s! However, I focus on one product category at a time to give you the best recommendations. Would you like me to show you {detected_new_category} options, or would you prefer to continue with {category}s?"
+            }
     
     # Skip the check if we're still gathering requirements
     if not query_data.get("is_initial", False) and not query_data.get("is_gathering_requirements", False) and not recommended_products:
@@ -1026,7 +1256,7 @@ def send_followup_to_gemini(query_data):
                         "text": f"""
         You are a digital shopping assistant helping a customer find the perfect {category}.
         
-        {"This is the initial conversation. The customer is interested in a " + category + ". Start by understanding their needs, budget, and preferences naturally." if query_data.get("is_initial") else "Continue the conversation naturally."}
+        {"This is the initial conversation. The customer is interested in a " + category + ". " + ("For gaming and audio categories with limited inventory, show available products after understanding basic needs." if category in ["gaming", "audio"] else "Start by understanding their needs, budget, and preferences naturally.") if query_data.get("is_initial") else "Continue the conversation naturally."}
 
         ### **CONVERSATION HISTORY:**
         {json.dumps(query_data.get("conversation_history", []), indent=2)}
@@ -1041,8 +1271,19 @@ def send_followup_to_gemini(query_data):
 
         ### **USER'S FOLLOW-UP QUESTION:**
         "{user_question}"
+        
+        {f'''### **CATEGORY SWITCH DETECTED:**
+The user has switched to {category}s. This is a fresh start for this new category. You need to gather the essential information:
+1. What they'll primarily use the {category} for (purpose/use case)
+2. Their budget range  
+3. Any specific features they're looking for
+
+Respond naturally to their question while beginning this information gathering process. Don't show products until you have at least their primary use case.''' if query_data.get("category_switched") else ""}
 
         {suitability_check_instructions}
+
+        ### **CRITICAL PRODUCT RESTRICTION:**
+        **EXTREMELY IMPORTANT**: You MUST ONLY recommend, suggest, or mention products that are available in the "all_available" products list above. You are STRICTLY FORBIDDEN from recommending any products that are not in this database. If a user asks for a specific product type and none exist in the database, politely explain that you don't currently have that type of product in stock and ask if they'd like to see what similar alternatives are available. NEVER invent, suggest, or recommend products like "Xbox Series X", "ASUS ROG Phone 7", "Nubia RedMagic 8 Pro" or any other products not explicitly listed in the database.
 
         ### **CRITICAL CONSISTENCY RULES:**
         1. ONLY exclude rejected products if the user's latest query is asking for alternatives or cheaper options.
@@ -1099,11 +1340,16 @@ def send_followup_to_gemini(query_data):
         - Has use case: {query_data.get("has_use_case", False)}
         - Has budget: {query_data.get("has_budget", False)}
         - Should show products: {query_data.get("should_show_products", False)}
+        - Explicit show request: {query_data.get("explicit_show_request", False)}
 
         ### **DECISION LOGIC:**
         - If should_show_products is True, you MUST include products in recommended_products or alternative_products
         - If turn_count >= 3 and no products shown yet, MUST show products
         - If has_use_case and has_budget are both True, MUST show products on this response
+        - SPECIAL RULE: For gaming and audio categories with limited products, show products after turn 1 even without complete budget info
+        - GAMING/AUDIO OVERRIDE: If category is gaming or audio and user mentions the category type (console, headphones), immediately show the available products since inventory is limited
+        - CRITICAL: If user explicitly asks to "show me", "what do you have", "let me see", or similar display requests, IMMEDIATELY show products regardless of other conditions
+        - MANDATORY: If explicit_show_request is True, you MUST show products in your response using recommended_products or alternative_products
 
         ### INSTRUCTIONS:
         1. If the user is asking about specific products that were previously recommended, focus ONLY on those specific products.
@@ -1138,9 +1384,16 @@ def send_followup_to_gemini(query_data):
 
         ### **COMPARISON REQUESTS:**
         When a user asks to compare products (using words like "compare", "vs", "versus", "difference between"), 
-        include a structured comparison in your response JSON:
+        follow these CRITICAL rules:
         
-        Add this to your JSON response when it's a comparison:
+        1. Set "is_comparison": true
+        2. Put the comparison data in the "comparison_data" field ONLY - NOT in the message
+        3. Do NOT include raw JSON or comparison_data text in your message
+        4. Your message should contain only your analysis and recommendations in natural language
+        
+        CRITICAL: For comparisons, your "message" field should NEVER contain JSON data or "comparison_data" text.
+        
+        Example comparison response structure:
         "is_comparison": true,
         "comparison_data": {{
             "products": ["Product Name 1", "Product Name 2"],
@@ -1149,15 +1402,10 @@ def send_followup_to_gemini(query_data):
                 "Processor": ["Spec 1", "Spec 2"],
                 "RAM": ["X GB", "Y GB"],
                 "Display": ["X inches", "Y inches"],
-                "Battery": ["X hours", "Y hours"],
-                "Graphics": ["GPU 1", "GPU 2"],
-                "Storage": ["X GB/TB", "Y GB/TB"],
-                "Special Features": ["Feature 1", "Feature 2"]
+                "Battery": ["X hours", "Y hours"]
             }}
-        }}
-        
-        Include only relevant features for the product category being compared.
-        After the comparison data, continue with your regular analysis and recommendation.
+        }},
+        "message": "Here's a comparison of these two phones. The Xiaomi offers better value for gaming performance, while the Nothing Phone provides a more premium design. Which aspect is more important to you?"
 
         ### **RESPONSE FORMAT:**
         ```json
@@ -1213,37 +1461,104 @@ def send_followup_to_gemini(query_data):
             # Generate the comparison table
             comparison_table = generate_comparison_table(parsed_json["comparison_data"])
             
-            # Get the original message
+            # Get the original message and clean it of any leaked comparison_data
             original_message = parsed_json.get("message", "Here's a detailed comparison:")
             
-            # Find where to insert the table in the message
-            # Look for a good insertion point after the intro
-            lines = original_message.split('\n')
-            intro_lines = []
-            rest_lines = []
-            found_intro = False
+            # Remove any accidentally included comparison_data JSON from the message
+            # Remove patterns like "comparison_data": { ... }
+            cleaned_message = re.sub(r'"comparison_data":\s*{[^}]*}[^}]*}', '', original_message)
+            # Remove patterns like { "products": [...], "features": {...} }
+            cleaned_message = re.sub(r'{\s*"products":\s*\[.*?\],\s*"features":\s*{.*?}\s*}', '', cleaned_message, flags=re.DOTALL)
+            # Remove any remaining JSON-like structures
+            cleaned_message = re.sub(r'"[^"]*":\s*[\[\{][^\]\}]*[\]\}]', '', cleaned_message)
+            # Clean up extra whitespace and newlines
+            cleaned_message = re.sub(r'\n\s*\n', '\n', cleaned_message.strip())
             
-            for i, line in enumerate(lines):
-                if not found_intro and ('comparison' in line.lower() or 'comparing' in line.lower()):
-                    intro_lines.append(line)
-                    found_intro = True
-                    if i + 1 < len(lines):
-                        rest_lines = lines[i + 1:]
-                elif not found_intro:
-                    intro_lines.append(line)
-                else:
-                    rest_lines.append(line)
+            # If the message was mostly comparison data, provide a default
+            if len(cleaned_message.strip()) < 20:
+                cleaned_message = "Here's a detailed comparison of these products:"
             
-            # Reconstruct the message with the table
-            if intro_lines:
-                intro = '\n'.join(intro_lines)
-                rest = '\n'.join(rest_lines) if rest_lines else ""
-                full_message = f"{intro}\n\n{comparison_table}\n\n{rest}"
-            else:
-                full_message = f"{original_message}\n\n{comparison_table}"
+            # Insert the comparison table
+            full_message = f"{cleaned_message}\n\n{comparison_table}"
             
             # Update the response
             parsed_json["message"] = full_message
+            parsed_json["isHtml"] = True
+        
+        # Process recommended products first (for category switching and initial recommendations)
+        if "recommended_products" in parsed_json and parsed_json["recommended_products"]:
+            recommended = parsed_json["recommended_products"]
+            
+            # Generate HTML content for recommended products
+            recommended_html = ""
+            for product in recommended:
+                name = product.get("name", "Unknown Product")
+                price = product.get("price", "Price unavailable")
+                features = product.get("features", [])
+                image = product.get("image", "default-product.jpg")
+                
+                # If image is missing, try to find it
+                if "image" not in product or not product["image"]:
+                    # Try to find matching product in all_products
+                    matching_product = next((p for p in all_products if p["name"] == name), None)
+                    if matching_product and "image" in matching_product:
+                        image = matching_product["image"]
+                    else:
+                        image = f"http://localhost:5001/images/default-product.jpg"
+                
+                # Create product ID for linking
+                product_id = name.lower().replace(" ", "-").replace("/", "-")
+                
+                # Format features as a comma-separated list
+                feature_text = ", ".join(features[:3]) if features else "No features listed"
+                
+                # Add to HTML content with consistent styling
+                recommended_html += f"""
+                <div style="margin: 15px 0; padding: 15px; border-radius: 8px; background: #ffffff; border: 1px solid #e9ecef;">
+                <div style="display: flex; align-items: flex-start; margin-bottom: 10px;">
+                    <img 
+                    src="{image}" 
+                    alt="{name}" 
+                    style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
+                    onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                    />
+                    <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
+                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #000;">{price}</div>
+                    <div style="font-size: 14px; color: #666; line-height: 1.4;">{feature_text}</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <a 
+                    href="/product/1-{product_id}" 
+                    target="_blank"
+                    rel="noopener noreferrer" 
+                    style="color: #000000; text-decoration: none; display: inline-block; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;"
+                    data-product-id="1-{product_id}"
+                    data-product-name="{name.replace('"', '&quot;')}"
+                    >
+                    View Details
+                    </a>
+                    <button 
+                    class="add-to-cart-btn" 
+                    data-id="1-{product_id}" 
+                    data-name="{name.replace("'", "\\'")}" 
+                    data-price="{price.replace('$', '') if isinstance(price, str) else price}" 
+                    data-image="{image}"
+                    style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;"
+                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    Add to Cart
+                    </button>
+                </div>
+                </div>
+                """
+            
+            # Combine original message with HTML product displays
+            original_message = parsed_json.get("message", "Here are some great options for you:")
+            parsed_json["message"] = f"{original_message}\n\n{recommended_html}"
             parsed_json["isHtml"] = True
         
         # Process alternative products recommendations
@@ -1429,6 +1744,34 @@ def send_followup_to_gemini(query_data):
             parsed_json["message"] = f"{original_message}\n\n{final_choice_html}"
             parsed_json["isHtml"] = True
         
+        # Validate all product recommendations against database
+        if all_products:
+            available_product_names = [p.get("name", "") for p in all_products]
+            
+            # Validate recommended_products
+            if "recommended_products" in parsed_json and parsed_json["recommended_products"]:
+                valid_recommended = [product for product in parsed_json["recommended_products"] 
+                                   if product.get("name", "") in available_product_names]
+                filtered_count = len(parsed_json["recommended_products"]) - len(valid_recommended)
+                if filtered_count > 0:
+                    print(f"⚠️ Filtered out {filtered_count} non-existent recommended products from followup")
+                parsed_json["recommended_products"] = valid_recommended
+            
+            # Validate alternative_products  
+            if "alternative_products" in parsed_json and parsed_json["alternative_products"]:
+                valid_alternatives = [product for product in parsed_json["alternative_products"] 
+                                    if product.get("name", "") in available_product_names]
+                filtered_count = len(parsed_json["alternative_products"]) - len(valid_alternatives)
+                if filtered_count > 0:
+                    print(f"⚠️ Filtered out {filtered_count} non-existent alternative products from followup")
+                parsed_json["alternative_products"] = valid_alternatives
+            
+            # Validate final_choice
+            if "final_choice" in parsed_json and parsed_json["final_choice"]:
+                if parsed_json["final_choice"].get("name", "") not in available_product_names:
+                    print(f"⚠️ Filtered out non-existent final choice: {parsed_json['final_choice'].get('name', 'Unknown')}")
+                    parsed_json["final_choice"] = None
+        
         return parsed_json
 
     except Exception as e:
@@ -1439,85 +1782,213 @@ def send_followup_to_gemini(query_data):
     
 def fetch_products_from_database():
     """
-    Fetches all products from MongoDB and structures them correctly.
+    Fetches all products from MongoDB with fallback to local JSON file.
+    """
+    # First try MongoDB if connected
+    if MONGODB_CONNECTED and collection is not None:
+        try:
+            products_cursor = collection.find({}, {"_id": 0})
+            structured_products = {}
+
+            # Enhanced debug message
+            print("🔍 Fetching products from MongoDB Atlas...")
+            all_docs = list(products_cursor)
+            print(f"📋 Found {len(all_docs)} documents in MongoDB")
+            
+            if len(all_docs) == 0:
+                print("⚠️ No documents found in MongoDB, falling back to local data")
+                return fetch_products_from_local()
+                
+            for i, doc in enumerate(all_docs):
+                print(f"📄 Document {i+1}: category='{doc.get('category', 'NO CATEGORY')}', products={len(doc.get('products', []))}")
+
+            for doc in all_docs:
+                category = doc.get("category", "").strip().lower()
+                
+                if not category:
+                    continue  # Skip documents with no category
+                
+                # Initialize category list if it doesn't exist
+                if category not in structured_products:
+                    structured_products[category] = []
+
+                # Extract product details
+                if "products" in doc and isinstance(doc["products"], list):
+                    for sub_prod in doc["products"]:
+                        product_name = sub_prod.get("name", "").strip()
+                        product_price = sub_prod.get("price", "N/A")
+                        product_features = sub_prod.get("specifications", [])
+                        product_brand = sub_prod.get("brand", "").strip()
+                        
+                        # Get image directly from database field
+                        product_image = sub_prod.get("image", "")
+
+                        # Skip products without a name
+                        if not product_name:
+                            continue
+
+                        # Handle missing data
+                        if product_price == "N/A" or product_price is None:
+                            product_price = "Unknown Price"
+
+                        if not product_brand:
+                            product_brand = "Generic Brand"
+                        
+                        # Create full image URL - use the image from database
+                        image_url = None
+                        if product_image:
+                            # Use environment variable for base URL or fallback to localhost
+                            base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+                            image_url = f"{base_url}/images/{product_image}"
+                        else:
+                            # If no image in database, create a generic name based on brand and product
+                            base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+                            image_url = f"{base_url}/images/default-product.jpg"
+                        
+                        # Add to structured products
+                        structured_products[category].append({
+                            "name": product_name,
+                            "price": f"${product_price}" if isinstance(product_price, (int, float)) else product_price,
+                            "features": product_features,
+                            "brand": product_brand,
+                            "image": image_url  # Use the full URL path
+                        })
+
+            # Detailed summary debug
+            product_counts = {cat: len(prods) for cat, prods in structured_products.items()}
+            print(f"📦 Loaded products from MongoDB: {product_counts}")
+            
+            # Extra debug for gaming and audio
+            if 'gaming' in structured_products:
+                print(f"🎮 Gaming products: {[p['name'] for p in structured_products['gaming']]}")
+            if 'audio' in structured_products:
+                print(f"🔊 Audio products: {[p['name'] for p in structured_products['audio']]}")
+            
+            return structured_products
+
+        except Exception as e:
+            print(f"❌ MongoDB Error: {str(e)}")
+            print("🔄 Falling back to local JSON data...")
+            return fetch_products_from_local()
+    else:
+        print("🔄 Using local JSON data (MongoDB not connected)")
+        return fetch_products_from_local()
+
+def fetch_products_from_local():
+    """
+    Fallback function to load products from local JSON file and add missing categories.
     """
     try:
-        products_cursor = collection.find({}, {"_id": 0})
+        print("📁 Loading products from local products.json...")
+        
+        # Load existing data
+        with open('products.json', 'r') as f:
+            data = json.load(f)
+        
         structured_products = {}
-
-        # Enhanced debug message
-        print("🔍 Fetching products from database...")
-        all_docs = list(products_cursor)
-        print(f"📋 Found {len(all_docs)} documents in database")
-        for i, doc in enumerate(all_docs):
-            print(f"📄 Document {i+1}: category='{doc.get('category', 'NO CATEGORY')}', products={len(doc.get('products', []))}")
-
-        for doc in all_docs:
-            category = doc.get("category", "").strip().lower()
-            
+        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+        
+        # Process existing categories
+        for item in data:
+            category = item.get("category", "").strip().lower()
             if not category:
-                continue  # Skip documents with no category
-            
-            # Initialize category list if it doesn't exist
+                continue
+                
             if category not in structured_products:
                 structured_products[category] = []
-
-            # Extract product details
-            if "products" in doc and isinstance(doc["products"], list):
-                for sub_prod in doc["products"]:
+                
+            if "products" in item and isinstance(item["products"], list):
+                for sub_prod in item["products"]:
                     product_name = sub_prod.get("name", "").strip()
                     product_price = sub_prod.get("price", "N/A")
                     product_features = sub_prod.get("specifications", [])
                     product_brand = sub_prod.get("brand", "").strip()
-                    
-                    # Get image directly from database field
                     product_image = sub_prod.get("image", "")
-
-                    # Skip products without a name
+                    
                     if not product_name:
                         continue
-
+                        
                     # Handle missing data
                     if product_price == "N/A" or product_price is None:
                         product_price = "Unknown Price"
-
                     if not product_brand:
                         product_brand = "Generic Brand"
                     
-                    # Create full image URL - use the image from database
-                    image_url = None
+                    # Create image URL
                     if product_image:
-                        # Use environment variable for base URL or fallback to localhost
-                        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
                         image_url = f"{base_url}/images/{product_image}"
                     else:
-                        # If no image in database, create a generic name based on brand and product
-                        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
                         image_url = f"{base_url}/images/default-product.jpg"
                     
-                    # Add to structured products
                     structured_products[category].append({
                         "name": product_name,
                         "price": f"${product_price}" if isinstance(product_price, (int, float)) else product_price,
                         "features": product_features,
                         "brand": product_brand,
-                        "image": image_url  # Use the full URL path
+                        "image": image_url
                     })
-
-        # Detailed summary debug
-        product_counts = {cat: len(prods) for cat, prods in structured_products.items()}
-        print(f"📦 Loaded products: {product_counts}")
         
-        # Extra debug for gaming and audio
-        if 'gaming' in structured_products:
-            print(f"🎮 Gaming products: {[p['name'] for p in structured_products['gaming']]}")
-        if 'audio' in structured_products:
-            print(f"🔊 Audio products: {[p['name'] for p in structured_products['audio']]}")
+        # Add missing gaming products
+        if 'gaming' not in structured_products:
+            structured_products['gaming'] = [
+                {
+                    "name": "Sony PlayStation 5 Console",
+                    "brand": "Sony", 
+                    "price": "$499.99",
+                    "features": [
+                        "Custom AMD Zen 2 8-core CPU running at 3.5GHz",
+                        "Custom AMD RDNA 2 GPU with 10.28 TFLOPs",
+                        "16GB GDDR6 RAM with 448GB/s memory bandwidth",
+                        "825GB custom NVMe SSD with 5.5GB/s raw throughput",
+                        "Support for 4K gaming at up to 120fps with ray tracing",
+                        "Backwards compatibility with PlayStation 4 games",
+                        "DualSense wireless controller with haptic feedback"
+                    ],
+                    "image": f"{base_url}/images/ps5.jpg"
+                },
+                {
+                    "name": "Gaming Headset Stereo Surround Sound Gaming Headphones with Breathing RGB Light",
+                    "brand": "OZEINO",
+                    "price": "$29.99", 
+                    "features": [
+                        "50mm high-precision neodymium drivers for superior sound quality",
+                        "Breathing RGB LED lights with 7 color variations",
+                        "360-degree adjustable noise-canceling microphone",
+                        "3.5mm universal compatibility (PC, PS4, PS5, Xbox One, Nintendo Switch)",
+                        "Comfortable memory foam ear cushions for extended gaming sessions",
+                        "Professional gaming-grade audio with virtual surround sound"
+                    ],
+                    "image": f"{base_url}/images/gamingheadphone.jpg"
+                }
+            ]
+        
+        # Add missing audio products
+        if 'audio' not in structured_products:
+            structured_products['audio'] = [
+                {
+                    "name": "Gaming Headset Pro with RGB Lighting",
+                    "brand": "OZEINO",
+                    "price": "$49.99",
+                    "features": [
+                        "7.1 Surround Sound for immersive gaming experience",
+                        "Dynamic RGB lighting with multiple color modes", 
+                        "Professional-grade noise canceling microphone",
+                        "Ultra-comfortable memory foam padding",
+                        "Compatible with PC, PS4, PS5, Xbox, Nintendo Switch",
+                        "High-quality 50mm drivers for crystal clear audio"
+                    ],
+                    "image": f"{base_url}/images/headphone.jpg"
+                }
+            ]
+        
+        # Detailed summary
+        product_counts = {cat: len(prods) for cat, prods in structured_products.items()}
+        print(f"📦 Loaded products from local JSON: {product_counts}")
         
         return structured_products
-
+        
     except Exception as e:
-        print(f"❌ MongoDB Error: {str(e)}")
+        print(f"❌ Error loading local JSON: {str(e)}")
         return {}
 
 

@@ -13,14 +13,14 @@ const PhonesSection = styled.section`
 `;
 
 const PhonesHeader = styled.div`
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 40px;
   
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: flex-start;
     gap: 1rem;
   }
 `;
@@ -30,6 +30,21 @@ const LatestTitle = styled.h2`
   font-weight: 700;
   color: #000000;
   margin: 0;
+  text-align: center;
+  position: relative;
+  margin-bottom: 1rem;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(to right, #1a73e8, #1557b0);
+    border-radius: 2px;
+  }
   
   @media (max-width: 768px) {
     font-size: 36px;
@@ -37,6 +52,10 @@ const LatestTitle = styled.h2`
 `;
 
 const ViewAllButton = styled(Link)`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   padding: 12px 24px;
   background: transparent;
   color: #000000;
@@ -50,6 +69,13 @@ const ViewAllButton = styled(Link)`
   &:hover {
     background: #000000;
     color: #ffffff;
+  }
+  
+  @media (max-width: 768px) {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
   }
 `;
 
@@ -927,6 +953,19 @@ const OffersTitle = styled.h2`
   text-align: center;
   margin-bottom: 48px;
   color: #333;
+  position: relative;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(to right, #1a73e8, #1557b0);
+    border-radius: 2px;
+  }
   
   @media (max-width: 768px) {
     font-size: 36px;
@@ -2859,7 +2898,7 @@ const Home = () => {
         {/* Latest Section */}
         <PhonesSection>
           <PhonesHeader>
-            <LatestTitle>Latest</LatestTitle>
+            <LatestTitle>New on VisionTech</LatestTitle>
             <ViewAllButton to="/products">View all</ViewAllButton>
           </PhonesHeader>
           
@@ -2978,7 +3017,7 @@ const Home = () => {
 
          {/* Benefits Section */}
         <BenefitsSectionWrapper>
-          <SectionTitle>The Vision Experience</SectionTitle>
+          <SectionTitle>The VisionTech Experience</SectionTitle>
           <SectionDescription>
             What makes us different
           </SectionDescription>

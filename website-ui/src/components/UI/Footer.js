@@ -178,7 +178,7 @@ const Footer = () => {
     <FooterContainer>
       <FooterContent>
         <FooterSection>
-          <FooterTitle>Vision Electronics</FooterTitle>
+          <FooterTitle>VisionTech</FooterTitle>
           <FooterText>
             Your trusted partner for quality electronics. We provide expert recommendations 
             powered by AI to help you find the perfect tech products.
@@ -240,7 +240,7 @@ const Footer = () => {
       
       <BottomSection>
         <Copyright>
-          &copy; {new Date().getFullYear()} Vision Electronics. All rights reserved.
+          &copy; {new Date().getFullYear()} VisionTech. All rights reserved.
         </Copyright>
         <LegalLinks>
           <LegalLink to="/privacy">Privacy Policy</LegalLink>

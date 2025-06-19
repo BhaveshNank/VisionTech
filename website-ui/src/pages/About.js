@@ -15,13 +15,13 @@ const Header = styled.header`
 
 const Title = styled.h1`
   font-size: 2.5rem;
-  color: #2c3e50;
+  color: #000000;
   margin-bottom: 1rem;
 `;
 
 const Subtitle = styled.p`
   font-size: 1.2rem;
-  color: #7f8c8d;
+  color: #666666;
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
@@ -33,7 +33,7 @@ const Section = styled.section`
 
 const SectionTitle = styled.h2`
   font-size: 1.8rem;
-  color: #2c3e50;
+  color: #000000;
   margin-bottom: 1.5rem;
   position: relative;
   padding-bottom: 0.5rem;
@@ -45,7 +45,7 @@ const SectionTitle = styled.h2`
     left: 0;
     width: 60px;
     height: 3px;
-    background-color: #1a73e8;
+    background-color: #000000;
   }
 `;
 
@@ -70,18 +70,18 @@ const Card = styled.div`
 
 const IconWrapper = styled.div`
   font-size: 2.5rem;
-  color: #1a73e8;
+  color: #000000;
   margin-bottom: 1rem;
 `;
 
 const CardTitle = styled.h3`
   font-size: 1.4rem;
   margin-bottom: 1rem;
-  color: #2c3e50;
+  color: #000000;
 `;
 
 const CardText = styled.p`
-  color: #7f8c8d;
+  color: #666666;
   line-height: 1.6;
 `;
 
@@ -114,11 +114,11 @@ const MemberImage = styled.div`
 const MemberName = styled.h3`
   font-size: 1.2rem;
   margin-bottom: 0.5rem;
-  color: #2c3e50;
+  color: #000000;
 `;
 
 const MemberPosition = styled.p`
-  color: #1a73e8;
+  color: #000000;
   font-weight: 500;
 `;
 
@@ -126,7 +126,7 @@ const About = () => {
   return (
     <AboutContainer>
       <Header>
-        <Title>About Vision Electronics</Title>
+        <Title>About VisionTech</Title>
         <Subtitle>
           We are dedicated to providing the best shopping experience with cutting-edge AI technology 
           to help you find the perfect tech products that suit your needs.
@@ -135,18 +135,18 @@ const About = () => {
       
       <Section>
         <SectionTitle>Our Story</SectionTitle>
-        <p>
-          Founded in 2023, Vision Electronics began with a simple mission: to make shopping for tech products easier 
+        <p style={{ color: '#666666', lineHeight: '1.6', marginBottom: '1rem' }}>
+          Founded in 2023, VisionTech began with a simple mission: to make shopping for tech products easier 
           and more intuitive. We recognized that customers often struggle with the overwhelming number of choices 
           and technical specifications when shopping for electronics.
         </p>
-        <p>
+        <p style={{ color: '#666666', lineHeight: '1.6', marginBottom: '1rem' }}>
           Our team of tech enthusiasts and AI specialists joined forces to create a platform that uses 
           artificial intelligence to understand customer needs and preferences, providing personalized 
           recommendations that help customers make informed decisions.
         </p>
-        <p>
-          Today, Vision Electronics has grown to become one of the most trusted online retailers for tech products, 
+        <p style={{ color: '#666666', lineHeight: '1.6', marginBottom: '1rem' }}>
+          Today, VisionTech has grown to become one of the most trusted online retailers for tech products, 
           serving customers with an innovative shopping experience that combines cutting-edge technology 
           with excellent customer service.
         </p>
