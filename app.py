@@ -15,28 +15,34 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-#  Configure Flask Session
-app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
+#  Configure Flask Session for Vercel compatibility
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'YOUR_FLASK_SECRET_KEY_HERE')
+
+# Use in-memory sessions for Vercel (serverless)
+if os.getenv('VERCEL'):
+    app.config['SESSION_TYPE'] = 'null'  # No session storage for serverless
+else:
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), '.flask_session')
 
 #  Set session cookie policies
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevents strict blocking
-app.config['SESSION_COOKIE_SECURE'] = False  # Keep False for local HTTP (set True for HTTPS)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True if os.getenv('VERCEL') else False
 
-#  Apply CORS with proper settings
-ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+#  Apply CORS with proper settings for Vercel
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '*').split(',')
 CORS(app, 
      resources={r"/*": {"origins": ALLOWED_ORIGINS}}, 
-     supports_credentials=True,
+     supports_credentials=False if os.getenv('VERCEL') else True,
      expose_headers=["Content-Type", "Authorization"],
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
      methods=["GET", "POST", "OPTIONS"]
 )
 
 # Initialize Flask-Session
-Session(app)
+if not os.getenv('VERCEL'):
+    Session(app)
 
 # MongoDB Connection with improved error handling and SSL options
 MONGODB_URI = os.getenv('MONGODB_URI')
@@ -456,7 +462,11 @@ def debug_gemini():
 @app.route('/reset-session', methods=['GET', 'POST'])
 def reset_session():
     """Reset the user's session to start a new chat"""
-    # Clear all session data
+    # For serverless, just return success - client will handle state reset
+    if os.getenv('VERCEL'):
+        return jsonify({"message": "Session reset successfully"})
+    
+    # Clear all session data for local development
     session.clear()
     
     # Initialize with default values
@@ -478,19 +488,26 @@ def chat():
     try:
         user_message = request.json.get("message", "").strip().lower()
         
+        # For Vercel deployment, use simplified chat without sessions
+        if os.getenv('VERCEL'):
+            return jsonify({
+                "reply": "Hello! I'm your VisionTech assistant. Due to current deployment constraints, I'm in simplified mode. Please visit our products page to explore our latest electronics!",
+                "isHtml": False
+            })
+        
         # Get the instance ID from the request
         instance_id = request.json.get("instance_id", "default")
         print(f"👤 Request from instance: {instance_id}")
         
-        # Store session data in a namespace based on instance ID
-        session_key = f"chat_data_{instance_id}"
+        # Get chat state from request (client-side state management for serverless)
+        chat_state = request.json.get("chat_state", {})
         
         # Check if this is the first message of a new conversation
         is_first_message = request.json.get("new_chat", False)
         
-        # Initialize session data for this instance if it doesn't exist or is a new chat
-        if session_key not in session or is_first_message:
-            session[session_key] = {
+        # Initialize chat data if it doesn't exist or is a new chat
+        if not chat_state or is_first_message:
+            chat_data = {
                 "chat_stage": "detect_category",
                 "selected_category": "",
                 "recommended_products": [],
@@ -503,10 +520,10 @@ def chat():
                 "has_budget": False,
                 "has_shown_initial_products": False
             }
-            print(f"✅ Initialized new session for instance: {instance_id}")
-        
-        # Get the chat data for this specific instance
-        chat_data = session[session_key]
+            print(f"✅ Initialized new chat state for instance: {instance_id}")
+        else:
+            chat_data = chat_state
+            print(f"✅ Using existing chat state for instance: {instance_id}")
         
         # Step 1: Detect Product Category
         if chat_data["chat_stage"] == "detect_category":
