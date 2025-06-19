@@ -253,16 +253,17 @@ const fetchProductByName = async (productName) => {
   }
 };
 
-function generateConsistentProductId(product) {
+function generateConsistentProductId(product, index = 0) {
   if (!product || !product.name) return null;
   
-  const nameSlug = product.name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  // Use the same algorithm as the backend
+  let nameSlug = product.name.toLowerCase();
+  nameSlug = nameSlug.replace(/[^a-z0-9]/g, '-');
+  nameSlug = nameSlug.replace(/^-+|-+$/g, '');
+  nameSlug = nameSlug.replace(/-+/g, '-');
   
-  const category = product.category ? `-${product.category}` : '';
-  return `1-${nameSlug}${category}`;
+  // Use 1-based indexing like the backend
+  return `${index + 1}-${nameSlug}`;
 }
 
 // Export this function along with your other exports

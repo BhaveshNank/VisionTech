@@ -441,8 +441,8 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
     ? product.features.slice(0, viewMode === 'list' ? 3 : 3) 
     : [];
     
-  // Use the consistent product ID generator
-  const productId = generateConsistentProductId(product);
+  // Use the ID provided by the backend API, fallback to generating one if needed
+  const productId = product.id || generateConsistentProductId(product);
   
   // Generate mock rating (in real app, this would come from data)
   const rating = 4.5;
