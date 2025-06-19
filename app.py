@@ -864,6 +864,75 @@ def api_product_by_id(product_id):
 
 
 
+@app.route('/test-mongodb', methods=['GET'])
+def test_mongodb():
+    """Test MongoDB connection step by step"""
+    try:
+        import pymongo
+        
+        # Step 1: Check environment variable
+        mongodb_uri = os.getenv('MONGODB_URI')
+        if not mongodb_uri:
+            return jsonify({
+                "step": 1,
+                "status": "FAILED",
+                "error": "MONGODB_URI environment variable not found",
+                "env_vars": {k: v for k, v in os.environ.items() if 'MONGO' in k or 'VERCEL' in k}
+            })
+        
+        # Step 2: Try to create client
+        try:
+            test_client = pymongo.MongoClient(mongodb_uri, serverSelectionTimeoutMS=5000)
+            
+            # Step 3: Test connection
+            test_client.admin.command('ping')
+            
+            # Step 4: Access database
+            test_db = test_client['test']  # Using 'test' database
+            
+            # Step 5: List databases
+            db_names = test_client.list_database_names()
+            
+            # Step 6: Check if our database exists
+            available_dbs = [db for db in db_names if 'cluster' in db.lower() or 'test' in db.lower() or 'product' in db.lower()]
+            
+            # Step 7: Try to access collections in each database
+            db_info = {}
+            for db_name in db_names[:5]:  # Limit to first 5 databases
+                try:
+                    db_collections = test_client[db_name].list_collection_names()
+                    db_info[db_name] = db_collections
+                except Exception as e:
+                    db_info[db_name] = f"Error: {str(e)}"
+            
+            test_client.close()
+            
+            return jsonify({
+                "step": "SUCCESS",
+                "status": "MongoDB connection working",
+                "mongodb_uri_length": len(mongodb_uri),
+                "databases": db_names,
+                "available_dbs": available_dbs,
+                "db_collections": db_info,
+                "ping_successful": True
+            })
+            
+        except Exception as db_error:
+            return jsonify({
+                "step": 2,
+                "status": "FAILED", 
+                "error": f"Database connection failed: {str(db_error)}",
+                "mongodb_uri_length": len(mongodb_uri),
+                "mongodb_uri_preview": mongodb_uri[:50] + "..." if len(mongodb_uri) > 50 else mongodb_uri
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "step": 0,
+            "status": "FAILED",
+            "error": f"General error: {str(e)}"
+        })
+
 @app.route('/debug-db', methods=['GET'])
 def debug_db():
     try:
