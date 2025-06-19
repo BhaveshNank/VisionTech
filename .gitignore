@@ -64,7 +64,6 @@ website-ui/.cache/
 
 # Build files
 website-ui/build/
-build/
 *.tgz
 
 # React/Node specific

@@ -4,13 +4,6 @@
     {
       "src": "./app.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "website-ui/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
     }
   ],
   "routes": [
@@ -47,16 +40,8 @@
       "dest": "/app.py"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "/website-ui/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|gif|svg))",
-      "dest": "/website-ui/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/website-ui/index.html"
+      "dest": "/app.py"
     }
   ]
 }
