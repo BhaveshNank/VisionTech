@@ -44,64 +44,23 @@ CORS(app,
 if not os.getenv('VERCEL'):
     Session(app)
 
-# MongoDB Connection with improved error handling and SSL options
+# MongoDB Connection - Simplified for Vercel
 MONGODB_URI = os.getenv('MONGODB_URI')
 try:
-    # Try multiple connection configurations for maximum compatibility
-    connection_configs = [
-        # Configuration 1: Standard SSL settings
-        {
-            'tlsAllowInvalidCertificates': True,
-            'serverSelectionTimeoutMS': 8000,
-            'connectTimeoutMS': 8000,
-            'socketTimeoutMS': 8000,
-            'retryWrites': True,
-            'retryReads': True,
-            'maxPoolSize': 10
-        },
-        # Configuration 2: Disable SSL verification entirely
-        {
-            'ssl': False,
-            'serverSelectionTimeoutMS': 5000,
-            'connectTimeoutMS': 5000,
-            'socketTimeoutMS': 5000,
-            'retryWrites': True,
-            'retryReads': True
-        },
-        # Configuration 3: Basic connection with minimal SSL
-        {
-            'tls': True,
-            'tlsInsecure': True,
-            'serverSelectionTimeoutMS': 3000,
-            'connectTimeoutMS': 3000,
-            'socketTimeoutMS': 3000
-        }
-    ]
-    
-    client = None
-    for i, config in enumerate(connection_configs, 1):
-        try:
-            print(f"🔄 Attempting MongoDB connection (config {i})...")
-            test_client = MongoClient(MONGODB_URI, **config)
-            # Test the connection with a quick ping
-            test_client.admin.command('ping')
-            client = test_client
-            print(f"✅ Successfully connected to MongoDB Atlas (config {i})")
-            break
-        except Exception as config_error:
-            print(f"❌ Config {i} failed: {str(config_error)}")
-            continue
-    
-    if client:
+    if MONGODB_URI:
+        print("🔄 Connecting to MongoDB...")
+        client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        client.admin.command('ping')
         db = client["ecommerce_db"]
         collection = db["products"]
         MONGODB_CONNECTED = True
+        print("✅ Successfully connected to MongoDB Atlas")
     else:
-        raise Exception("All connection configurations failed")
+        raise Exception("MONGODB_URI environment variable not found")
         
 except Exception as e:
-    print(f"❌ Failed to connect to MongoDB Atlas with all configurations")
-    print(f"   Final error: {str(e)}")
+    print(f"❌ Failed to connect to MongoDB Atlas: {str(e)}")
     print("🔄 Will use local JSON fallback for product data")
     client = None
     db = None
