@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='website-ui/build', static_url_path='')
 #  Configure Flask Session
 app.config['SECRET_KEY'] = 'YOUR_FLASK_SECRET_KEY_HERE'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -2189,6 +2189,16 @@ def get_category_specific_follow_up(user_message, product_category=None):
         return "What will you primarily use this laptop for? (e.g., Gaming, Work, Entertainment)?"
     else:
         return "Is there anything specific you're looking for in this product? (e.g., Brand preference, Price range, Key features)"
+
+# Serve React App
+@app.route('/')
+def serve_react():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    # Serve React app for any route not handled by Flask
+    return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

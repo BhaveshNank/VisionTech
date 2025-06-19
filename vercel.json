@@ -4,12 +4,56 @@
     {
       "src": "./app.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "website-ui/package.json",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/chat",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/health",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/test",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/products/(.*)",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/debug-(.*)",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/reset-session",
+      "dest": "/app.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/website-ui/build/static/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|gif|svg))",
+      "dest": "/website-ui/build/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/website-ui/build/index.html"
     }
   ]
 }
