@@ -241,9 +241,9 @@ def health_check():
 
 @app.route('/images/<filename>')
 def serve_image(filename):
-    """Serve images from the static/images directory"""
+    """Serve images from the images directory"""
     try:
-        response = make_response(send_from_directory('static/images', filename))
+        response = make_response(send_from_directory('images', filename))
         # Allow all origins for Vercel deployment
         if os.getenv('VERCEL'):
             response.headers['Access-Control-Allow-Origin'] = '*'
@@ -352,8 +352,8 @@ def get_product_image(product_name):
         else:
             product_category = None
         
-        # Look for images in static/images directory
-        image_dir = os.path.join(app.static_folder, 'images')
+        # Look for images in images directory
+        image_dir = 'images'
         
         # Try to match by exact name first
         for image_file in os.listdir(image_dir):
@@ -362,7 +362,7 @@ def get_product_image(product_name):
                 # Look for exact product name match
                 if product_name.replace(' ', '_') in normalized_filename:
                     print(f"Found exact match for {product_name}: {image_file}")
-                    return send_from_directory('static/images', image_file)
+                    return send_from_directory('images', image_file)
         
         # Try to match by individual keywords in the product name
         product_keywords = set(product_name.split())
@@ -382,20 +382,20 @@ def get_product_image(product_name):
                 # If we have an exact match, use it immediately
                 if match_score == len(product_keywords):
                     print(f"Found perfect keyword match for {product_name}: {image_file}")
-                    return send_from_directory('static/images', image_file)
+                    return send_from_directory('images', image_file)
         
         # If we found a partial match with at least one keyword
         if best_match and best_match_score > 0:
             print(f"Found best keyword match for {product_name}: {best_match} (score: {best_match_score})")
-            return send_from_directory('static/images', best_match)
+            return send_from_directory('images', best_match)
                     
         # If no match is found, return a default image
         print(f"No image match found for {product_name}, using default")
-        return send_from_directory('static/images', 'default-product.jpg')
+        return send_from_directory('images', 'default-product.jpg')
     
     except Exception as e:
         print(f"Error finding product image: {str(e)}")
-        return send_from_directory('static/images', 'default-product.jpg')
+        return send_from_directory('images', 'default-product.jpg')
 
 
 @app.route('/debug-gemini', methods=['GET'])
