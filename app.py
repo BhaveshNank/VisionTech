@@ -867,7 +867,34 @@ def api_product_by_id(product_id):
 @app.route('/debug-db', methods=['GET'])
 def debug_db():
     try:
+        # Debug environment variables
+        mongodb_uri = os.getenv('MONGODB_URI')
+        vercel_env = os.getenv('VERCEL')
+        
+        debug_info = {
+            "mongodb_uri_exists": bool(mongodb_uri),
+            "mongodb_uri_length": len(mongodb_uri) if mongodb_uri else 0,
+            "vercel_env": vercel_env,
+            "client_status": str(type(client)),
+            "db_status": str(type(db)),
+            "collection_status": str(type(collection))
+        }
+        
+        if not mongodb_uri:
+            return jsonify({
+                "status": "error",
+                "error": "MONGODB_URI environment variable not found",
+                "debug": debug_info
+            })
+        
         # Check if we can connect to MongoDB
+        if client is None:
+            return jsonify({
+                "status": "error", 
+                "error": "MongoDB client is None",
+                "debug": debug_info
+            })
+            
         db_names = client.list_database_names()
         collections = db.list_collection_names()
         
