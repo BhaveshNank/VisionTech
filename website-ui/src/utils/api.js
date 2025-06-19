@@ -10,7 +10,7 @@ async function fetchProducts(category = 'all', brand = '') {
         }
         
         // Make request
-        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '';
         const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`);
         
         if (!response.ok) {
@@ -108,7 +108,7 @@ function getMatchScore(productName, searchName) {
 }
 
 function sendInquiry(data) {
-    const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+    const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '';
     return fetch(`${API_BASE_URL}/api/inquiry`, {
         method: 'POST',
         headers: {
@@ -128,7 +128,7 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
-        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '';
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -162,7 +162,7 @@ const fetchProductByName = async (productName) => {
     console.log("Normalized search term:", normalizedName);
     
     // Get all products from API
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/products`);
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/products`);
     
     if (!response.ok) {
       console.error(`API error: ${response.status}`);
