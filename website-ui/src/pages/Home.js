@@ -2587,7 +2587,7 @@ const Home = () => {
       priceFrom: "From $1,199.00",
       originalPrice: "$1,299.00",
       description: "Experience the ultimate in mobile technology with A17 Pro chip and titanium design.",
-      image: "http://localhost:5001/images/iphone_16_pro_max.jpg",
+      image: "/images/iphone_16_pro_max.jpg",
       link: "/product/1-iphone-16-pro-max-phone"
     },
     {
@@ -2597,7 +2597,7 @@ const Home = () => {
       priceFrom: "From $1,149.00",
       originalPrice: "$1,299.00",
       description: "Next-gen Galaxy AI is here. Transform your mobile experience with advanced AI features.",
-      image: "http://localhost:5001/images/samsungs25ultra.jpg",
+      image: "/images/samsungs25ultra.jpg",
       link: "/product/samsung-galaxy-s25-ultra"
     },
     {
@@ -2607,7 +2607,7 @@ const Home = () => {
       priceFrom: "From $999.00",
       originalPrice: "$1,099.00",
       description: "The most helpful Pixel yet, with advanced AI and the best Pixel camera system.",
-      image: "http://localhost:5001/images/googlepixel9proxl.jpg",
+      image: "/images/googlepixel9proxl.jpg",
       link: "/product/1-google-pixel-9-pro-xl-phone"
     },
     {
@@ -2617,7 +2617,7 @@ const Home = () => {
       priceFrom: "From $1,999.00",
       originalPrice: "$2,199.00",
       description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
-      image: "http://localhost:5001/images/macbook_m4_pro.jpg",
+      image: "/images/macbook_m4_pro.jpg",
       link: "/product/1-macbook-m4-pro-laptop"
     },
     {
