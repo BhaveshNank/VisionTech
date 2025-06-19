@@ -2641,7 +2641,7 @@ const Home = () => {
     salePrice: '$2,159',
     savings: 'Save $240',
     offer: 'Student Discount Available',
-    image: 'http://localhost:5001/images/macbook_m4_pro.jpg'
+    image: '/images/macbook_m4_pro.jpg'
   };
 
   const gridOffers = [

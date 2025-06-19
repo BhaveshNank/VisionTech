@@ -619,7 +619,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchPhoneData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/products?category=phone');
+        const response = await fetch('/api/products?category=phone');
         if (response.ok) {
           const phones = await response.json();
           
@@ -661,7 +661,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchLaptopData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/products?category=laptop');
+        const response = await fetch('/api/products?category=laptop');
         if (response.ok) {
           const laptops = await response.json();
           
@@ -739,7 +739,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchTvData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/products?category=tv');
+        const response = await fetch('/api/products?category=tv');
         if (response.ok) {
           const tvs = await response.json();
           
@@ -829,7 +829,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchGamingData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/products?category=gaming');
+        const response = await fetch('/api/products?category=gaming');
         if (response.ok) {
           const gamingProducts = await response.json();
           
@@ -852,7 +852,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchAudioData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/products?category=audio');
+        const response = await fetch('/api/products?category=audio');
         if (response.ok) {
           const audioProducts = await response.json();
           
@@ -881,7 +881,7 @@ const Navbar = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/search-suggestions?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/search-suggestions?query=${encodeURIComponent(query)}`);
       if (response.ok) {
         const suggestions = await response.json();
         setSearchSuggestions(suggestions);
@@ -1363,7 +1363,7 @@ const Navbar = () => {
               <CategoryCard to="/products?category=phone">
                 <CategoryImage>
                   <img 
-                    src="http://localhost:5001/images/google_pixel_9_pro.jpg"
+                    src="/images/google_pixel_9_pro.jpg"
                     alt="Phones"
                     onError={(e) => {
                       e.target.src = phoneData.latestPhones[0]?.image || 'https://via.placeholder.com/120x120?text=📱';
@@ -1377,7 +1377,7 @@ const Navbar = () => {
               <CategoryCard to="/products?category=laptop">
                 <CategoryImage>
                   <img 
-                    src="http://localhost:5001/images/macbook_m4_pro.jpg"
+                    src="/images/macbook_m4_pro.jpg"
                     alt="Laptops"
                     onError={(e) => {
                       e.target.src = laptopData.featuredLaptops[0]?.image || 'https://via.placeholder.com/120x120?text=💻';
@@ -1428,7 +1428,7 @@ const Navbar = () => {
                 >
                   <ProductImage>
                     <img 
-                      src={`http://localhost:5001/static/images/ps5.jpg`}
+                      src="/static/images/ps5.jpg"
                       alt={product.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;
@@ -1464,7 +1464,7 @@ const Navbar = () => {
                 >
                   <ProductImage>
                     <img 
-                      src={`http://localhost:5001/static/images/gamingheadphone.jpg`}
+                      src="/static/images/gamingheadphone.jpg"
                       alt={product.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;

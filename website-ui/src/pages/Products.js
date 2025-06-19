@@ -72,11 +72,11 @@ const ProductsPage = () => {
         if (category === 'all') {
           // Fetch all products from all categories
           const [phoneRes, laptopRes, tvRes, gamingRes, audioRes] = await Promise.all([
-            fetch('http://localhost:5001/api/products?category=phone'),
-            fetch('http://localhost:5001/api/products?category=laptop'),
-            fetch('http://localhost:5001/api/products?category=tv'),
-            fetch('http://localhost:5001/api/products?category=gaming'),
-            fetch('http://localhost:5001/api/products?category=audio')
+            fetch('/api/products?category=phone'),
+            fetch('/api/products?category=laptop'),
+            fetch('/api/products?category=tv'),
+            fetch('/api/products?category=gaming'),
+            fetch('/api/products?category=audio')
           ]);
           
           const [phones, laptops, tvs, gaming, audio] = await Promise.all([
@@ -90,7 +90,7 @@ const ProductsPage = () => {
           setProducts([...phones, ...laptops, ...tvs, ...gaming, ...audio]);
         } else {
           // Fetch products for specific category
-          const response = await fetch(`http://localhost:5001/api/products?category=${category}`);
+          const response = await fetch(`/api/products?category=${category}`);
           const data = await response.json();
           setProducts(data);
         }
