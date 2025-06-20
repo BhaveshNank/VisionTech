@@ -256,16 +256,29 @@ const fetchProductByName = async (productName) => {
 function generateConsistentProductId(product, index = 0) {
   if (!product || !product.name) return null;
   
-  // Use the same algorithm as the backend
+  // Use the EXACT same algorithm as the backend
   let nameSlug = product.name.toLowerCase();
-  nameSlug = nameSlug.replace(/[^a-z0-9]/g, '-');
-  nameSlug = nameSlug.replace(/^-+|-+$/g, '');
-  nameSlug = nameSlug.replace(/-+/g, '-');
+  nameSlug = nameSlug.replace(/[^a-z0-9]/g, '-');  // Replace non-alphanumeric with dash
+  nameSlug = nameSlug.replace(/^-+|-+$/g, '');      // Strip leading/trailing dashes
+  nameSlug = nameSlug.replace(/-+/g, '-');          // Replace multiple dashes with single
   
   // Use 1-based indexing like the backend
   return `${index + 1}-${nameSlug}`;
 }
 
+// Unified product ID generator - use this everywhere
+function generateProductId(productName, index = 0) {
+  if (!productName) return `${index + 1}-unknown-product`;
+  
+  // Use exact same algorithm as backend
+  let nameSlug = productName.toLowerCase();
+  nameSlug = nameSlug.replace(/[^a-z0-9]/g, '-');
+  nameSlug = nameSlug.replace(/^-+|-+$/g, '');
+  nameSlug = nameSlug.replace(/-+/g, '-');
+  
+  return `${index + 1}-${nameSlug}`;
+}
+
 // Export this function along with your other exports
-export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot, fetchProductByName, generateConsistentProductId };
+export { fetchProducts, fetchProductById, sendInquiry, sendMessageToChatbot, fetchProductByName, generateConsistentProductId, generateProductId };
 

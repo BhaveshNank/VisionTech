@@ -241,18 +241,40 @@ def health_check():
 
 @app.route('/images/<filename>')
 def serve_image(filename):
-    """Serve images from the images directory"""
+    """Serve images from multiple possible directories with fallback"""
     try:
-        response = make_response(send_from_directory('images', filename))
-        # Allow all origins for Vercel deployment
-        if os.getenv('VERCEL'):
-            response.headers['Access-Control-Allow-Origin'] = '*'
-        else:
-            response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-        response.headers['Access-Control-Allow-Methods'] = 'GET'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
-        return response
+        # Try multiple image locations in order of preference
+        image_paths = [
+            'images',  # Root level images
+            'static/images',  # Static directory images 
+            'website-ui/public/images',  # React public images
+            os.path.join(os.path.dirname(__file__), 'images'),  # Absolute path fallback
+            os.path.join(os.path.dirname(__file__), 'static', 'images')  # Absolute static path
+        ]
+        
+        for path in image_paths:
+            try:
+                full_path = os.path.join(path, filename)
+                if os.path.exists(full_path):
+                    print(f"✅ Found image {filename} in {path}")
+                    response = make_response(send_from_directory(path, filename))
+                    # Allow all origins for Vercel deployment
+                    if os.getenv('VERCEL'):
+                        response.headers['Access-Control-Allow-Origin'] = '*'
+                    else:
+                        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+                    response.headers['Access-Control-Allow-Methods'] = 'GET'
+                    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+                    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+                    return response
+            except Exception as path_error:
+                print(f"❌ Error trying path {path}: {str(path_error)}")
+                continue
+        
+        # If no image found, return 404
+        print(f"❌ Image {filename} not found in any directory")
+        return jsonify({"error": "Image not found"}), 404
+        
     except Exception as e:
         print(f"❌ Error serving image {filename}: {str(e)}")
         return jsonify({"error": "Image not found"}), 404
@@ -757,12 +779,25 @@ def api_products():
             
             result = filtered_results
         
-        # Add ID field for each product
-        for i, product in enumerate(result):
+        # Create a mapping of all products to their global index first
+        all_products = []
+        for cat, products in structured_products.items():
+            for product in products:
+                product['category'] = cat
+                all_products.append(product)
+        
+        # Add ID field for each product based on their position in the complete list
+        for i, product in enumerate(all_products):
             name_slug = re.sub(r'[^a-z0-9]', '-', product['name'].lower())
             name_slug = name_slug.strip('-')
             name_slug = re.sub(r'-+', '-', name_slug)
             product['id'] = f"{i+1}-{name_slug}"
+        
+        # Filter the results with IDs already assigned
+        if category != 'all':
+            result = [p for p in all_products if p.get('category', '').lower() == category]
+        else:
+            result = all_products
         
         print(f"✅ API returning {len(result)} products for category '{category}'")
         return jsonify(result)
@@ -791,27 +826,42 @@ def api_product_by_id(product_id):
         if not structured_products:
             return jsonify({"error": "No products found"}), 404
         
-        # Search through all categories for the product with matching ID
+        # Create a flat list of all products with their IDs - SAME AS /api/products
+        all_products = []
         for category, products in structured_products.items():
-            for i, product in enumerate(products):
-                # Generate ID the same way as in /api/products
-                name_slug = re.sub(r'[^a-z0-9]', '-', product['name'].lower())
-                name_slug = name_slug.strip('-')
-                name_slug = re.sub(r'-+', '-', name_slug)
-                generated_id = f"{i+1}-{name_slug}"
-                
-                if generated_id == product_id:
-                    # Add category and ID to the product
-                    product['category'] = category
-                    product['id'] = generated_id
-                    # Fix image path to include /images/ prefix
-                    if 'image' in product and not product['image'].startswith('/'):
-                        product['image'] = f"/images/{product['image']}"
-                    print(f"✅ Found product: {product['name']}")
-                    return jsonify(product)
+            for product in products:
+                product['category'] = category
+                all_products.append(product)
         
+        # Generate IDs using the same logic as /api/products (flat list indexing)
+        for i, product in enumerate(all_products):
+            name_slug = re.sub(r'[^a-z0-9]', '-', product['name'].lower())
+            name_slug = name_slug.strip('-')
+            name_slug = re.sub(r'-+', '-', name_slug)
+            generated_id = f"{i+1}-{name_slug}"
+            product['id'] = generated_id  # Always set the ID
+            
+            # Try multiple matching strategies
+            if (generated_id == product_id or 
+                product_id in generated_id or 
+                generated_id.endswith(f"-{product_id}") or
+                product['name'].lower().replace(' ', '-') in product_id.lower()):
+                
+                # Fix image path to include /images/ prefix
+                if 'image' in product and not product['image'].startswith('/'):
+                    product['image'] = f"/images/{product['image']}"
+                print(f"✅ Found product: {product['name']} with ID: {generated_id}")
+                return jsonify(product)
+        
+        # Debug: Log all available IDs for troubleshooting
+        available_ids = [p['id'] for p in all_products]
         print(f"❌ Product not found with ID: {product_id}")
-        return jsonify({"error": "Product not found"}), 404
+        print(f"Available IDs: {available_ids[:10]}...")  # Show first 10 IDs
+        return jsonify({
+            "error": "Product not found", 
+            "requested_id": product_id,
+            "available_ids": available_ids[:5]  # Include some available IDs for debugging
+        }), 404
         
     except Exception as e:
         print(f"❌ Error in /api/product/{product_id}: {str(e)}")

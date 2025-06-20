@@ -441,8 +441,8 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
     ? product.features.slice(0, viewMode === 'list' ? 3 : 3) 
     : [];
     
-  // Use the ID provided by the backend API, fallback to generating one if needed
-  const productId = product.id || generateConsistentProductId(product);
+  // ALWAYS use the ID provided by the backend API - never generate frontend IDs
+  const productId = product.id || `fallback-${product.name?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
   
   // Generate mock rating (in real app, this would come from data)
   const rating = 4.5;
