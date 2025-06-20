@@ -10,7 +10,7 @@ async function fetchProducts(category = 'all', brand = '') {
         }
         
         // Make request
-        const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin;
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
         const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`);
         
         if (!response.ok) {
@@ -128,7 +128,7 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
-        const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin;
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
