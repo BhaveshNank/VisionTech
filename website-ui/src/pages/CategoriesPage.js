@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import Categories from '../components/Categories.js';
+// import Categories from '../components/Categories.js';
 
 const PageContainer = styled.div`
   text-align: center;
@@ -19,7 +19,7 @@ const CategoriesPage = () => {
   return (
     <PageContainer>
       <Title>Categories</Title>
-      <Categories />
+      <div>Categories component temporarily disabled for deployment testing</div>
     </PageContainer>
   );
 };
