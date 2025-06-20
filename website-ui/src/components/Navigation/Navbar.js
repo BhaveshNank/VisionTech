@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaShoppingCart, FaSearch } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
+import { fetchProducts } from '../../utils/api';
 
 const NavbarContainer = styled.nav`
   position: fixed;
@@ -619,9 +620,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchPhoneData = async () => {
       try {
-        const response = await fetch('/api/products?category=phone');
-        if (response.ok) {
-          const phones = await response.json();
+        const phones = await fetchProducts('phone');
           
           // Extract unique brands
           const uniqueBrands = [...new Set(phones.map(phone => {
@@ -661,9 +660,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchLaptopData = async () => {
       try {
-        const response = await fetch('/api/products?category=laptop');
-        if (response.ok) {
-          const laptops = await response.json();
+        const laptops = await fetchProducts('laptop');
           
           // Define laptop categories with use cases
           const categories = [
@@ -739,9 +736,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchTvData = async () => {
       try {
-        const response = await fetch('/api/products?category=tv');
-        if (response.ok) {
-          const tvs = await response.json();
+        const tvs = await fetchProducts('tv');
           
           // Define TV/Monitor categories with use cases
           const categories = [
@@ -829,9 +824,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchGamingData = async () => {
       try {
-        const response = await fetch('/api/products?category=gaming');
-        if (response.ok) {
-          const gamingProducts = await response.json();
+        const gamingProducts = await fetchProducts('gaming');
           
           // Get featured gaming products (first 6)
           const featuredGaming = gamingProducts.slice(0, 6);
@@ -852,9 +845,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchAudioData = async () => {
       try {
-        const response = await fetch('/api/products?category=audio');
-        if (response.ok) {
-          const audioProducts = await response.json();
+        const audioProducts = await fetchProducts('audio');
           
           // Get featured audio products (first 6)
           const featuredAudio = audioProducts.slice(0, 6);

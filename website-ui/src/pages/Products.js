@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/Products/ProductCard';
+import { fetchProducts } from '../utils/api';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -66,32 +67,23 @@ const ProductsPage = () => {
   const category = searchParams.get('category') || 'all';
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAllProducts = async () => {
       setLoading(true);
       try {
         if (category === 'all') {
           // Fetch all products from all categories
-          const [phoneRes, laptopRes, tvRes, gamingRes, audioRes] = await Promise.all([
-            fetch('/api/products?category=phone'),
-            fetch('/api/products?category=laptop'),
-            fetch('/api/products?category=tv'),
-            fetch('/api/products?category=gaming'),
-            fetch('/api/products?category=audio')
-          ]);
-          
           const [phones, laptops, tvs, gaming, audio] = await Promise.all([
-            phoneRes.json(),
-            laptopRes.json(),
-            tvRes.json(),
-            gamingRes.json(),
-            audioRes.json()
+            fetchProducts('phone'),
+            fetchProducts('laptop'),
+            fetchProducts('tv'),
+            fetchProducts('gaming'),
+            fetchProducts('audio')
           ]);
           
           setProducts([...phones, ...laptops, ...tvs, ...gaming, ...audio]);
         } else {
           // Fetch products for specific category
-          const response = await fetch(`/api/products?category=${category}`);
-          const data = await response.json();
+          const data = await fetchProducts(category);
           setProducts(data);
         }
       } catch (error) {
@@ -102,7 +94,7 @@ const ProductsPage = () => {
       }
     };
     
-    fetchProducts();
+    fetchAllProducts();
   }, [category]);
 
   const getCategoryTitle = () => {
