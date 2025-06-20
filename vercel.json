@@ -1,46 +1,43 @@
 {
   "version": 2,
-  "functions": {
-    "app.py": {
-      "runtime": "python3.12"
+  "builds": [
+    {
+      "src": "index.py",
+      "use": "@vercel/python"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/chat",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/health",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/test",
-      "dest": "/app.py"
-    },
-    {
-      "src": "/products/(.*)",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/images/(.*)",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/debug-(.*)",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/reset-session",
-      "dest": "/app.py"
+      "dest": "/index.py"
     },
     {
       "src": "/(.*)",
-      "dest": "/app.py"
+      "dest": "/index.py"
     }
   ]
 }

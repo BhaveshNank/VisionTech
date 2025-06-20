@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder='website-ui/build', static_url_path='')
 #  Configure Flask Session for Vercel compatibility
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'YOUR_FLASK_SECRET_KEY_HERE')
 
