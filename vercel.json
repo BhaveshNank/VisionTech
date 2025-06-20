@@ -4,13 +4,6 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "website-ui/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
     }
   ],
   "routes": [
@@ -19,12 +12,8 @@
       "dest": "/api/index.py"
     },
     {
-      "src": "/(.*\\.(js|css|png|jpg|ico|json))",
-      "dest": "/website-ui/build/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/website-ui/build/index.html"
+      "dest": "/index.html"
     }
   ]
 }
