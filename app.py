@@ -2384,14 +2384,19 @@ def get_category_specific_follow_up(user_message, product_category=None):
     else:
         return "Is there anything specific you're looking for in this product? (e.g., Brand preference, Price range, Key features)"
 
-# Serve React App
+# Serve React App (only for local development)
 @app.route('/')
 def serve_react():
+    if os.getenv('RENDER'):
+        return jsonify({"message": "Backend API is running", "status": "healthy"})
     return send_from_directory(app.static_folder, 'index.html')
 
 @app.errorhandler(404)
 def not_found(e):
-    # Serve React app for any route not handled by Flask
+    # On Render, return JSON for 404s instead of trying to serve React
+    if os.getenv('RENDER'):
+        return jsonify({"error": "Endpoint not found", "available_endpoints": ["/health", "/api/products", "/chat"]}), 404
+    # Serve React app for any route not handled by Flask (local development)
     return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
