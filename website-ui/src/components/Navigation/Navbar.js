@@ -622,32 +622,30 @@ const Navbar = () => {
       try {
         const phones = await fetchProducts('phone');
           
-          // Extract unique brands
-          const uniqueBrands = [...new Set(phones.map(phone => {
-            const name = phone.name.toLowerCase();
-            if (name.includes('iphone') || name.includes('apple')) return 'Apple';
-            if (name.includes('samsung') || name.includes('galaxy')) return 'Samsung';
-            if (name.includes('google') || name.includes('pixel')) return 'Google';
-            if (name.includes('oneplus')) return 'OnePlus';
-            if (name.includes('xiaomi')) return 'Xiaomi';
-            if (name.includes('huawei')) return 'Huawei';
-            return 'Other';
-          }).filter(brand => brand !== 'Other'))].sort();
+        // Extract unique brands
+        const uniqueBrands = [...new Set(phones.map(phone => {
+          const name = phone.name.toLowerCase();
+          if (name.includes('iphone') || name.includes('apple')) return 'Apple';
+          if (name.includes('samsung') || name.includes('galaxy')) return 'Samsung';
+          if (name.includes('google') || name.includes('pixel')) return 'Google';
+          if (name.includes('oneplus')) return 'OnePlus';
+          if (name.includes('xiaomi')) return 'Xiaomi';
+          if (name.includes('huawei')) return 'Huawei';
+          return 'Other';
+        }).filter(brand => brand !== 'Other'))].sort();
 
-          // Get latest phones (first 6) and update image paths to use local images
-          const latestPhones = phones.slice(0, 6).map(phone => ({
-            ...phone,
-            image: phone.name.toLowerCase().includes('iphone') && phone.name.toLowerCase().includes('16') && phone.name.toLowerCase().includes('pro') 
-              ? '/images/iphone_16_pro_max.jpg'
-              : phone.image
-          }));
+        // Get latest phones (first 6) and update image paths to use local images
+        const latestPhones = phones.slice(0, 6).map(phone => ({
+          ...phone,
+          image: phone.name.toLowerCase().includes('iphone') && phone.name.toLowerCase().includes('16') && phone.name.toLowerCase().includes('pro') 
+            ? '/images/iphone_16_pro_max.jpg'
+            : phone.image
+        }));
 
-          setPhoneData({
-            brands: uniqueBrands,
-            latestPhones: latestPhones
-          });
-          
-        }
+        setPhoneData({
+          brands: uniqueBrands,
+          latestPhones: latestPhones
+        });
       } catch (error) {
         console.error('Error fetching phone data:', error);
       }
@@ -718,12 +716,11 @@ const Navbar = () => {
             ...categorizedLaptops.creative.slice(0, 2)
           ].slice(0, 6);
 
-          setLaptopData({
-            categories: categories,
-            featuredLaptops: featuredLaptops,
-            categorizedLaptops: categorizedLaptops
-          });
-        }
+        setLaptopData({
+          categories: categories,
+          featuredLaptops: featuredLaptops,
+          categorizedLaptops: categorizedLaptops
+        });
       } catch (error) {
         console.error('Error fetching laptop data:', error);
       }
@@ -806,12 +803,11 @@ const Navbar = () => {
           // If we don't have enough categorized items, fall back to all TVs
           const finalFeaturedTvs = featuredTvs.length >= 4 ? featuredTvs : tvs.slice(0, 6);
 
-          setTvData({
-            categories: categories,
-            featuredTvs: finalFeaturedTvs,
-            categorizedTvs: categorizedTvs
-          });
-        }
+        setTvData({
+          categories: categories,
+          featuredTvs: finalFeaturedTvs,
+          categorizedTvs: categorizedTvs
+        });
       } catch (error) {
         console.error('Error fetching TV data:', error);
       }
@@ -829,10 +825,9 @@ const Navbar = () => {
           // Get featured gaming products (first 6)
           const featuredGaming = gamingProducts.slice(0, 6);
 
-          setGamingData({
-            featuredGaming: featuredGaming
-          });
-        }
+        setGamingData({
+          featuredGaming: featuredGaming
+        });
       } catch (error) {
         console.error('Error fetching gaming data:', error);
       }
@@ -850,10 +845,9 @@ const Navbar = () => {
           // Get featured audio products (first 6)
           const featuredAudio = audioProducts.slice(0, 6);
 
-          setAudioData({
-            featuredAudio: featuredAudio
-          });
-        }
+        setAudioData({
+          featuredAudio: featuredAudio
+        });
       } catch (error) {
         console.error('Error fetching audio data:', error);
       }
