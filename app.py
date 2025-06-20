@@ -254,11 +254,11 @@ def serve_image(filename):
     try:
         # Try multiple image locations in order of preference
         image_paths = [
-            'images',  # Root level images
-            'static/images',  # Static directory images 
+            'static/images',  # Primary: Static directory images (most images are here)
+            'images',  # Secondary: Root level images
             'website-ui/public/images',  # React public images
-            os.path.join(os.path.dirname(__file__), 'images'),  # Absolute path fallback
-            os.path.join(os.path.dirname(__file__), 'static', 'images')  # Absolute static path
+            os.path.join(os.path.dirname(__file__), 'static', 'images'),  # Absolute static path
+            os.path.join(os.path.dirname(__file__), 'images')  # Absolute path fallback
         ]
         
         for path in image_paths:
@@ -280,9 +280,23 @@ def serve_image(filename):
                 print(f"❌ Error trying path {path}: {str(path_error)}")
                 continue
         
-        # If no image found, return 404
+        # If no image found, return 404 with debug info
+        available_images = []
+        for path in image_paths:
+            try:
+                if os.path.exists(path):
+                    available_images.extend([f"{path}/{f}" for f in os.listdir(path) if f.endswith(('.jpg', '.jpeg', '.png'))])
+            except:
+                pass
+        
         print(f"❌ Image {filename} not found in any directory")
-        return jsonify({"error": "Image not found"}), 404
+        print(f"Available images: {available_images[:10]}")  # Show first 10
+        return jsonify({
+            "error": "Image not found", 
+            "requested": filename,
+            "searched_paths": image_paths,
+            "sample_available": available_images[:5]
+        }), 404
         
     except Exception as e:
         print(f"❌ Error serving image {filename}: {str(e)}")
