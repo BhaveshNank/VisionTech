@@ -2,42 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.py",
+      "src": "simple.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/index.py"
-    },
-    {
-      "src": "/chat",
-      "dest": "/index.py"
-    },
-    {
-      "src": "/health",
-      "dest": "/index.py"
-    },
-    {
       "src": "/test",
-      "dest": "/index.py"
+      "dest": "/simple.py"
     },
     {
-      "src": "/images/(.*)",
-      "dest": "/index.py"
-    },
-    {
-      "src": "/debug-(.*)",
-      "dest": "/index.py"
-    },
-    {
-      "src": "/reset-session",
-      "dest": "/index.py"
+      "src": "/api/simple",
+      "dest": "/simple.py"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.py"
+      "dest": "/simple.py"
     }
   ]
 }
