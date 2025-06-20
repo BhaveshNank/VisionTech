@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Categories } from '../components';
+import Categories from '../components/Categories';
 
 const PageContainer = styled.div`
   text-align: center;

@@ -138,7 +138,7 @@ const SearchBar = () => {
       }
       
       try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/api/search-suggestions?query=${encodeURIComponent(query)}`);
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/search-suggestions?query=${encodeURIComponent(query)}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch suggestions: ${response.statusText}`);
@@ -266,7 +266,7 @@ const SearchBar = () => {
                   alt={suggestion.name} 
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001'}/images/default-product.jpg`;
+                    e.target.src = `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/images/default-product.jpg`;
                   }}
                 />
               )}

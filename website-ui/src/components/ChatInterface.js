@@ -6,7 +6,7 @@ import eventSystem from '../utils/events';
 import { useCart } from '../context/CartContext';
 
 // Define backend URL at the top of your file for consistency
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const BACKEND_URL = process.env.REACT_APP_API_URL || "";
 
 // Removed unused ChatContainer
 
