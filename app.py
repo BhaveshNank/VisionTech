@@ -1,20 +1,32 @@
-from flask import Flask, request, jsonify, make_response, session
-from pymongo import MongoClient
-import requests
-import re
-from flask_cors import CORS
-from functools import wraps
-import logging 
-import json 
-import os
-from flask_session import Session
-from flask import send_from_directory
-from dotenv import load_dotenv
+try:
+    from flask import Flask, request, jsonify, make_response, session
+    from pymongo import MongoClient
+    import requests
+    import re
+    from flask_cors import CORS
+    from functools import wraps
+    import logging 
+    import json 
+    import os
+    from flask_session import Session
+    from flask import send_from_directory
+    from dotenv import load_dotenv
+    print("✅ All imports successful")
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    raise
 
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder='website-ui/build', static_url_path='')
+try:
+    app = Flask(__name__, static_folder='website-ui/build', static_url_path='')
+    print("✅ Flask app created successfully")
+except Exception as e:
+    print(f"❌ Error creating Flask app: {e}")
+    # Fallback to current directory if build folder doesn't exist
+    app = Flask(__name__, static_folder='.', static_url_path='')
+    print("✅ Flask app created with fallback static folder")
 #  Configure Flask Session for Vercel compatibility
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'YOUR_FLASK_SECRET_KEY_HERE')
 
@@ -177,20 +189,41 @@ def generate_comparison_table(comparison_data):
 
 
 
-# Test route to check if Flask is running
+# Simple test route to check if Flask is running
 @app.route('/test', methods=['GET'])
 def test():
-    logging.info("Test API called")
-    return jsonify({
-        "message": "Flask API is working!",
-        "environment": "vercel" if os.getenv('VERCEL') else "local",
-        "mongodb_connected": MONGODB_CONNECTED,
-        "python_version": "3.9",
-        "available_endpoints": [
-            "/test", "/health", "/api/products", "/api/product/<id>", 
-            "/chat", "/images/<filename>"
-        ]
-    }), 200
+    try:
+        return jsonify({
+            "message": "Flask API is working!",
+            "status": "success",
+            "environment": "vercel" if os.getenv('VERCEL') else "local"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "message": "Test endpoint error",
+            "error": str(e)
+        }), 500
+
+# Detailed test route
+@app.route('/test-detailed', methods=['GET'])
+def test_detailed():
+    try:
+        logging.info("Detailed test API called")
+        return jsonify({
+            "message": "Flask API is working!",
+            "environment": "vercel" if os.getenv('VERCEL') else "local",
+            "mongodb_connected": MONGODB_CONNECTED,
+            "python_version": "3.9",
+            "available_endpoints": [
+                "/test", "/health", "/api/products", "/api/product/<id>", 
+                "/chat", "/images/<filename>"
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "message": "Detailed test endpoint error",
+            "error": str(e)
+        }), 500
 
 # Health check endpoint to monitor system status
 @app.route('/health', methods=['GET'])
