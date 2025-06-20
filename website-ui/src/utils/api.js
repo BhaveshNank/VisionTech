@@ -86,7 +86,7 @@ async function fetchProductById(productId) {
 }
 
 // Helper function to determine match score
-function getMatchScore(productName, searchName) {
+/* function getMatchScore(productName, searchName) {
   if (productName === searchName) return 100;
   if (productName.startsWith(searchName)) return 80;
   if (searchName.startsWith(productName)) return 70;
@@ -105,7 +105,7 @@ function getMatchScore(productName, searchName) {
   }
   
   return matchingWords * 10;
-}
+} */
 
 function sendInquiry(data) {
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
