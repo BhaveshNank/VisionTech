@@ -8,11 +8,11 @@
   ],
   "routes": [
     {
-      "src": "/test",
+      "src": "/api/(.*)",
       "dest": "/simple.py"
     },
     {
-      "src": "/api/simple",
+      "src": "/test",
       "dest": "/simple.py"
     },
     {
