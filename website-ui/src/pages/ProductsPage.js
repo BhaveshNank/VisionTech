@@ -717,13 +717,7 @@ const ProductsPage = () => {
     const fetchAllProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/products`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch products: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
+        const data = await fetchProducts();
         setAllProducts(data);
       } catch (error) {
         console.error('Error fetching products:', error);
