@@ -181,7 +181,16 @@ def generate_comparison_table(comparison_data):
 @app.route('/test', methods=['GET'])
 def test():
     logging.info("Test API called")
-    return jsonify({"message": "API is working!"}), 200
+    return jsonify({
+        "message": "Flask API is working!",
+        "environment": "vercel" if os.getenv('VERCEL') else "local",
+        "mongodb_connected": MONGODB_CONNECTED,
+        "python_version": "3.9",
+        "available_endpoints": [
+            "/test", "/health", "/api/products", "/api/product/<id>", 
+            "/chat", "/images/<filename>"
+        ]
+    }), 200
 
 # Health check endpoint to monitor system status
 @app.route('/health', methods=['GET'])
