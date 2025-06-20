@@ -1,5 +1,1 @@
-Flask==2.3.2
-pymongo==4.5.0
-requests==2.31.0
-flask-cors==4.0.0
-python-dotenv==1.0.0
+# No dependencies needed for basic function

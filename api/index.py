@@ -1,21 +1,17 @@
-from flask import Flask, jsonify
+from http.server import BaseHTTPRequestHandler
+import json
 
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return jsonify({"message": "Flask API is working on Vercel!", "status": "success"})
-
-@app.route('/test')
-def test():
-    return jsonify({"message": "Test endpoint working!", "status": "success"})
-
-@app.route('/products')
-def products():
-    return jsonify([
-        {"id": "1", "name": "iPhone 16 Pro Max", "price": "$1299"},
-        {"id": "2", "name": "MacBook M4 Pro", "price": "$2399"}
-    ])
-
-if __name__ == '__main__':
-    app.run(debug=True)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        
+        response = {
+            "message": "API is working!",
+            "status": "success",
+            "path": self.path
+        }
+        
+        self.wfile.write(json.dumps(response).encode())
+        return
