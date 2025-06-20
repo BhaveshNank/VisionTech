@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-import './Categories.css'; // ✅ Ensure CSS is imported
 import { Link } from 'react-router-dom';
 
 const categories = [
