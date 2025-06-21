@@ -656,6 +656,10 @@ def chat():
             category_products = structured_products.get(chat_data["selected_category"], [])
             print(f"🔍 CHAT FETCH DEBUG: Products for {chat_data['selected_category']}: {len(category_products)}")
             
+            if len(category_products) == 0:
+                print(f"❌ CHAT FETCH DEBUG: No products found for category '{chat_data['selected_category']}'!")
+                print(f"🔍 CHAT FETCH DEBUG: Available categories: {list(structured_products.keys()) if structured_products else 'None'}")
+            
             conversational_query["all_products"] = category_products
             
             # Send to existing followup Gemini function
