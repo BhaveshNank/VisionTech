@@ -571,6 +571,14 @@ def chat():
             
             # Get products from database
             structured_products = fetch_products_from_database()
+            print(f"🔍 INITIAL FETCH DEBUG: Categories available: {list(structured_products.keys()) if structured_products else 'None'}")
+            
+            # Get products for the detected category
+            category_products = structured_products.get(detected_category, [])
+            print(f"🔍 INITIAL FETCH DEBUG: Products for '{detected_category}': {len(category_products)}")
+            
+            # Add products to structured query
+            structured_query["all_products"] = category_products
             
             # Use the existing send_followup_to_gemini with modified query
             gemini_response = send_followup_to_gemini(structured_query)
@@ -659,6 +667,20 @@ def chat():
             if len(category_products) == 0:
                 print(f"❌ CHAT FETCH DEBUG: No products found for category '{chat_data['selected_category']}'!")
                 print(f"🔍 CHAT FETCH DEBUG: Available categories: {list(structured_products.keys()) if structured_products else 'None'}")
+                # Try alternate category names for common mismatches
+                alternate_categories = {
+                    "phone": ["phones", "mobile", "smartphone"],
+                    "laptop": ["laptops", "computer", "pc"],
+                    "gaming": ["games", "game"],
+                    "audio": ["sound", "music"],
+                    "tv": ["television", "tvs"]
+                }
+                
+                for alt_cat in alternate_categories.get(chat_data["selected_category"], []):
+                    if alt_cat in structured_products:
+                        category_products = structured_products[alt_cat]
+                        print(f"✅ CHAT FETCH DEBUG: Found products using alternate category '{alt_cat}': {len(category_products)}")
+                        break
             
             conversational_query["all_products"] = category_products
             
@@ -1126,11 +1148,18 @@ def send_to_gemini(user_data, structured_products):
     print(f"🔍 RECOMMENDATION DEBUG: structured_products keys: {list(structured_products.keys()) if structured_products else 'None'}")
     print(f"🔍 RECOMMENDATION DEBUG: Looking for category '{category}'")
     print(f"🔍 RECOMMENDATION DEBUG: all_products length: {len(all_products)}")
+    print(f"🔍 RECOMMENDATION DEBUG: user_data: {user_data}")
     
     if not all_products:
         print(f"❌ RECOMMENDATION DEBUG: No products found for category '{category}'")
-        return {"response_type": "recommendation", 
-                "message": f"I don't have any {category} products in our database at the moment."}
+        # Try direct fetch as fallback
+        fallback_products = fetch_products_from_database()
+        if fallback_products and category in fallback_products:
+            all_products = fallback_products[category]
+            print(f"✅ RECOMMENDATION DEBUG: Fallback found {len(all_products)} products for {category}")
+        else:
+            return {"response_type": "recommendation", 
+                    "message": f"I don't have any {category} products in our database at the moment."}
     
     print(f"🔍 Sending {len(all_products)} {category} products to Gemini")
     
@@ -1387,17 +1416,40 @@ def send_followup_to_gemini(query_data):
     all_products = query_data.get("all_products", [])
     
     # DEBUGGING: Check if we have products
-    print(f"🔍 CHAT DEBUG: all_products length: {len(all_products)}")
+    print(f"🔍 GEMINI DEBUG: all_products length: {len(all_products)}")
     if len(all_products) == 0:
-        print("❌ CHAT DEBUG: No products found in all_products!")
+        print("❌ GEMINI DEBUG: No products found in all_products!")
         # Try to fetch directly from database
         direct_fetch = fetch_products_from_database()
-        print(f"🔍 CHAT DEBUG: Direct fetch returned: {list(direct_fetch.keys()) if direct_fetch else 'None'}")
+        print(f"🔍 GEMINI DEBUG: Direct fetch returned: {list(direct_fetch.keys()) if direct_fetch else 'None'}")
         if direct_fetch and category in direct_fetch:
             all_products = direct_fetch[category]
-            print(f"✅ CHAT DEBUG: Found {len(all_products)} products in {category} via direct fetch")
+            print(f"✅ GEMINI DEBUG: Found {len(all_products)} products in {category} via direct fetch")
             # Update query_data with the fetched products
             query_data["all_products"] = all_products
+        else:
+            # Try alternate category names
+            alternate_categories = {
+                "phone": ["phones", "mobile", "smartphone"],
+                "laptop": ["laptops", "computer", "pc"],
+                "gaming": ["games", "game"],
+                "audio": ["sound", "music"],
+                "tv": ["television", "tvs"]
+            }
+            
+            for alt_cat in alternate_categories.get(category, []):
+                if direct_fetch and alt_cat in direct_fetch:
+                    all_products = direct_fetch[alt_cat]
+                    print(f"✅ GEMINI DEBUG: Found {len(all_products)} products using alternate category '{alt_cat}'")
+                    query_data["all_products"] = all_products
+                    break
+            
+            # If still no products found, return error message
+            if len(all_products) == 0:
+                print(f"❌ GEMINI DEBUG: No products found for category '{category}' after all attempts")
+                return {
+                    "message": f"I'm sorry, but I don't have any {category} products available at the moment. Please try a different category or check back later."
+                }
     
     # Extract context from previous conversation
     context = []
@@ -1446,6 +1498,12 @@ def send_followup_to_gemini(query_data):
         "specifically_mentioned": specifically_mentioned_products,
         "rejected_products": rejected_products  # Include rejected products
     }
+    
+    # DEBUGGING: Log what we're sending to Gemini
+    print(f"🔍 GEMINI PAYLOAD DEBUG: Sending {len(all_products)} products to Gemini for category '{category}'")
+    if len(all_products) > 0:
+        print(f"🔍 GEMINI PAYLOAD DEBUG: First product: {all_products[0].get('name', 'No name')}")
+        print(f"🔍 GEMINI PAYLOAD DEBUG: All product names: {[p.get('name', 'No name') for p in all_products[:3]]}")
     
     # Convert context to JSON for Gemini
     context_json = json.dumps(context_products, indent=2)
@@ -1631,6 +1689,7 @@ Respond naturally to their question while beginning this information gathering p
     }
 
     try:
+        print(f"🔍 GEMINI REQUEST DEBUG: Calling Gemini API...")
         response = requests.post(endpoint, headers=headers, json=gpt_payload)
         
         if response.status_code != 200:
@@ -1639,6 +1698,8 @@ Respond naturally to their question while beginning this information gathering p
 
         response_data = response.json()
         generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
+        print(f"🔍 GEMINI RESPONSE DEBUG: Got response length: {len(generated_text)}")
+        print(f"🔍 GEMINI RESPONSE DEBUG: First 200 chars: {generated_text[:200]}...")
         
         # Fix the regex pattern for extracting JSON
         # Try standard JSON extraction first
