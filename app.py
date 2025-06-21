@@ -352,7 +352,7 @@ def chat_options():
     
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Credentials"] = "false" if os.getenv('RENDER') else "true"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
     return response, 200
 
 

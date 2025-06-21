@@ -134,7 +134,6 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include", // Important: send cookies
             body: JSON.stringify({ 
                 message: userMessage,
                 new_chat: isFirstMessage,
