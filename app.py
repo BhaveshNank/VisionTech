@@ -283,50 +283,17 @@ def health_check():
 
 @app.route('/images/<filename>')
 def serve_image(filename):
-    """Serve images with production-ready fallback"""
+    """Serve images with CORS headers"""
     try:
-        # In production (Render), use Vercel CDN for images
-        if os.getenv('RENDER'):
-            # Redirect to Vercel-hosted images
-            vercel_url = os.getenv('REACT_APP_API_URL', 'https://final-year-project-taupe.vercel.app')
-            if vercel_url.endswith('.onrender.com'):
-                vercel_url = 'https://final-year-project-taupe.vercel.app'
-            
-            image_url = f"{vercel_url}/images/{filename}"
-            
-            # Create a response that redirects to the Vercel image
-            response = make_response('', 302)
-            response.headers['Location'] = image_url
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            return response
+        # Always redirect to Vercel for images since Render can't serve static files reliably
+        vercel_url = 'https://final-year-project-taupe.vercel.app'
+        image_url = f"{vercel_url}/images/{filename}"
         
-        # For local development, serve from filesystem
-        image_paths = [
-            'images',
-            'static/images', 
-            'website-ui/public/images',
-            os.path.join(os.path.dirname(__file__), 'images'),
-            os.path.join(os.path.dirname(__file__), 'static', 'images')
-        ]
-        
-        for path in image_paths:
-            try:
-                full_path = os.path.join(path, filename)
-                if os.path.exists(full_path):
-                    print(f"✅ Found image {filename} in {path}")
-                    response = make_response(send_from_directory(path, filename))
-                    response.headers['Access-Control-Allow-Origin'] = '*'
-                    response.headers['Cache-Control'] = 'public, max-age=3600'
-                    return response
-            except Exception as path_error:
-                print(f"❌ Error trying path {path}: {str(path_error)}")
-                continue
-        
-        # Fallback to placeholder
-        print(f"❌ Image {filename} not found")
         response = make_response('', 302)
-        response.headers['Location'] = 'https://via.placeholder.com/300x300?text=No+Image'
+        response.headers['Location'] = image_url
         response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return response
         
     except Exception as e:
