@@ -340,10 +340,19 @@ def serve_image(filename):
 def chat_options():
     """Handle CORS Preflight Request"""
     response = jsonify({"message": "CORS preflight successful"})
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+    
+    # Use the same CORS origins as the main app
+    allowed_origins = os.getenv('ALLOWED_ORIGINS', '*').split(',')
+    origin = request.headers.get('Origin')
+    
+    if origin in allowed_origins or '*' in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Credentials"] = "false" if os.getenv('RENDER') else "true"
     return response, 200
 
 
