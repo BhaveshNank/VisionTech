@@ -283,15 +283,30 @@ def health_check():
 
 @app.route('/images/<filename>')
 def serve_image(filename):
-    """Serve images from multiple possible directories with fallback"""
+    """Serve images with production-ready fallback"""
     try:
-        # Try multiple image locations in order of preference
+        # In production (Render), use Vercel CDN for images
+        if os.getenv('RENDER'):
+            # Redirect to Vercel-hosted images
+            vercel_url = os.getenv('REACT_APP_API_URL', 'https://final-year-project-taupe.vercel.app')
+            if vercel_url.endswith('.onrender.com'):
+                vercel_url = 'https://final-year-project-taupe.vercel.app'
+            
+            image_url = f"{vercel_url}/images/{filename}"
+            
+            # Create a response that redirects to the Vercel image
+            response = make_response('', 302)
+            response.headers['Location'] = image_url
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+        
+        # For local development, serve from filesystem
         image_paths = [
-            'static/images',  # Primary: Static directory images (most images are here)
-            'images',  # Secondary: Root level images
-            'website-ui/public/images',  # React public images
-            os.path.join(os.path.dirname(__file__), 'static', 'images'),  # Absolute static path
-            os.path.join(os.path.dirname(__file__), 'images')  # Absolute path fallback
+            'images',
+            'static/images', 
+            'website-ui/public/images',
+            os.path.join(os.path.dirname(__file__), 'images'),
+            os.path.join(os.path.dirname(__file__), 'static', 'images')
         ]
         
         for path in image_paths:
@@ -300,40 +315,26 @@ def serve_image(filename):
                 if os.path.exists(full_path):
                     print(f"✅ Found image {filename} in {path}")
                     response = make_response(send_from_directory(path, filename))
-                    # Allow all origins for Vercel deployment
-                    if os.getenv('VERCEL'):
-                        response.headers['Access-Control-Allow-Origin'] = '*'
-                    else:
-                        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-                    response.headers['Access-Control-Allow-Methods'] = 'GET'
-                    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-                    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+                    response.headers['Access-Control-Allow-Origin'] = '*'
+                    response.headers['Cache-Control'] = 'public, max-age=3600'
                     return response
             except Exception as path_error:
                 print(f"❌ Error trying path {path}: {str(path_error)}")
                 continue
         
-        # If no image found, return 404 with debug info
-        available_images = []
-        for path in image_paths:
-            try:
-                if os.path.exists(path):
-                    available_images.extend([f"{path}/{f}" for f in os.listdir(path) if f.endswith(('.jpg', '.jpeg', '.png'))])
-            except:
-                pass
-        
-        print(f"❌ Image {filename} not found in any directory")
-        print(f"Available images: {available_images[:10]}")  # Show first 10
-        return jsonify({
-            "error": "Image not found", 
-            "requested": filename,
-            "searched_paths": image_paths,
-            "sample_available": available_images[:5]
-        }), 404
+        # Fallback to placeholder
+        print(f"❌ Image {filename} not found")
+        response = make_response('', 302)
+        response.headers['Location'] = 'https://via.placeholder.com/300x300?text=No+Image'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
         
     except Exception as e:
         print(f"❌ Error serving image {filename}: {str(e)}")
-        return jsonify({"error": "Image not found"}), 404
+        response = make_response('', 302)
+        response.headers['Location'] = 'https://via.placeholder.com/300x300?text=Error'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
 
 @app.route('/chat', methods=['OPTIONS'])
 def chat_options():
