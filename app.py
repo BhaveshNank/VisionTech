@@ -648,8 +648,15 @@ def chat():
             chat_data["turn_count"] += 1
             
             # Get products from database
+            print("🔍 CHAT FETCH DEBUG: About to call fetch_products_from_database()...")
             structured_products = fetch_products_from_database()
-            conversational_query["all_products"] = structured_products.get(chat_data["selected_category"], [])
+            print(f"🔍 CHAT FETCH DEBUG: Got structured_products: {list(structured_products.keys()) if structured_products else 'None'}")
+            print(f"🔍 CHAT FETCH DEBUG: Selected category: '{chat_data['selected_category']}'")
+            
+            category_products = structured_products.get(chat_data["selected_category"], [])
+            print(f"🔍 CHAT FETCH DEBUG: Products for {chat_data['selected_category']}: {len(category_products)}")
+            
+            conversational_query["all_products"] = category_products
             
             # Send to existing followup Gemini function
             gemini_response = send_followup_to_gemini(conversational_query)
@@ -1111,7 +1118,13 @@ def send_to_gemini(user_data, structured_products):
     category = user_data["category"].lower()
     all_products = structured_products.get(category, [])
     
+    # DEBUGGING: Add detailed logging
+    print(f"🔍 RECOMMENDATION DEBUG: structured_products keys: {list(structured_products.keys()) if structured_products else 'None'}")
+    print(f"🔍 RECOMMENDATION DEBUG: Looking for category '{category}'")
+    print(f"🔍 RECOMMENDATION DEBUG: all_products length: {len(all_products)}")
+    
     if not all_products:
+        print(f"❌ RECOMMENDATION DEBUG: No products found for category '{category}'")
         return {"response_type": "recommendation", 
                 "message": f"I don't have any {category} products in our database at the moment."}
     
@@ -1368,6 +1381,17 @@ def send_followup_to_gemini(query_data):
     
     # Get access to the full product database for the category
     all_products = query_data.get("all_products", [])
+    
+    # DEBUGGING: Check if we have products
+    print(f"🔍 CHAT DEBUG: all_products length: {len(all_products)}")
+    if len(all_products) == 0:
+        print("❌ CHAT DEBUG: No products found in all_products!")
+        # Try to fetch directly from database
+        direct_fetch = fetch_products_from_database()
+        print(f"🔍 CHAT DEBUG: Direct fetch returned: {list(direct_fetch.keys()) if direct_fetch else 'None'}")
+        if direct_fetch and category in direct_fetch:
+            all_products = direct_fetch[category]
+            print(f"✅ CHAT DEBUG: Found {len(all_products)} products in {category} via direct fetch")
     
     # Extract context from previous conversation
     context = []
