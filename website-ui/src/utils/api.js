@@ -129,6 +129,9 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
         const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
+        console.log('🔍 API_BASE_URL:', API_BASE_URL);
+        console.log('🔍 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+        
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
