@@ -1392,6 +1392,8 @@ def send_followup_to_gemini(query_data):
         if direct_fetch and category in direct_fetch:
             all_products = direct_fetch[category]
             print(f"✅ CHAT DEBUG: Found {len(all_products)} products in {category} via direct fetch")
+            # Update query_data with the fetched products
+            query_data["all_products"] = all_products
     
     # Extract context from previous conversation
     context = []
