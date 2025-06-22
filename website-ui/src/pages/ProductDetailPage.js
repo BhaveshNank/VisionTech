@@ -323,16 +323,6 @@ const ProductDetailPage = () => {
                   {/* Could add original price here if available */}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <FaTruck className="h-2 w-2" />
-                  Free shipping
-                </span>
-                <span>•</span>
-                <span>AppleCare+ available</span>
-                <span>•</span>
-                <span>Trade-in credit up to $800</span>
-              </div>
             </div>
             
             {/* Product Description */}

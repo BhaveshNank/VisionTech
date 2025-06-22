@@ -2618,7 +2618,7 @@ const Home = () => {
       priceFrom: "From $1,999.00",
       originalPrice: "$2,199.00",
       description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
-      image: getProductImageUrl("/images/macbook_m4_pro"),
+      image: getProductImageUrl("/images/macbook_m4_pro.jpg"),
       link: "/product/1-macbook-m4-pro-laptop"
     },
     {
