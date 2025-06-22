@@ -4,6 +4,7 @@ import { sendMessageToChatbot } from '../utils/api';
 import { FaExpand, FaCompress, FaTimes, FaShoppingCart, FaPaperPlane } from 'react-icons/fa';
 import eventSystem from '../utils/events';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 // Define backend URL at the top of your file for consistency
 const BACKEND_URL = process.env.REACT_APP_API_URL || "";
@@ -436,7 +437,7 @@ const MessageContent = ({ text, isHtml, isUser }) => {
       <Message isUser={isUser}>
         {!isUser && (
           <MessageAvatar>
-            <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+            <img src={getImageUrl("/images/mark_chatbot.jpg")} alt="Mark - AI Assistant" />
           </MessageAvatar>
         )}
         {isUser && (
@@ -1027,7 +1028,7 @@ const ChatInterface = () => {
             <FaTimes />
           </CloseNotificationButton>
           <ChatIcon>
-            <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+            <img src={getImageUrl("/images/mark_chatbot.jpg")} alt="Mark - AI Assistant" />
             <UnreadBadge>1</UnreadBadge>
           </ChatIcon>
           <TextContainer>
@@ -1049,7 +1050,7 @@ const ChatInterface = () => {
         <ChatHeader>
           <HeaderContent>
             <AvatarContainer>
-              <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+              <img src={getImageUrl("/images/mark_chatbot.jpg")} alt="Mark - AI Assistant" />
             </AvatarContainer>
             <HeaderText>
               <h3>Mark</h3>
@@ -1081,7 +1082,7 @@ const ChatInterface = () => {
             {isLoading && (
               <Message isUser={false}>
                 <MessageAvatar>
-                  <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+                  <img src={getImageUrl("/images/mark_chatbot.jpg")} alt="Mark - AI Assistant" />
                 </MessageAvatar>
                 <LoadingIndicator>
                   <div style={{ 

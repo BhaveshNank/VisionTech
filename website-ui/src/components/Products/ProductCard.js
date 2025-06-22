@@ -434,7 +434,7 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
   const [isLiked, setIsLiked] = useState(false);
   
   // Generate fallback image URL if no image is provided
-  const fallbackImage = `https://final-year-project-taupe.vercel.app/images/default-product.jpg`;
+  const fallbackImage = `${process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com'}/images/default-product.jpg`;
   
   // Extract the first 3-4 features for display
   const displayFeatures = product.features && Array.isArray(product.features) 

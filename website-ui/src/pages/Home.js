@@ -3,6 +3,7 @@ import styled, { keyframes, createGlobalStyle, css } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShippingFast, FaExchangeAlt, FaLock, FaGift, FaSearch, FaShoppingCart, FaHeadset, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import eventSystem from '../utils/events';
+import { getImageUrl } from '../utils/imageUtils';
 
 // Phones Section - Add this after your iPad showcase section
 const PhonesSection = styled.section`
@@ -2713,7 +2714,7 @@ const Home = () => {
         {/* <GalaxyTabShowcaseSection>
           <GalaxyTabImageContainer>
             <GalaxyTabImage 
-              src="/images/ipadm4pro.jpg" 
+              src={getImageUrl("/images/ipadm4pro.jpg")} 
               alt="Galaxy Tab S10"
               onError={(e) => {
                 e.target.src = 'https://via.placeholder.com/1400x600?text=Galaxy+Tab+S10';
@@ -2750,7 +2751,7 @@ const Home = () => {
               <GalaxyTabShowcaseSection>
                 <GalaxyTabImageContainer>
                   <GalaxyTabImage 
-                    src="/images/ipadm4pro.jpg"
+                    src={getImageUrl("/images/ipadm4pro.jpg")}
                     alt="Galaxy Tab S10"
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/1400x600?text=Galaxy+Tab+S10';
@@ -3169,7 +3170,7 @@ const Home = () => {
           </SectionDescription>
           <TestimonialGrid>
             <TestimonialCard>
-              <CustomerAvatar src="/images/testimonial1.jpg" alt="Sarah Johnson" />
+              <CustomerAvatar src={getImageUrl("/images/testimonial1.jpg")} alt="Sarah Johnson" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 The AI recommendations were spot on! Found the perfect laptop for my needs within minutes.
@@ -3177,7 +3178,7 @@ const Home = () => {
               <CustomerName>— Sarah Johnson</CustomerName>
             </TestimonialCard>
             <TestimonialCard>
-              <CustomerAvatar src="/images/testimonial2.jpg" alt="Michael Chen" />
+              <CustomerAvatar src={getImageUrl("/images/testimonial2.jpg")} alt="Michael Chen" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 Excellent customer service and fast delivery. My go-to store for all electronics.
@@ -3185,7 +3186,7 @@ const Home = () => {
               <CustomerName>— Michael Chen</CustomerName>
             </TestimonialCard>
             <TestimonialCard>
-              <CustomerAvatar src="/images/testimonial3.jpg" alt="Emily Davis" />
+              <CustomerAvatar src={getImageUrl("/images/testimonial3.jpg")} alt="Emily Davis" />
               <Stars>⭐⭐⭐⭐⭐</Stars>
               <TestimonialText>
                 Great prices and the extended warranty gives me peace of mind. Highly recommend!

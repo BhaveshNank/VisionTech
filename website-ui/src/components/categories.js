@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../utils/imageUtils';
 
 const categories = [
   { name: 'Laptops', image: '/images/laptop.jpg', filterName: 'laptop' },
@@ -8,7 +9,7 @@ const categories = [
   { name: 'TVs', image: '/images/tv.jpg', filterName: 'tv' },
   { name: 'Smartwatch', image: '/images/smartwatch.jpg', filterName: 'smartwatch' },
   { name: 'Earphone', image: '/images/earphone.jpg', filterName: 'earphone' }
-];
+].map(cat => ({ ...cat, image: getImageUrl(cat.image) }));
 
 const CategoriesContainer = styled.div`
   text-align: center;
