@@ -1294,7 +1294,7 @@ def send_to_gemini(user_data, structured_products):
     }
 
     try:
-        response = requests.post(endpoint, headers=headers, json=gpt_payload)
+        response = requests.post(endpoint, headers=headers, json=gpt_payload, timeout=30)
         print(f"🔄 Gemini API Response Status: {response.status_code}")
 
         if response.status_code != 200:
@@ -1721,7 +1721,7 @@ Respond naturally to their question while beginning this information gathering p
 
     try:
         print(f"🔍 GEMINI REQUEST DEBUG: Calling Gemini API...")
-        response = requests.post(endpoint, headers=headers, json=gpt_payload)
+        response = requests.post(endpoint, headers=headers, json=gpt_payload, timeout=30)
         
         if response.status_code != 200:
             print(f"❌ Gemini API Error: {response.text}")
@@ -1748,7 +1748,8 @@ Respond naturally to their question while beginning this information gathering p
                 json_match = re.search(r'({[\s\S]*"message"[\s\S]*})', generated_text)
                 
             if not json_match:
-                return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?"}
+                print(f"❌ GEMINI DEBUG: Complete response text: {generated_text}")
+                return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?", "isHtml": False}
 
         parsed_json = json.loads(json_match.group(1).strip())
         # Check if this is a comparison response
