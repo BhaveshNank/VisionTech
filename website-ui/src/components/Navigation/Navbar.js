@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { FaShoppingCart, FaSearch } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 import { fetchProducts } from '../../utils/api';
+import { getProductImageUrl } from '../../utils/imageUtils';
 
 const NavbarContainer = styled.nav`
   position: fixed;
@@ -638,7 +639,7 @@ const Navbar = () => {
         const latestPhones = phones.slice(0, 6).map(phone => ({
           ...phone,
           image: phone.name.toLowerCase().includes('iphone') && phone.name.toLowerCase().includes('16') && phone.name.toLowerCase().includes('pro') 
-            ? '/images/iphone_16_pro_max.jpg'
+            ? getProductImageUrl('iphone_16_pro_max.jpg')
             : phone.image
         }));
 
@@ -1348,7 +1349,7 @@ const Navbar = () => {
               <CategoryCard to="/products?category=phone">
                 <CategoryImage>
                   <img 
-                    src="/images/google_pixel_9_pro.jpg"
+                    src={getProductImageUrl("google_pixel_9_pro.jpg")}
                     alt="Phones"
                     onError={(e) => {
                       e.target.src = phoneData.latestPhones[0]?.image || 'https://via.placeholder.com/120x120?text=📱';
@@ -1362,7 +1363,7 @@ const Navbar = () => {
               <CategoryCard to="/products?category=laptop">
                 <CategoryImage>
                   <img 
-                    src="/images/macbook_m4_pro.jpg"
+                    src={getProductImageUrl("macbook_m4_pro.jpg")}
                     alt="Laptops"
                     onError={(e) => {
                       e.target.src = laptopData.featuredLaptops[0]?.image || 'https://via.placeholder.com/120x120?text=💻';

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaSearch, FaTimes } from 'react-icons/fa';
+import { getProductImageUrl } from '../../utils/imageUtils';
 
 // Using div instead of form to eliminate default form behavior
 const SearchContainer = styled.div`
@@ -266,7 +267,7 @@ const SearchBar = () => {
                   alt={suggestion.name} 
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/images/default-product.jpg`;
+                    e.target.src = getProductImageUrl('default-product.jpg');
                   }}
                 />
               )}

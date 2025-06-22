@@ -3,7 +3,7 @@ import styled, { keyframes, createGlobalStyle, css } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShippingFast, FaExchangeAlt, FaLock, FaGift, FaSearch, FaShoppingCart, FaHeadset, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import eventSystem from '../utils/events';
-import { getImageUrl } from '../utils/imageUtils';
+import { getImageUrl, getProductImageUrl } from '../utils/imageUtils';
 
 // Phones Section - Add this after your iPad showcase section
 const PhonesSection = styled.section`
@@ -2588,7 +2588,7 @@ const Home = () => {
       priceFrom: "From $1,199.00",
       originalPrice: "$1,299.00",
       description: "Experience the ultimate in mobile technology with A17 Pro chip and titanium design.",
-      image: getImageUrl("/images/iphone_16_pro_max.jpg"),
+      image: getProductImageUrl("/images/iphone_16_pro_max.jpg"),
       link: "/product/1-iphone-16-pro-max-phone"
     },
     {
@@ -2598,7 +2598,7 @@ const Home = () => {
       priceFrom: "From $1,149.00",
       originalPrice: "$1,299.00",
       description: "Next-gen Galaxy AI is here. Transform your mobile experience with advanced AI features.",
-      image: getImageUrl("/images/samsungs25ultra.jpg"),
+      image: getProductImageUrl("/images/samsungs25ultra.jpg"),
       link: "/product/samsung-galaxy-s25-ultra"
     },
     {
@@ -2608,7 +2608,7 @@ const Home = () => {
       priceFrom: "From $999.00",
       originalPrice: "$1,099.00",
       description: "The most helpful Pixel yet, with advanced AI and the best Pixel camera system.",
-      image: getImageUrl("/images/googlepixel9proxl.jpg"),
+      image: getProductImageUrl("/images/googlepixel9proxl.jpg"),
       link: "/product/1-google-pixel-9-pro-xl-phone"
     },
     {
@@ -2618,7 +2618,7 @@ const Home = () => {
       priceFrom: "From $1,999.00",
       originalPrice: "$2,199.00",
       description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
-      image: getImageUrl("/images/macbook_m4_pro.jpg"),
+      image: getProductImageUrl("/images/macbook_m4_pro.jpg"),
       link: "/product/1-macbook-m4-pro-laptop"
     },
     {
@@ -2628,7 +2628,7 @@ const Home = () => {
       priceFrom: "From $849.00",
       originalPrice: "$999.00",
       description: "Ultra-slim design meets powerful performance. Perfect for work and entertainment.",
-      image: getImageUrl("/images/lenovo_yoga_slim_6.jpg"),
+      image: getProductImageUrl("/images/lenovo_yoga_slim_6.jpg"),
       link: "/product/1-lenovo-yoga-slim-laptop"
     }
   ];
