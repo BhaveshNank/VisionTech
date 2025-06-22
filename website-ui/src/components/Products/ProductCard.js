@@ -433,8 +433,8 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   
-  // Generate placeholder image based on product name if no image is provided
-  const placeholderImage = `https://via.placeholder.com/400x300/fafbfc/9aa0a6?text=${encodeURIComponent(product.name)}`;
+  // Generate fallback image URL if no image is provided
+  const fallbackImage = `https://final-year-project-taupe.vercel.app/images/default-product.jpg`;
   
   // Extract the first 3-4 features for display
   const displayFeatures = product.features && Array.isArray(product.features) 
@@ -461,7 +461,7 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
     e.stopPropagation();
     if (!product || !inStock) return;
     
-    const productImage = product.image || placeholderImage;
+    const productImage = product.image || fallbackImage;
     
     // Parse price to ensure it's a clean number
     const parsedPrice = typeof product.price === 'string' 
@@ -501,11 +501,11 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
         <Card viewMode={viewMode}>
           <ProductImage viewMode={viewMode} className="product-image">
             <img 
-              src={product.image || placeholderImage} 
+              src={product.image || fallbackImage} 
               alt={product.name} 
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = placeholderImage;
+                e.target.src = fallbackImage;
               }}
             />
             {isOnSale && (
@@ -585,11 +585,11 @@ const ProductCard = forwardRef(({ product, className, viewMode = 'grid', ...prop
       <Card viewMode={viewMode}>
         <ProductImage viewMode={viewMode} className="product-image">
           <img 
-            src={product.image || placeholderImage} 
+            src={product.image || fallbackImage} 
             alt={product.name} 
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = placeholderImage;
+              e.target.src = fallbackImage;
             }}
           />
           

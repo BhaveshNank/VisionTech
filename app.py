@@ -286,8 +286,8 @@ def serve_image(filename):
     """Serve images with CORS headers"""
     try:
         # Always redirect to Vercel for images since Render can't serve static files reliably
-        vercel_url = 'https://final-year-project-taupe.vercel.app'
-        image_url = f"{vercel_url}/images/{filename}"
+        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+        image_url = f"{frontend_base_url}/images/{filename}"
         
         response = make_response('', 302)
         response.headers['Location'] = image_url
@@ -810,9 +810,13 @@ def api_products():
             for cat, products in structured_products.items():
                 for product in products:
                     product['category'] = cat  # Add category to each product
-                    # Fix image path to include /images/ prefix
-                    if 'image' in product and not product['image'].startswith('/'):
-                        product['image'] = f"/images/{product['image']}"
+                    # Fix image path to use full Vercel URL
+                    if 'image' in product and not product['image'].startswith('http'):
+                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                        if product['image'].startswith('/images/'):
+                            product['image'] = f"{frontend_base_url}{product['image']}"
+                        else:
+                            product['image'] = f"{frontend_base_url}/images/{product['image']}"
                     result.append(product)
         else:
             # Get products from the specific category
@@ -820,9 +824,13 @@ def api_products():
             # Add category to each product and fix image paths
             for product in result:
                 product['category'] = category
-                # Fix image path to include /images/ prefix
-                if 'image' in product and not product['image'].startswith('/'):
-                    product['image'] = f"/images/{product['image']}"
+                # Fix image path to use full Vercel URL
+                if 'image' in product and not product['image'].startswith('http'):
+                    frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                    if product['image'].startswith('/images/'):
+                        product['image'] = f"{frontend_base_url}{product['image']}"
+                    else:
+                        product['image'] = f"{frontend_base_url}/images/{product['image']}"
         
         # Apply brand filter if specified
         if brand:
@@ -913,9 +921,13 @@ def api_product_by_id(product_id):
                 generated_id.endswith(f"-{product_id}") or
                 product['name'].lower().replace(' ', '-') in product_id.lower()):
                 
-                # Fix image path to include /images/ prefix
-                if 'image' in product and not product['image'].startswith('/'):
-                    product['image'] = f"/images/{product['image']}"
+                # Fix image path to use full Vercel URL
+                if 'image' in product and not product['image'].startswith('http'):
+                    frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                    if product['image'].startswith('/images/'):
+                        product['image'] = f"{frontend_base_url}{product['image']}"
+                    else:
+                        product['image'] = f"{frontend_base_url}/images/{product['image']}"
                 print(f"✅ Found product: {product['name']} with ID: {generated_id}")
                 return jsonify(product)
         
@@ -1768,7 +1780,8 @@ Respond naturally to their question while beginning this information gathering p
                     if matching_product and "image" in matching_product:
                         image = matching_product["image"]
                     else:
-                        image = f"http://localhost:5001/images/default-product.jpg"
+                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                        image = f"{frontend_base_url}/images/default-product.jpg"
                 
                 # Create product ID for linking
                 product_id = name.lower().replace(" ", "-").replace("/", "-")
@@ -1784,7 +1797,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='{frontend_base_url}/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
@@ -1871,7 +1884,8 @@ Respond naturally to their question while beginning this information gathering p
                     if matching_product and "image" in matching_product:
                         image = matching_product["image"]
                     else:
-                        image = f"http://localhost:5001/images/default-product.jpg"
+                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                        image = f"{frontend_base_url}/images/default-product.jpg"
                 
                 # Create product ID for linking
                 product_id = name.lower().replace(" ", "-").replace("/", "-")
@@ -1887,7 +1901,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='{frontend_base_url}/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
@@ -1968,7 +1982,7 @@ Respond naturally to their question while beginning this information gathering p
                   src="{image}" 
                   alt="{name}" 
                   style="width: 80px; height: 80px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                  onerror="this.onerror=null; this.src='http://localhost:5001/images/default-product.jpg';" 
+                  onerror="this.onerror=null; this.src='{frontend_base_url}/images/default-product.jpg';" 
                 />
                 <div>
                   <strong style="font-size: 18px;">{name}</strong> - {price}
@@ -2148,7 +2162,7 @@ def fetch_products_from_local():
             data = json.load(f)
         
         structured_products = {}
-        base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5001')
+        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
         
         # Process existing categories
         for item in data:
@@ -2178,9 +2192,9 @@ def fetch_products_from_local():
                     
                     # Create image URL
                     if product_image:
-                        image_url = f"{base_url}/images/{product_image}"
+                        image_url = f"{frontend_base_url}/images/{product_image}"
                     else:
-                        image_url = f"{base_url}/images/default-product.jpg"
+                        image_url = f"{frontend_base_url}/images/default-product.jpg"
                     
                     structured_products[category].append({
                         "name": product_name,
@@ -2206,7 +2220,7 @@ def fetch_products_from_local():
                         "Backwards compatibility with PlayStation 4 games",
                         "DualSense wireless controller with haptic feedback"
                     ],
-                    "image": f"{base_url}/images/ps5.jpg"
+                    "image": f"{frontend_base_url}/images/ps5.jpg"
                 },
                 {
                     "name": "Gaming Headset Stereo Surround Sound Gaming Headphones with Breathing RGB Light",
@@ -2220,7 +2234,7 @@ def fetch_products_from_local():
                         "Comfortable memory foam ear cushions for extended gaming sessions",
                         "Professional gaming-grade audio with virtual surround sound"
                     ],
-                    "image": f"{base_url}/images/gamingheadphone.jpg"
+                    "image": f"{frontend_base_url}/images/gamingheadphone.jpg"
                 }
             ]
         
@@ -2239,7 +2253,7 @@ def fetch_products_from_local():
                         "Compatible with PC, PS4, PS5, Xbox, Nintendo Switch",
                         "High-quality 50mm drivers for crystal clear audio"
                     ],
-                    "image": f"{base_url}/images/headphone.jpg"
+                    "image": f"{frontend_base_url}/images/headphone.jpg"
                 }
             ]
         

@@ -124,20 +124,29 @@ function sendInquiry(data) {
 }
 
 // Send message to chatbot
-async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanceId = null) {
+async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanceId = null, chatState = null) {
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
         const API_BASE_URL = 'https://final-year-project-backend-8cte.onrender.com';
         
+        const payload = { 
+            message: userMessage,
+            new_chat: isFirstMessage,
+            instance_id: instanceId || 'default'
+        };
+        
+        // Include chat state if provided
+        if (chatState) {
+            payload.chat_state = chatState;
+        }
+        
+        console.log("🔵 Payload being sent:", payload);
+        
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                message: userMessage,
-                new_chat: isFirstMessage,
-                instance_id: instanceId || 'default' // Include the chat instance ID
-            })
+            body: JSON.stringify(payload)
         });
         
         if (!response.ok) {
