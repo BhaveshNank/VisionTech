@@ -283,18 +283,24 @@ def health_check():
 
 @app.route('/images/<filename>')
 def serve_image(filename):
-    """Serve images with CORS headers"""
+    """Serve images directly from backend with CORS headers"""
     try:
-        # Always redirect to Vercel for images since Render can't serve static files reliably
-        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
-        image_url = f"{frontend_base_url}/images/{filename}"
+        # Serve images directly from backend since Vercel deployment has issues
+        images_directory = os.path.join(os.path.dirname(__file__), 'images')
         
-        response = make_response('', 302)
-        response.headers['Location'] = image_url
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
+        # Check if file exists in backend images directory
+        file_path = os.path.join(images_directory, filename)
+        if os.path.exists(file_path):
+            return send_from_directory(images_directory, filename)
+        
+        # Fallback: check website-ui/public/images directory
+        frontend_images_dir = os.path.join(os.path.dirname(__file__), 'website-ui', 'public', 'images')
+        frontend_file_path = os.path.join(frontend_images_dir, filename)
+        if os.path.exists(frontend_file_path):
+            return send_from_directory(frontend_images_dir, filename)
+        
+        # If no image found, return 404
+        return make_response('Image not found', 404)
         
     except Exception as e:
         print(f"❌ Error serving image {filename}: {str(e)}")
@@ -810,13 +816,13 @@ def api_products():
             for cat, products in structured_products.items():
                 for product in products:
                     product['category'] = cat  # Add category to each product
-                    # Fix image path to use full Vercel URL
+                    # Fix image path to use backend URL since Vercel deployment has issues
                     if 'image' in product and not product['image'].startswith('http'):
-                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                        backend_base_url = request.host_url.rstrip('/')
                         if product['image'].startswith('/images/'):
-                            product['image'] = f"{frontend_base_url}{product['image']}"
+                            product['image'] = f"{backend_base_url}{product['image']}"
                         else:
-                            product['image'] = f"{frontend_base_url}/images/{product['image']}"
+                            product['image'] = f"{backend_base_url}/images/{product['image']}"
                     result.append(product)
         else:
             # Get products from the specific category
@@ -824,13 +830,13 @@ def api_products():
             # Add category to each product and fix image paths
             for product in result:
                 product['category'] = category
-                # Fix image path to use full Vercel URL
+                # Fix image path to use backend URL since Vercel deployment has issues
                 if 'image' in product and not product['image'].startswith('http'):
-                    frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                    backend_base_url = request.host_url.rstrip('/')
                     if product['image'].startswith('/images/'):
-                        product['image'] = f"{frontend_base_url}{product['image']}"
+                        product['image'] = f"{backend_base_url}{product['image']}"
                     else:
-                        product['image'] = f"{frontend_base_url}/images/{product['image']}"
+                        product['image'] = f"{backend_base_url}/images/{product['image']}"
         
         # Apply brand filter if specified
         if brand:
@@ -921,13 +927,13 @@ def api_product_by_id(product_id):
                 generated_id.endswith(f"-{product_id}") or
                 product['name'].lower().replace(' ', '-') in product_id.lower()):
                 
-                # Fix image path to use full Vercel URL
+                # Fix image path to use backend URL since Vercel deployment has issues
                 if 'image' in product and not product['image'].startswith('http'):
-                    frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
+                    backend_base_url = request.host_url.rstrip('/')
                     if product['image'].startswith('/images/'):
-                        product['image'] = f"{frontend_base_url}{product['image']}"
+                        product['image'] = f"{backend_base_url}{product['image']}"
                     else:
-                        product['image'] = f"{frontend_base_url}/images/{product['image']}"
+                        product['image'] = f"{backend_base_url}/images/{product['image']}"
                 print(f"✅ Found product: {product['name']} with ID: {generated_id}")
                 return jsonify(product)
         
@@ -1810,7 +1816,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='https://final-year-project-taupe.vercel.app/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='https://final-year-project-backend-8cte.onrender.com/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
@@ -1914,7 +1920,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='https://final-year-project-taupe.vercel.app/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='https://final-year-project-backend-8cte.onrender.com/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
