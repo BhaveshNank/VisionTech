@@ -1748,8 +1748,50 @@ Respond naturally to their question while beginning this information gathering p
                 json_match = re.search(r'({[\s\S]*"message"[\s\S]*})', generated_text)
                 
             if not json_match:
+                print(f"❌ GEMINI DEBUG: JSON parsing failed, generating fallback product cards")
                 print(f"❌ GEMINI DEBUG: Complete response text: {generated_text}")
-                return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?", "isHtml": False}
+                
+                # FALLBACK: Generate product cards using available products
+                all_products = query_data.get("all_products", [])
+                if all_products and len(all_products) > 0:
+                    # Take first 3 products as recommendations
+                    fallback_products = all_products[:3]
+                    
+                    # Generate HTML with product cards
+                    products_html = ""
+                    for product in fallback_products:
+                        product_id = str(product.get('name', '')).lower().replace(' ', '-').replace('/', '-')
+                        name = product.get('name', 'Unknown Product')
+                        price = product.get('price', 'N/A')
+                        image = product.get('image', 'default-product.jpg')
+                        
+                        # Generate full backend URL for image
+                        backend_url = 'https://final-year-project-backend-8cte.onrender.com'
+                        image_url = f"{backend_url}/images/{image}"
+                        
+                        products_html += f"""
+                        <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 8px 0; background: white;">
+                            <div style="display: flex; gap: 16px; align-items: center;">
+                                <img src="{image_url}" alt="{name}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 4px;" onerror="this.src='https://final-year-project-backend-8cte.onrender.com/images/default-product.jpg';" />
+                                <div style="flex: 1;">
+                                    <h4 style="margin: 0 0 8px 0; color: #333;">{name}</h4>
+                                    <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #000;">{price}</p>
+                                    <div style="display: flex; gap: 8px;">
+                                        <a href="/product/1-{product_id}" style="color: #000; text-decoration: none; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;">View Details</a>
+                                        <button class="add-to-cart-btn" data-id="1-{product_id}" data-name="{name}" data-price="{price}" data-image="{image_url}" style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1;">Add to Cart</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        """
+                    
+                    return {
+                        "message": f"Here are some great {category} options for you:\n\n{products_html}",
+                        "isHtml": True,
+                        "recommended_products": fallback_products
+                    }
+                else:
+                    return {"message": "I couldn't properly analyze your question about these products. Could you rephrase it?", "isHtml": False}
 
         parsed_json = json.loads(json_match.group(1).strip())
         # Check if this is a comparison response
@@ -2098,7 +2140,50 @@ Respond naturally to their question while beginning this information gathering p
         print(f"❌ Exception in follow-up Gemini API call: {str(e)}")
         import traceback
         traceback.print_exc()
-        return {"message": "I encountered an error while processing your question. Could we try again?"}
+        
+        # FALLBACK: Generate product cards using available products even on exception
+        all_products = query_data.get("all_products", [])
+        category = query_data.get("category", "product")
+        
+        if all_products and len(all_products) > 0:
+            # Take first 3 products as recommendations
+            fallback_products = all_products[:3]
+            
+            # Generate HTML with product cards
+            products_html = ""
+            for product in fallback_products:
+                product_id = str(product.get('name', '')).lower().replace(' ', '-').replace('/', '-')
+                name = product.get('name', 'Unknown Product')
+                price = product.get('price', 'N/A')
+                image = product.get('image', 'default-product.jpg')
+                
+                # Generate full backend URL for image
+                backend_url = 'https://final-year-project-backend-8cte.onrender.com'
+                image_url = f"{backend_url}/images/{image}"
+                
+                products_html += f"""
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 8px 0; background: white;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <img src="{image_url}" alt="{name}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 4px;" onerror="this.src='https://final-year-project-backend-8cte.onrender.com/images/default-product.jpg';" />
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: #333;">{name}</h4>
+                            <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #000;">{price}</p>
+                            <div style="display: flex; gap: 8px;">
+                                <a href="/product/1-{product_id}" style="color: #000; text-decoration: none; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; font-size: 14px; flex: 1; text-align: center;">View Details</a>
+                                <button class="add-to-cart-btn" data-id="1-{product_id}" data-name="{name}" data-price="{price}" data-image="{image_url}" style="color: white; background: #28a745; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px; cursor: pointer; flex: 1;">Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """
+            
+            return {
+                "message": f"Here are some great {category} options for you:\n\n{products_html}",
+                "isHtml": True,
+                "recommended_products": fallback_products
+            }
+        else:
+            return {"message": "I encountered an error while processing your question. Could we try again?"}
     
 def fetch_products_from_database():
     """
