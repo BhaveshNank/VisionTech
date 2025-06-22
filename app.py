@@ -1297,12 +1297,25 @@ def send_to_gemini(user_data, structured_products):
 
         response_data = response.json()
         generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
+        print(f"🔍 INITIAL GEMINI RESPONSE DEBUG: Got response length: {len(generated_text)}")
+        print(f"🔍 INITIAL GEMINI RESPONSE DEBUG: First 500 chars: {generated_text[:500]}...")
         
         # Extract JSON from Gemini response
         json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
         if not json_match:
-            print("❌ Failed to extract JSON from Gemini response")
-            return {"response_type": "recommendation", "message": "I couldn't find suitable products."}
+            print("❌ Failed to extract JSON from initial Gemini response")
+            print(f"Full response text: {generated_text}")
+            
+            # Try a more lenient pattern without language identifier
+            json_match = re.search(r'```\s*({.*?})\s*```', generated_text, re.DOTALL)
+            
+            if not json_match:
+                # Try a last resort pattern to find any JSON object
+                json_match = re.search(r'({[\s\S]*"message"[\s\S]*})', generated_text)
+                
+            if not json_match:
+                print("❌ All JSON extraction patterns failed for initial response")
+                return {"response_type": "recommendation", "message": "I couldn't find suitable products."}
 
         parsed_json = json.loads(json_match.group(1).strip())
         
