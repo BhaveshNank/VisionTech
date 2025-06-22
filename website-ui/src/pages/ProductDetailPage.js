@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { fetchProductById, fetchProductByName } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import eventSystem from '../utils/events';
+import { getImageUrl } from '../utils/imageUtils';
 import { 
   FaShoppingCart, 
   FaArrowLeft, 
@@ -367,7 +368,7 @@ const ProductDetailPage = () => {
               {/* Accepted Cards */}
               <div className="flex justify-start py-6">
                 <img 
-                  src="/images/cards.jpg" 
+                  src={getImageUrl("/images/cards.jpg")} 
                   alt="Accepted payment cards" 
                   className="h-28 w-auto object-contain"
                 />

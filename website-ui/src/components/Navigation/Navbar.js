@@ -1414,7 +1414,7 @@ const Navbar = () => {
                 >
                   <ProductImage>
                     <img 
-                      src="/static/images/ps5.jpg"
+                      src={getProductImageUrl("ps5.jpg")}
                       alt={product.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;
@@ -1450,7 +1450,7 @@ const Navbar = () => {
                 >
                   <ProductImage>
                     <img 
-                      src="/static/images/gamingheadphone.jpg"
+                      src={getProductImageUrl("gamingheadphone.jpg")}
                       alt={product.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/120x120?text=${encodeURIComponent(product.name)}`;

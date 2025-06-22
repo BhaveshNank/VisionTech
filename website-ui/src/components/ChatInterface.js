@@ -1042,7 +1042,7 @@ const ChatInterface = () => {
         {isOpen ? (
           <FaTimes style={{ fontSize: '20px' }} />
         ) : (
-          <img src="/images/mark_chatbot.jpg" alt="Mark - AI Assistant" />
+          <img src={getImageUrl("/images/mark_chatbot.jpg")} alt="Mark - AI Assistant" />
         )}
       </ChatButton>
       

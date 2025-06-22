@@ -2608,7 +2608,7 @@ const Home = () => {
       priceFrom: "From $999.00",
       originalPrice: "$1,099.00",
       description: "The most helpful Pixel yet, with advanced AI and the best Pixel camera system.",
-      image: getProductImageUrl("/images/googlepixel9proxl.jpg"),
+      image: getProductImageUrl("/images/google_pixel_9_pro.jpg"),
       link: "/product/1-google-pixel-9-pro-xl-phone"
     },
     {

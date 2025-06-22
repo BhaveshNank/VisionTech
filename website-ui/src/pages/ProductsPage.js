@@ -931,7 +931,7 @@ const ProductsPage = () => {
     });
     
     if (priceMin || priceMax) {
-      const label = `£${priceMin || '0'} - £${priceMax || '∞'}`;
+      const label = `$${priceMin || '0'} - $${priceMax || '∞'}`;
       filters.push({ type: 'price', label, value: null });
     }
     
@@ -1050,7 +1050,7 @@ const ProductsPage = () => {
           <FilterSection>
             <FilterTitle>Price Range</FilterTitle>
             <PriceRangeContainer>
-              <PriceRangeLabel>Set your budget (£)</PriceRangeLabel>
+              <PriceRangeLabel>Set your budget ($)</PriceRangeLabel>
               <PriceInputsRow>
                 <PriceInput 
                   type="number" 
