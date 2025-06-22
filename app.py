@@ -1799,8 +1799,15 @@ Respond naturally to their question while beginning this information gathering p
                     if matching_product and "image" in matching_product:
                         image = matching_product["image"]
                     else:
-                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
-                        image = f"{frontend_base_url}/images/default-product.jpg"
+                        image = "default-product.jpg"
+                
+                # Ensure image has full backend URL
+                if not image.startswith('http'):
+                    backend_base_url = 'https://final-year-project-backend-8cte.onrender.com'
+                    if image.startswith('/images/'):
+                        image = f"{backend_base_url}{image}"
+                    else:
+                        image = f"{backend_base_url}/images/{image}"
                 
                 # Create product ID for linking
                 product_id = name.lower().replace(" ", "-").replace("/", "-")
@@ -1903,8 +1910,15 @@ Respond naturally to their question while beginning this information gathering p
                     if matching_product and "image" in matching_product:
                         image = matching_product["image"]
                     else:
-                        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'https://final-year-project-taupe.vercel.app')
-                        image = f"{frontend_base_url}/images/default-product.jpg"
+                        image = "default-product.jpg"
+                
+                # Ensure image has full backend URL
+                if not image.startswith('http'):
+                    backend_base_url = 'https://final-year-project-backend-8cte.onrender.com'
+                    if image.startswith('/images/'):
+                        image = f"{backend_base_url}{image}"
+                    else:
+                        image = f"{backend_base_url}/images/{image}"
                 
                 # Create product ID for linking
                 product_id = name.lower().replace(" ", "-").replace("/", "-")
@@ -1985,7 +1999,15 @@ Respond naturally to their question while beginning this information gathering p
                 if matching_product and "image" in matching_product:
                     image = matching_product["image"]
                 else:
-                    image = f"http://localhost:5001/images/default-product.jpg"
+                    image = "default-product.jpg"
+            
+            # Ensure image has full backend URL
+            if not image.startswith('http'):
+                backend_base_url = 'https://final-year-project-backend-8cte.onrender.com'
+                if image.startswith('/images/'):
+                    image = f"{backend_base_url}{image}"
+                else:
+                    image = f"{backend_base_url}/images/{image}"
             
             # Create product ID for linking
             product_id = name.lower().replace(" ", "-").replace("/", "-")

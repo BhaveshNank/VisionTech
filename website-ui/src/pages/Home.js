@@ -709,7 +709,7 @@ const ShowcaseImage = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('/images/rogstrix.jpg');
+  background-image: url('${process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com'}/images/rogstrix.jpg');
   background-size: cover;
   background-position: center top;  // Changed from center to center top to preserve top of image
   background-repeat: no-repeat;
