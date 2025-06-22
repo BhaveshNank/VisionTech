@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 // You'll need to install react-icons: npm install react-icons
-import { FaGithub, FaLinkedin } from 'react-icons/fa';
+import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 
 const FooterContainer = styled.footer`
   background-color: #000000; /* Black background to match website theme */
@@ -187,6 +188,12 @@ const Footer = () => {
             Created by Bhavesh Nankani
           </FooterText>
           <SocialIcons>
+            <SocialIcon href="mailto:your.email@example.com" aria-label="Email">
+              <FaEnvelope />
+            </SocialIcon>
+            <SocialIcon href="https://x.com/bhaveshnankani" target="_blank" aria-label="X (Twitter)">
+              <FaXTwitter />
+            </SocialIcon>
             <SocialIcon href="https://github.com/bhaveshnankani" target="_blank" aria-label="GitHub">
               <FaGithub />
             </SocialIcon>
