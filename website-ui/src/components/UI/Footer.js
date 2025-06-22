@@ -188,16 +188,16 @@ const Footer = () => {
             Created by Bhavesh Nankani
           </FooterText>
           <SocialIcons>
-            <SocialIcon href="mailto:your.email@example.com" aria-label="Email">
+            <SocialIcon href="mailto:bhaveshnankani55@gmail.com" aria-label="Email">
               <FaEnvelope />
             </SocialIcon>
             <SocialIcon href="https://x.com/bhaveshnankani" target="_blank" aria-label="X (Twitter)">
               <FaXTwitter />
             </SocialIcon>
-            <SocialIcon href="https://github.com/bhaveshnankani" target="_blank" aria-label="GitHub">
+            <SocialIcon href="https://github.com/BhaveshNank" target="_blank" aria-label="GitHub">
               <FaGithub />
             </SocialIcon>
-            <SocialIcon href="https://linkedin.com/in/bhaveshnankani" target="_blank" aria-label="LinkedIn">
+            <SocialIcon href="https://www.linkedin.com/in/bhavesh-nankani/" target="_blank" aria-label="LinkedIn">
               <FaLinkedin />
             </SocialIcon>
           </SocialIcons>

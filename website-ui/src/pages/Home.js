@@ -2588,7 +2588,7 @@ const Home = () => {
       priceFrom: "From $1,199.00",
       originalPrice: "$1,299.00",
       description: "Experience the ultimate in mobile technology with A17 Pro chip and titanium design.",
-      image: getProductImageUrl("/images/iphone16sad.jpg"),
+      image: getProductImageUrl("/images/iphone_16_pro_max.jpg"),
       link: "/product/1-iphone-16-pro-max-phone"
     },
     {
@@ -2618,7 +2618,7 @@ const Home = () => {
       priceFrom: "From $1,999.00",
       originalPrice: "$2,199.00",
       description: "Revolutionary M4 chip delivers unprecedented performance for professionals and creators.",
-      image: getProductImageUrl("/images/default-product.jpg"),
+      image: getProductImageUrl("/images/macbook_m4_pro"),
       link: "/product/1-macbook-m4-pro-laptop"
     },
     {
@@ -2642,7 +2642,7 @@ const Home = () => {
     salePrice: '$2,159',
     savings: 'Save $240',
     offer: 'Student Discount Available',
-    image: '/images/default-product.jpg'
+    image: '/images/macbook_m4_pro.jpg'
   };
 
   const gridOffers = [
@@ -2650,28 +2650,28 @@ const Home = () => {
       id: 2,
       name: 'iPhone 16 Pro',
       offer: 'Trade-in deals up to $800 off',
-      image: '/images/iphone16sad.jpg',
+      image: '/images/iphone_16_pro_max.jpg',
       bgColor: '#f8f9fa'
     },
     {
       id: 3,
       name: 'Galaxy S24 Ultra',
       offer: 'Free Galaxy Watch7 with purchase',
-      image: '/images/default-product.jpg',
+      image: '/images/samsung_s24_ultra.jpg',
       bgColor: '#f0f7ff'
     },
     {
       id: 4,
       name: 'Sony 65" BRAVIA',
       offer: 'Extra 15% off with soundbar bundle',
-      image: '/images/tv.jpg',
+      image: '/images/sony_bravia_8.jpg',
       bgColor: '#fff5f0'
     },
     {
       id: 5,
       name: 'ASUS ROG Laptop',
       offer: 'Gaming bundle worth $300 included',
-      image: '/images/rogstrix.jpg',
+      image: '/images/asus_rog_strix_g16.jpg',
       bgColor: '#fef0f0'
     }
   ];

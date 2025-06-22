@@ -1377,7 +1377,7 @@ const Navbar = () => {
               <CategoryCard to="/products?category=tv">
                 <CategoryImage>
                   <img 
-                    src={tvData.featuredTvs[0]?.image || 'https://via.placeholder.com/120x120?text=📺'}
+                    src={getProductImageUrl("vizio_p_series.jpg")}
                     alt="TVs & Monitors"
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/120x120?text=📺';
