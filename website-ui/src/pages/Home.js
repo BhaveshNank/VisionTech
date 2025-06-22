@@ -2973,7 +2973,7 @@ const Home = () => {
                   {/* Image Side */}
                   <FeaturedImage>
                     <img 
-                      src={featuredOffer.image} 
+                      src={getImageUrl(featuredOffer.image)} 
                       alt={featuredOffer.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/300x200?text=${featuredOffer.name.replace(/\s+/g, '+')}`;
@@ -2991,7 +2991,7 @@ const Home = () => {
                   {/* Image */}
                   <GridCardImage>
                     <img 
-                      src={item.image} 
+                      src={getImageUrl(item.image)} 
                       alt={item.name}
                       onError={(e) => {
                         e.target.src = `https://via.placeholder.com/80x80?text=${item.name.replace(/\s+/g, '+')}`;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 // You'll need to install react-icons: npm install react-icons
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { FaGithub, FaLinkedin } from 'react-icons/fa';
 
 const FooterContainer = styled.footer`
   background-color: #000000; /* Black background to match website theme */
@@ -183,17 +183,14 @@ const Footer = () => {
             Your trusted partner for quality electronics. We provide expert recommendations 
             powered by AI to help you find the perfect tech products.
           </FooterText>
+          <FooterText style={{marginTop: '1rem', fontSize: '0.9rem', fontStyle: 'italic'}}>
+            Created by Bhavesh Nankani
+          </FooterText>
           <SocialIcons>
-            <SocialIcon href="https://facebook.com" target="_blank" aria-label="Facebook">
-              <FaFacebook />
+            <SocialIcon href="https://github.com/bhaveshnankani" target="_blank" aria-label="GitHub">
+              <FaGithub />
             </SocialIcon>
-            <SocialIcon href="https://twitter.com" target="_blank" aria-label="Twitter">
-              <FaTwitter />
-            </SocialIcon>
-            <SocialIcon href="https://instagram.com" target="_blank" aria-label="Instagram">
-              <FaInstagram />
-            </SocialIcon>
-            <SocialIcon href="https://linkedin.com" target="_blank" aria-label="LinkedIn">
+            <SocialIcon href="https://linkedin.com/in/bhaveshnankani" target="_blank" aria-label="LinkedIn">
               <FaLinkedin />
             </SocialIcon>
           </SocialIcons>
