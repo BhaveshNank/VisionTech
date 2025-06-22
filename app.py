@@ -1797,7 +1797,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='{frontend_base_url}/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='https://final-year-project-taupe.vercel.app/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
@@ -1901,7 +1901,7 @@ Respond naturally to their question while beginning this information gathering p
                     src="{image}" 
                     alt="{name}" 
                     style="width: 60px; height: 60px; object-fit: contain; margin-right: 15px; border-radius: 4px;" 
-                    onerror="this.onerror=null; this.src='{frontend_base_url}/images/default-product.jpg';" 
+                    onerror="this.onerror=null; this.src='https://final-year-project-taupe.vercel.app/images/default-product.jpg';" 
                     />
                     <div style="flex: 1;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 2px; color: #000;">{name}</div>
