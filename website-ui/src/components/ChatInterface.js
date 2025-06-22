@@ -750,6 +750,7 @@ const ChatInterface = () => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatInstanceId, setChatInstanceId] = useState('');
+  const [chatState, setChatState] = useState(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [manuallyDismissed, setManuallyDismissed] = useState(false);
@@ -910,11 +911,16 @@ const ChatInterface = () => {
     
     try {
       // Determine if this is the first message
-      const isFirstMessage = messages.length <= 1;
+      const isFirstMessage = messages.length === 1;
       
-      // Send the message with the instance ID to maintain session
-      const parsedResponse = await sendMessageToChatbot(messageText, isFirstMessage, chatInstanceId);
+      // Send the message with the instance ID and chat state to maintain session
+      const parsedResponse = await sendMessageToChatbot(messageText, isFirstMessage, chatInstanceId, chatState);
       console.log("🟢 Chatbot Response:", parsedResponse);
+      
+      // Update chat state from backend response
+      if (parsedResponse.chat_state) {
+        setChatState(parsedResponse.chat_state);
+      }
   
       // Add bot response to chat
       let botText = parsedResponse.reply || "Sorry, something went wrong.";
