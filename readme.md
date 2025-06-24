@@ -1,8 +1,13 @@
   # E-Commerce Platform
 
   An enhanced e-commerce platform with AI-powered chatbot integration for
-  electronics and gadgets, built as an advanced version of my Final Year
+  electronics and gadgets, an advanced version of my Final Year
   Project.
+
+  # 🌐 Live Demo
+  
+  - **Frontend:** https://vision-tech-beta.vercel.app
+  - **Backend API:** https://your-render-backend-url.onrender.com
 
   ## 🚀 Features
 
@@ -42,3 +47,55 @@
   - Node.js 14+
   - MongoDB
   - Google Gemini AI API Key
+
+ ## 🚀 Installation
+
+  1. **Clone the repository**
+     ```bash
+     git clone https://github.com/BhaveshNank/https://github.com/BhaveshNank/VisionTech.git
+     cd VisionTech
+
+  2. Backend Setup
+  pip install -r requirements-simple.txt
+  3. Frontend Setup
+  cd website-ui
+  npm install
+  npm run build
+  cd ..
+  4. Environment Variables
+  Create a .env file in the root directory:
+  SECRET_KEY=your_flask_secret_key
+  MONGODB_URI=your_mongodb_connection_string
+  GEMINI_API_KEY=your_gemini_api_key
+  ALLOWED_ORIGINS=http://localhost:3000,https://vision-tech-beta.vercel.app
+  5. Run the Application
+  python app.py
+
+  💻 Usage
+
+  1. Access the live demo at https://vision-tech-beta.vercel.app
+  2. Browse products by categories
+  3. Use the AI chatbot for product recommendations
+  4. Add items to cart and proceed to checkout
+  5. Register/login for personalized experience
+
+  🤖 AI Chatbot Features
+
+  - Product recommendations based on user queries
+  - Natural language understanding
+  - Context-aware responses
+  - Integration with product database
+
+  🔧 API Endpoints
+
+  - GET /api/products - Get all products
+  - POST /api/products - Add new product
+  - GET /api/categories - Get product categories
+  - POST /api/chat - Chatbot interaction
+  - POST /api/users/register - User registration
+  - POST /api/users/login - User login
+
+  👨‍💻 Author
+
+  Bhavesh Nankani
+  - GitHub: https://github.com/BhaveshNank
