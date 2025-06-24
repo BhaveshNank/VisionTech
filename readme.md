@@ -1,4 +1,4 @@
-  # E-Commerce Platform
+  # VisionTech: AI-Powered E-Commerce Platform
 
   An enhanced e-commerce platform with AI-powered chatbot integration for
   electronics and gadgets, an advanced version of my Final Year
@@ -99,3 +99,29 @@
 
   Bhavesh Nankani
   - GitHub: https://github.com/BhaveshNank
+
+## 📸 Screenshots
+
+### Homepage & Hero Section
+  ![Homepage](screenshots/homepage.png)
+  *Modern landing page with hero banner and featured products*
+
+  ### Navigation & Categories
+  ![Mega Menu](screenshots/mega-menu.png)
+  *Easy navigation with category-based mega menu*
+
+  ### Product Catalog with Filters
+  ![Products Page](screenshots/products_page.png)
+  *Browse products with advanced filtering and search capabilities*
+
+  ### Product Details & Specifications
+  ![Product Detail](screenshots/product-detail.png)
+  *Detailed product information with technical specifications*
+
+  ### Add to Cart Functionality
+  ![Add to Cart](screenshots/add-to-cart.png)
+  *Seamless add-to-cart experience with instant feedback*
+
+  ### Secure Checkout Process
+  ![Checkout](screenshots/checkout.png)
+  *Complete checkout flow with shipping and payment options*
