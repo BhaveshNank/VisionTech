@@ -601,20 +601,18 @@ def chat():
             message = gemini_response.get("message", "Let me help you find the perfect product.")
             converted_message = convert_markdown_to_html(message)
             
-            # Return response with HTML formatting
-            if "isHtml" in gemini_response and gemini_response["isHtml"]:
-                return jsonify({
-                    "reply": converted_message,
-                    "isHtml": True,
-                    "chat_state": chat_data
-                })
-            else:
-                # Even if Gemini didn't mark it as HTML, we still want to render the converted markdown
-                return jsonify({
-                    "reply": converted_message,
-                    "isHtml": True,  # Always set to True since we're converting markdown
-                    "chat_state": chat_data
-                })
+            # Prepare response with product recommendations
+            response_data = {
+                "reply": converted_message,
+                "isHtml": True,
+                "chat_state": chat_data
+            }
+            
+            # Add recommended products to the response if available
+            if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
+                response_data["recommended_products"] = gemini_response["recommended_products"]
+            
+            return jsonify(response_data)
 
         # Step 2: All subsequent messages go directly to Gemini
         elif chat_data["chat_stage"] == "gemini_conversation":
