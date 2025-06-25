@@ -586,8 +586,8 @@ def chat():
             # Add products to structured query
             structured_query["all_products"] = category_products
             
-            # Use the existing send_followup_to_gemini with modified query
-            gemini_response = send_followup_to_gemini(structured_query)
+            # Use send_to_gemini for initial conversation (not send_followup_to_gemini)
+            gemini_response = send_to_gemini(structured_query, structured_products)
             
             # Handle response
             if "recommended_products" in gemini_response and gemini_response["recommended_products"]:
@@ -1211,23 +1211,42 @@ def send_to_gemini(user_data, structured_products):
     # Convert products to JSON for Gemini
     products_json = json.dumps(all_products, indent=2)
 
-    # Prepare the requirements
+    # Handle both initial conversation and follow-up conversation data structures
     requirements = []
-    if user_data["purpose"]:
-        requirements.append(f"Will be used for: {user_data['purpose']}")
-    if user_data["features"]:
-        features_text = ", ".join(user_data["features"]) if isinstance(user_data["features"], list) else user_data["features"]
-        requirements.append(f"Desired features: {features_text}")
     
-    # Add brand preference if detected
-    if brand_preference:
-        requirements.append(f"Preferred brand: {brand_preference}")
+    # Check if this is an initial conversation (has user_message and conversation_history)
+    if "user_message" in user_data and "conversation_history" in user_data:
+        # This is initial conversation - extract requirements from user message
+        user_message = user_data["user_message"]
+        requirements.append(f"User request: {user_message}")
+        
+        # Extract any budget/brand info from the message
+        if any(char.isdigit() for char in user_message):
+            requirements.append(f"Budget mentioned in request")
+        
+        # Check for brand mentions
+        common_brands = ["apple", "samsung", "sony", "lg", "dell", "hp", "asus", "acer", "lenovo", "microsoft", "google", "oneplus", "xiaomi"]
+        for brand in common_brands:
+            if brand.lower() in user_message.lower():
+                requirements.append(f"Preferred brand: {brand}")
+                break
+    else:
+        # This is follow-up conversation - use existing logic
+        if user_data.get("purpose"):
+            requirements.append(f"Will be used for: {user_data['purpose']}")
+        if user_data.get("features"):
+            features_text = ", ".join(user_data["features"]) if isinstance(user_data["features"], list) else user_data["features"]
+            requirements.append(f"Desired features: {features_text}")
+        
+        # Add brand preference if detected
+        if brand_preference:
+            requirements.append(f"Preferred brand: {brand_preference}")
+        
+        # If we're using raw response mode, pass the budget and brand question response directly
+        if user_data.get("raw_response", False) and "budget_brand_response" in user_data:
+            requirements.append(f"Budget and brand preferences: {user_data['budget_brand_response']}")
     
-    # If we're using raw response mode, pass the budget and brand question response directly
-    if user_data.get("raw_response", False) and "budget_brand_response" in user_data:
-        requirements.append(f"Budget and brand preferences: {user_data['budget_brand_response']}")
-    
-    requirements_text = "\n".join([f"- {req}" for req in requirements])
+    requirements_text = "\n".join([f"- {req}" for req in requirements]) if requirements else "- General product inquiry"
 
     gpt_payload = {
         "contents": [
