@@ -6,8 +6,8 @@
 
   # 🌐 Live Demo
   
-  - **Frontend:** https://vision-tech-beta.vercel.app
-  - **Backend API:** https://your-render-backend-url.onrender.com
+https://vision-tech-beta.vercel.app
+
 
   ## 🚀 Features
 
