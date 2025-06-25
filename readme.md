@@ -125,3 +125,13 @@ https://vision-tech-beta.vercel.app
   ### Secure Checkout Process
   ![Checkout](screenshots/checkout.png)
   *Complete checkout flow with shipping and payment options*
+
+   ### AI-Powered Chatbot Conversation
+  ![Chatbot Conversation](screenshots/chatbot1.png)
+  *Natural conversation flow with Mark, the AI assistant, understanding 
+  user requirements and providing helpful guidance*
+
+  ### Intelligent Product Recommendations
+  ![Product Recommendations](screenshots/chatbot2.png)
+  *AI-powered product suggestions with detailed specifications, pricing, 
+  and instant add-to-cart functionality*
