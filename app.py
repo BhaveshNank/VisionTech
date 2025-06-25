@@ -553,19 +553,38 @@ def chat():
         
         # Step 1: Detect Product Category
         if chat_data["chat_stage"] == "detect_category":
-            detected_category = detect_product_category(user_message)
-            if not detected_category:
+            # Use Gemini to intelligently detect category and handle the conversation
+            category_detection_query = {
+                "user_message": user_message,
+                "task": "detect_category_and_respond",
+                "conversation_history": chat_data["conversation_history"],
+                "available_categories": ["phone", "laptop", "tv", "gaming", "audio"]
+            }
+            
+            # Get products from database
+            structured_products = fetch_products_from_database()
+            category_products = {}
+            for cat in ["phone", "laptop", "tv", "gaming", "audio"]:
+                category_products[cat] = structured_products.get(cat, [])
+            
+            gemini_response = generate_gemini_response(category_detection_query, category_products)
+            
+            # Check if Gemini detected a clear category
+            detected_category = gemini_response.get("detected_category")
+            if detected_category and detected_category in ["phone", "laptop", "tv", "gaming", "audio"]:
+                # Category detected - save it and move to Gemini conversation
+                chat_data["selected_category"] = detected_category
+                chat_data["chat_stage"] = "gemini_conversation"
+                chat_data["turn_count"] += 1
+                chat_data["conversation_history"].append({"role": "user", "message": user_message})
+            else:
+                # No clear category - Gemini will ask for clarification naturally
+                chat_data["conversation_history"].append({"role": "user", "message": user_message})
+                chat_data["conversation_history"].append({"role": "assistant", "message": gemini_response.get("message", "")})
                 return jsonify({
-                    "reply": "Could you clarify? Are you looking for a Phone, Laptop, TV, Gaming product, or Audio equipment?",
+                    "reply": gemini_response.get("message", "Could you clarify what type of product you're looking for?"),
                     "chat_state": chat_data
                 })
-            
-            # Category detected - save it and move to Gemini conversation
-            chat_data["selected_category"] = detected_category
-            chat_data["chat_stage"] = "gemini_conversation"
-            chat_data["turn_count"] += 1
-
-            chat_data["conversation_history"].append({"role": "user", "message": user_message})
             
             # Send to Gemini for natural conversation
             structured_query = {
@@ -1153,6 +1172,87 @@ def levenshtein_distance(s1, s2):
         previous_row = current_row
     
     return previous_row[-1]
+
+def generate_gemini_response(query_data, category_products):
+    """
+    Enhanced function to handle category detection and general conversation
+    """
+    task = query_data.get("task", "general")
+    user_message = query_data.get("user_message", "")
+    
+    if task == "detect_category_and_respond":
+        # Create a smart prompt for category detection
+        gpt_payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": f"""
+You are Mark, a helpful AI assistant at VisionTech electronics store. 
+
+User message: "{user_message}"
+
+Your task is to:
+1. Analyze if the user is looking for a specific product category
+2. Respond naturally and helpfully
+
+Available categories: phone, laptop, tv, gaming, audio
+
+If the user clearly wants a specific category (like "I need a phone", "looking for laptops", "gaming setup"), respond with a JSON like:
+```json
+{{
+  "detected_category": "phone",
+  "message": "Great! I'll help you find the perfect phone. What's your budget and how do you primarily use your phone?"
+}}
+```
+
+If the user asks general questions about products or their intent is unclear (like "I have questions about a product", "help me choose", "what do you sell"), respond with a JSON like:
+```json
+{{
+  "detected_category": null,
+  "message": "I'd be happy to help! Are you looking for a phone, laptop, TV, gaming equipment, or audio products? Let me know what interests you and I can provide personalized recommendations."
+}}
+```
+
+Always be conversational, helpful, and natural. Don't force rigid category selection.
+"""
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        try:
+            response = requests.post(endpoint, headers=headers, json=gpt_payload, timeout=30)
+            if response.status_code == 200:
+                response_data = response.json()
+                generated_text = response_data["candidates"][0]["content"]["parts"][0].get("text", "")
+                
+                # Extract JSON from response
+                json_match = re.search(r"```json\s*({.*?})\s*```", generated_text, re.DOTALL)
+                if json_match:
+                    return json.loads(json_match.group(1).strip())
+                else:
+                    # Fallback if no JSON found
+                    return {
+                        "detected_category": None,
+                        "message": "I'd be happy to help! What type of product are you looking for?"
+                    }
+            else:
+                print(f"❌ Gemini API Error: {response.text}")
+                return {
+                    "detected_category": None,
+                    "message": "I'd be happy to help! What type of product are you looking for?"
+                }
+        except Exception as e:
+            print(f"❌ Exception in generate_gemini_response: {str(e)}")
+            return {
+                "detected_category": None,
+                "message": "I'd be happy to help! What type of product are you looking for?"
+            }
+    
+    # For other tasks, use the existing send_to_gemini function
+    return send_to_gemini(query_data, category_products)
 
 def send_to_gemini(user_data, structured_products):
     """
