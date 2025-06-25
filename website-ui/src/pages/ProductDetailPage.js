@@ -122,10 +122,15 @@ const ProductDetailPage = () => {
     
     const productImage = product.image || `https://via.placeholder.com/500x400?text=${encodeURIComponent(product.name)}`;
     
+    // Parse price to ensure it's a clean number (same logic as ProductCard)
+    const parsedPrice = typeof product.price === 'string' 
+      ? parseFloat(product.price.replace(/[^0-9.-]+/g, '')) 
+      : parseFloat(product.price) || 0;
+
     const cartItem = {
       id: product.id || id,
       name: product.name,
-      price: parseFloat(product.price) || 0,
+      price: parsedPrice,
       image: productImage,
       quantity: 1
     };
