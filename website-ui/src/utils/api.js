@@ -10,7 +10,7 @@ async function fetchProducts(category = 'all', brand = '') {
         }
         
         // Make request
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://visiontech-backend.onrender.com';
         const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`);
         
         if (!response.ok) {
@@ -36,7 +36,7 @@ async function fetchProductById(productId) {
     }
     
     // Try the new single product endpoint first
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://visiontech-backend.onrender.com';
     const response = await fetch(`${API_BASE_URL}/api/product/${encodeURIComponent(productId)}`);
     
     if (response.ok) {
@@ -108,7 +108,7 @@ async function fetchProductById(productId) {
 } */
 
 function sendInquiry(data) {
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com';
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://visiontech-backend.onrender.com';
     return fetch(`${API_BASE_URL}/api/inquiry`, {
         method: 'POST',
         headers: {
@@ -128,7 +128,7 @@ async function sendMessageToChatbot(userMessage, isFirstMessage = false, instanc
     try {
         console.log(`🔵 Sending message to chatbot${isFirstMessage ? ' (first message)' : ''}:`, userMessage);
         
-        const API_BASE_URL = 'https://final-year-project-backend-8cte.onrender.com';
+        const API_BASE_URL = 'https://visiontech-backend.onrender.com';
         
         const payload = { 
             message: userMessage,
@@ -171,7 +171,7 @@ const fetchProductByName = async (productName) => {
     console.log("Normalized search term:", normalizedName);
     
     // Get all products from API
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://final-year-project-backend-8cte.onrender.com'}/api/products`);
+    const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://visiontech-backend.onrender.com'}/api/products`);
     
     if (!response.ok) {
       console.error(`API error: ${response.status}`);
